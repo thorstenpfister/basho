@@ -225,7 +225,7 @@ cmd/basho-data/main.go         developer tool: snapshot, rating calibration, por
 data/                          embedded snapshot, rating parameters, portraits (go:embed)
 internal/
   domain/                     pure types and logic, no I/O
-    basho.go  rank.go  bout.go  rikishi.go  outcome.go  calendar.go
+    basho.go  rank.go  bout.go  rikishi.go  outcome.go  calendar.go  jst.go
   derive/                     computed views (standings, kinboshi, last-N, h2h, as-of cutoffs)
   snapshot/                   loads the embedded snapshot; bout index (§5.8)
   rating/                     Elo-style ratings and win probability (§6.8)
@@ -243,7 +243,7 @@ internal/
   live/                       live-window scheduler and poller
   spoiler/                    reveal horizon (how far the user has revealed results) and its persistence
   config/                     config file, environment, flags, defaults
-  clock/                      Clock interface (real or fake) and JST helpers
+  clock/                      Clock interface (real or fake); JST lives in domain/jst.go
   tui/
     app.go                    root model, screen stack, global keys, status bar
     theme/                    Lip Gloss styles, adaptive colours, glyph sets
@@ -452,7 +452,7 @@ The rule: **standard library first.** A third-party module is only added when it
 | JSON | `encoding/json` |
 | Logging (debug log) | `log/slog` |
 | Embedded data | `embed` |
-| JST without a system time zone database | `time/tzdata` |
+| JST | `time.FixedZone` (UTC+9; Japan has had no DST since 1951), checked against `Asia/Tokyo` in a test |
 | Hashing (cache keys, manifest checksums) | `crypto/sha256` |
 
 **Build and test only:**
@@ -1141,7 +1141,7 @@ adjacent_days = false
 - **Rating tests:** Elo update maths and the starting-rating and absence rules on a tiny hand-made bout set. A regression test pins the calibration metrics of the committed `params.json`, so a model change has to show it doesn't get worse.
 - **Portrait pipeline tests:** crop, downscale and quantize are deterministic on a fixture image (golden PNG). Licence allow-list, credits generation and the half-block renderer (golden text) are covered too.
 - **Adapter contract tests:** one suite runs against both adapters with their fixtures and checks that the domain output is equivalent for the same tournament and day.
-- **httpx tests** (`httptest.Server`): rate limit timing (fake clock), retry and jitter limits, 429 + `Retry-After`, circuit breaker state changes, ETag/304, singleflight.
+- **httpx tests** (`httptest.Server`): rate limit timing (inside `testing/synctest`, so `internal/clock` stays a plain `Now()` clock), retry and jitter limits, 429 + `Retry-After`, circuit breaker state changes, ETag/304, singleflight.
 - **Cache tests:** TTL per data class, stale-while-revalidate, LRU eviction, schema version change.
 - **Request-budget tests:** a counting `RoundTripper` checks the numbers in §7.3.
 - **Live scheduler tests:** fake clock covering the window, jitter range, doubling interval, stop conditions and day 15 extension.
@@ -1155,7 +1155,7 @@ adjacent_days = false
 ## 14. Build, release, distribution
 
 - **Go version:** the current stable release (1.27 locally); the `go` directive in `go.mod` follows it (currently `go 1.27`).
-- **Time zone data** is compiled in (`import _ "time/tzdata"`), so JST works without a system time zone database.
+- **JST** is a fixed UTC+9 zone (`internal/domain`), exact for 1960 onwards, so no time zone database is needed at runtime.
 - **Task runner:** a `Makefile` (§14.1). `make check` is the full check, run locally before committing (D28).
 - **Build information:** only the version (`git describe --tags --always`) is set via `-ldflags -X` on `internal/buildinfo`. Commit, dirty flag and commit time come from the Go toolchain's VCS stamping, so there is one source for them. The snapshot date isn't an ldflag either: `basho version` reads it from the embedded manifest, so it can never be out of sync.
 - **Build targets:** darwin/arm64, darwin/amd64, linux/amd64, linux/arm64. Only `cmd/basho` is released; `cmd/basho-data` is never shipped.
@@ -1294,7 +1294,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 2. Add the dependencies from §5.9, including the `tool` directives for gofumpt and govulncheck. Before writing TUI code, read the actual Charm v2 sources and examples, because the v2 APIs differ from v1.
 3. `cmd/basho/main.go` with Fang and `basho version` (build information via ldflags); an empty `cmd/basho-data/main.go`.
 4. Tooling: `Makefile` with every target from §14.1 (later targets print "not implemented yet" until their phase), `.golangci.yml` (including a depguard rule that bans the v1 Charm imports `github.com/charmbracelet/bubbletea`, `lipgloss`, `bubbles` and the non-`/v2` `x/exp/teatest`, in test files too), `tool` directives in `go.mod` (§5.9), `.editorconfig`, `.gitignore` (`bin/`, `dist/`, `.cache/`, `coverage.*`).
-5. `clock` package (real and fake), JST helpers, `time/tzdata` import.
+5. `clock` package (real and fake clock); JST and day helpers in `domain/jst.go`.
 6. Short README with a project description and data source credits.
 
 **AC:** `make check` and `make build` pass; `make help` lists every target; `basho version` prints version, commit and date.
@@ -1306,6 +1306,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
    - `Rank` parsing for English strings, `Short()`, `SortKey()`
    - the `Outcome` enum and `BashoID` validation
    - the calendar: fixed months, second-Sunday estimate, list of cancelled tournaments, venue by month, tournament names
+   - decide the date representation first: a small `domain.Date` value type (year, month, day; `==`-comparable, usable as a map key, prints as `2026-11-08`) or `time.Time` at JST midnight. Record the choice in §5.2.
    - tournament argument parsing (D18)
 2. Kimarite table as embedded data: 82 techniques plus non-techniques, each with romaji, kanji, English gloss and moveset category (§6.7).
 3. Name cleanup (§5.6).
