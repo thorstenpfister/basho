@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/fixture"
 	"github.com/thorstenpfister/basho/internal/httpx"
@@ -74,7 +75,7 @@ func (r *Recorder) Run(ctx context.Context) error {
 		if time.Since(next) > grace {
 			continue
 		}
-		if err := sleepUntil(ctx, next); err != nil {
+		if err := clock.Sleep(ctx, time.Until(next)); err != nil {
 			return err
 		}
 		if late := time.Since(next); late > grace {
@@ -210,19 +211,4 @@ func writeFileAtomic(path string, data []byte) error {
 		return err
 	}
 	return os.Rename(tmp, path)
-}
-
-func sleepUntil(ctx context.Context, t time.Time) error {
-	d := time.Until(t)
-	if d <= 0 {
-		return nil
-	}
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-timer.C:
-		return nil
-	}
 }

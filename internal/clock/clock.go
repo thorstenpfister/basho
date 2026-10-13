@@ -1,6 +1,7 @@
 package clock
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -38,4 +39,16 @@ func (f *Fake) Advance(d time.Duration) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.now = f.now.Add(d)
+}
+
+// Sleep waits for d or until ctx is done, whichever comes first.
+func Sleep(ctx context.Context, d time.Duration) error {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-t.C:
+		return nil
+	}
 }
