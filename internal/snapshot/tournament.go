@@ -124,7 +124,7 @@ func EncodeTournament(t Tournament) ([]byte, error) {
 	bouts := slices.Clone(t.Bouts)
 	SortBouts(bouts)
 	ranked := banzukeSides(t.Banzuke)
-	dayBouts := boutsByDay(bouts)
+	dayBouts := BoutsByDay(bouts)
 
 	f := tournamentFile{
 		versioned: versioned{Schema},
@@ -144,7 +144,7 @@ func EncodeTournament(t Tournament) ([]byte, error) {
 					return nil, fmt.Errorf("%s: wrestler %d day %d: outcome %d", t.Basho.ID, e.RikishiID, i+1, r.Outcome)
 				}
 				rec.WriteByte(outcomeLetters[r.Outcome])
-				if opp, k := dayBouts.opponent(e.RikishiID, i+1); opp != r.OpponentID || k != r.Kimarite {
+				if opp, k := dayBouts.Opponent(e.RikishiID, i+1); opp != r.OpponentID || k != r.Kimarite {
 					ef.Except = append(ef.Except, exceptionFile{i + 1, r.OpponentID, r.Kimarite})
 				}
 			}
@@ -197,7 +197,7 @@ func DecodeTournament(b []byte) (Tournament, error) {
 			Winner: bf.Winner, Kimarite: bf.Kimarite, IsPlayoff: bf.Playoff,
 		})
 	}
-	dayBouts := boutsByDay(t.Bouts)
+	dayBouts := BoutsByDay(t.Bouts)
 	for div, entries := range f.Banzuke {
 		out := make([]domain.BanzukeEntry, 0, len(entries))
 		for _, ef := range entries {
@@ -210,7 +210,7 @@ func DecodeTournament(b []byte) (Tournament, error) {
 				if o < 0 {
 					return Tournament{}, fmt.Errorf("%s: wrestler %d: record %q", f.ID, ef.ID, ef.Record)
 				}
-				opp, k := dayBouts.opponent(ef.ID, i+1)
+				opp, k := dayBouts.Opponent(ef.ID, i+1)
 				e.Results[i] = domain.DayResult{Outcome: domain.Outcome(o), OpponentID: opp, Kimarite: k}
 			}
 			for _, x := range ef.Except {
@@ -253,16 +253,17 @@ func (s sides) full(f sideFile) domain.BoutSide {
 	return domain.BoutSide{RikishiID: f.ID, Shikona: domain.Name{En: f.En, Jp: f.Jp, Kana: f.Kana}, Rank: f.Rank}
 }
 
-// dayIndex finds a wrestler's regular bout of a day.
-type dayIndex map[dayKey]domain.Bout
+// DayIndex finds a wrestler's regular (non-playoff) bout of a day.
+type DayIndex map[dayKey]domain.Bout
 
 type dayKey struct {
 	id  domain.RikishiID
 	day int
 }
 
-func boutsByDay(bouts []domain.Bout) dayIndex {
-	idx := dayIndex{}
+// BoutsByDay indexes bouts by wrestler and day.
+func BoutsByDay(bouts []domain.Bout) DayIndex {
+	idx := DayIndex{}
 	for _, b := range bouts {
 		if b.IsPlayoff {
 			continue
@@ -273,9 +274,15 @@ func boutsByDay(bouts []domain.Bout) dayIndex {
 	return idx
 }
 
-// opponent returns what a banzuke record says by default for a day: the
+// Bout returns id's regular bout of day.
+func (idx DayIndex) Bout(id domain.RikishiID, day int) (domain.Bout, bool) {
+	b, ok := idx[dayKey{id, day}]
+	return b, ok
+}
+
+// Opponent returns what a banzuke record says by default for a day: the
 // opponent and kimarite of that day's bout.
-func (idx dayIndex) opponent(id domain.RikishiID, day int) (domain.RikishiID, domain.Kimarite) {
+func (idx DayIndex) Opponent(id domain.RikishiID, day int) (domain.RikishiID, domain.Kimarite) {
 	b, ok := idx[dayKey{id, day}]
 	switch {
 	case !ok:

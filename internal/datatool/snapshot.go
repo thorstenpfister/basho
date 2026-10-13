@@ -111,6 +111,11 @@ func UpdateSnapshot(ctx context.Context, src SnapshotSource, cfg SnapshotConfig,
 		case err != nil:
 			return plan, fmt.Errorf("%s: %w", id, err)
 		}
+		// Oddities in the source are logged, not fatal: verify decides,
+		// with known-issues.txt for the accepted ones.
+		for _, p := range verifyTournament(t) {
+			_, _ = fmt.Fprintf(log, "%s: %s\n", id, p)
+		}
 		data, err := encodeChecked(t)
 		if err != nil {
 			return plan, fmt.Errorf("%s: %w", id, err)

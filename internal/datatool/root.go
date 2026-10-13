@@ -128,8 +128,39 @@ func newSnapshotCmd(info buildinfo.Info) *cobra.Command {
 	f.StringVar(&to, "to", "", "last tournament (YYYYMM, default the newest finished)")
 	f.DurationVar(&cfg.Interval, "interval", time.Second, "time between requests; at least 1s")
 	f.BoolVar(&cfg.DryRun, "dry-run", false, "print the plan and an estimated duration without fetching")
+	var dir string
+	verify := &cobra.Command{
+		Use:   "verify",
+		Short: "Check checksums, schema, and bouts against banzuke records",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			problems, err := VerifySnapshot(os.DirFS(dir))
+			if err != nil {
+				return err
+			}
+			for _, p := range problems {
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), p)
+			}
+			if len(problems) > 0 {
+				return fmt.Errorf("%d problems in %s", len(problems), dir)
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s: ok\n", dir)
+			return err
+		},
+	}
+	stats := &cobra.Command{
+		Use:   "stats",
+		Short: "Sizes and coverage of the snapshot",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return SnapshotStats(os.DirFS(dir), cmd.OutOrStdout())
+		},
+	}
+	for _, c := range []*cobra.Command{verify, stats} {
+		c.Flags().StringVar(&dir, "dir", "data/snapshot", "snapshot directory")
+	}
 	snap := &cobra.Command{Use: "snapshot", Short: "The embedded snapshot of finished tournaments"}
-	snap.AddCommand(update)
+	snap.AddCommand(update, verify, stats)
 	return snap
 }
 

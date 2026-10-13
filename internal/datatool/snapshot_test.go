@@ -27,7 +27,7 @@ func (f *fakeSource) Basho(_ context.Context, id domain.BashoID) (domain.Basho, 
 	start := id.EstimatedStart()
 	b := domain.Basho{ID: id, Start: start, End: start.AddDays(14), Yusho: map[domain.Division]domain.RikishiID{}}
 	if !f.unfinal[id] {
-		b.Yusho[domain.DivMakuuchi] = 1
+		b.Yusho[domain.DivMakuuchi], _ = wrestlers(domain.DivMakuuchi)
 	}
 	return b, nil
 }

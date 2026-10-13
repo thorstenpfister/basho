@@ -44,6 +44,14 @@ func (m Manifest) Has(id domain.BashoID) bool {
 	return ok
 }
 
+// Oldest returns the oldest tournament, or the zero BashoID for an empty snapshot.
+func (m Manifest) Oldest() domain.BashoID {
+	if len(m.Basho) == 0 {
+		return domain.BashoID{}
+	}
+	return m.Basho[0]
+}
+
 // Newest returns the newest tournament, or the zero BashoID for an empty snapshot.
 func (m Manifest) Newest() domain.BashoID {
 	if len(m.Basho) == 0 {

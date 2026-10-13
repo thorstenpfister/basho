@@ -89,14 +89,17 @@ record: build ## Live recorder for tournament days, ARGS passed on (SPEC Appendi
 	$(call confirm,basho-data record calls osada.us and sumo-api.com about 5 times per tick during the live window.)
 	$(BIN)/basho-data record $(ARGS)
 
-snapshot: ## Update and verify the embedded snapshot (phase 3)
-	$(todo)
+snapshot: build ## Update and verify the embedded snapshot, ARGS passed on (SPEC §4.3)
+	$(BIN)/basho-data snapshot update --dry-run $(ARGS)
+	$(call confirm,basho-data snapshot update fetches the tournaments above from sumo-api.com at 1 request per second.)
+	$(BIN)/basho-data snapshot update $(ARGS)
+	$(BIN)/basho-data snapshot verify
 
-snapshot-verify: ## Verify the embedded snapshot (phase 3)
-	$(todo)
+snapshot-verify: build ## Verify the embedded snapshot (phase 3)
+	$(BIN)/basho-data snapshot verify
 
-snapshot-stats: ## Snapshot sizes and coverage (phase 3)
-	$(todo)
+snapshot-stats: build ## Snapshot sizes and coverage (phase 3)
+	$(BIN)/basho-data snapshot stats
 
 calibrate: ## Calibrate the rating model (phase 5)
 	$(todo)
