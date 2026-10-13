@@ -54,7 +54,10 @@ func newRecordCmd(info buildinfo.Info) *cobra.Command {
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 			r := Recorder{Config: cfg, HTTP: newRecordClient(info), Log: cmd.ErrOrStderr()}
-			return r.Run(ctx)
+			if err := r.Run(ctx); err != nil && ctx.Err() == nil {
+				return err
+			}
+			return nil // a stop signal is a normal end: exit 0, so launchd does not restart it
 		},
 	}
 	f := cmd.Flags()
