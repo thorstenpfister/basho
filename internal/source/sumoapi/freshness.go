@@ -24,7 +24,6 @@ const (
 	ttlCurrent  = time.Hour          // current tournament outside the live window
 	ttlIndex    = 7 * 24 * time.Hour // the wrestler index
 	ttlNotFound = 6 * time.Hour      // a tournament sumo-api does not have yet
-	finalMargin = 2                  // days after the end before a tournament counts as final
 	defaultLive = 3 * time.Minute    // the live interval of SPEC §10.2
 )
 
@@ -62,8 +61,7 @@ func (f Freshness) Policy(rawURL string, status int, body []byte, now time.Time)
 	today := domain.DateOf(now)
 
 	if len(parts) >= 4 && parts[3] == "banzuke" {
-		end := id.EstimatedStart().AddDays(domain.BashoDays - 1)
-		if today.DaysSince(end) >= finalMargin {
+		if today.DaysSince(id.EstimatedEnd()) >= domain.FinalMargin {
 			return 0, true
 		}
 		return f.current(now, false), false
@@ -82,7 +80,7 @@ func (f Freshness) Policy(rawURL string, status int, body []byte, now time.Time)
 		return ttlNotFound, false
 	}
 	start, end := domain.DateOf(dto.StartDate), domain.DateOf(dto.EndDate)
-	if today.DaysSince(end) >= finalMargin && len(dto.Yusho) > 0 {
+	if domain.IsFinal(end, len(dto.Yusho) > 0, today) {
 		return 0, true
 	}
 	if len(parts) == 6 && parts[3] == "torikumi" {

@@ -3,6 +3,7 @@ package snapshot
 import (
 	"cmp"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -14,6 +15,21 @@ type Tournament struct {
 	Basho   domain.Basho
 	Banzuke map[domain.Division][]domain.BanzukeEntry
 	Bouts   []domain.Bout // in SortBouts order once decoded
+}
+
+// RikishiIDs returns everyone on the banzuke or in a bout, including
+// visitors from Makushita.
+func (t Tournament) RikishiIDs() []domain.RikishiID {
+	seen := map[domain.RikishiID]bool{}
+	for _, entries := range t.Banzuke {
+		for _, e := range entries {
+			seen[e.RikishiID] = true
+		}
+	}
+	for _, b := range t.Bouts {
+		seen[b.East.RikishiID], seen[b.West.RikishiID] = true, true
+	}
+	return slices.Sorted(maps.Keys(seen))
 }
 
 // SortBouts puts bouts in the snapshot's canonical order: by day, division,

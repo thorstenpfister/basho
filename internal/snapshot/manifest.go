@@ -4,7 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"slices"
 	"time"
 
@@ -27,12 +29,13 @@ func TournamentPath(id domain.BashoID) string { return "basho/" + id.String() + 
 // Manifest describes a snapshot: what it contains and how to check it. It is
 // stored as indented JSON so updates show up as readable diffs.
 type Manifest struct {
-	Schema      int               `json:"schema"`
-	Generator   string            `json:"generator"` // basho-data version
-	GeneratedAt time.Time         `json:"generatedAt"`
-	Source      string            `json:"source"`
-	Basho       []domain.BashoID  `json:"basho"` // ascending
-	Files       map[string]string `json:"files"` // path → SHA-256, hex
+	Schema       int               `json:"schema"`
+	Generator    string            `json:"generator"` // basho-data version
+	GeneratedAt  time.Time         `json:"generatedAt"`
+	Source       string            `json:"source"`
+	Basho        []domain.BashoID  `json:"basho"`        // ascending
+	IndexThrough domain.BashoID    `json:"indexThrough"` // newest tournament the wrestler index covers
+	Files        map[string]string `json:"files"`        // path → SHA-256, hex
 }
 
 // Has reports whether the snapshot contains tournament id.
@@ -47,6 +50,32 @@ func (m Manifest) Newest() domain.BashoID {
 		return domain.BashoID{}
 	}
 	return m.Basho[len(m.Basho)-1]
+}
+
+// ReadManifest reads the manifest of the snapshot in fsys. A missing
+// manifest is an empty snapshot.
+func ReadManifest(fsys fs.FS) (Manifest, error) {
+	data, err := fs.ReadFile(fsys, ManifestPath)
+	if errors.Is(err, fs.ErrNotExist) {
+		return Manifest{Schema: Schema}, nil
+	}
+	if err != nil {
+		return Manifest{}, err
+	}
+	return DecodeManifest(data)
+}
+
+// ReadTournament reads and decodes one tournament of the snapshot in fsys.
+func ReadTournament(fsys fs.FS, id domain.BashoID) (Tournament, error) {
+	data, err := fs.ReadFile(fsys, TournamentPath(id))
+	if err != nil {
+		return Tournament{}, err
+	}
+	t, err := DecodeTournament(data)
+	if err != nil {
+		return Tournament{}, fmt.Errorf("%s: %w", id, err)
+	}
+	return t, nil
 }
 
 // EncodeManifest returns the manifest file's content.

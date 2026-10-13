@@ -14,8 +14,8 @@ import (
 // DefaultBaseURL is sumo-api.com's API root.
 const DefaultBaseURL = "https://www.sumo-api.com"
 
-// pageSize is the largest page /rikishis returns (V4).
-const pageSize = 1000
+// PageSize is the largest page /rikishis returns (V4).
+const PageSize = 1000
 
 // Client reads sumo-api.com.
 type Client struct {
@@ -68,16 +68,16 @@ func (c *Client) Torikumi(ctx context.Context, id domain.BashoID, div domain.Div
 // RikishiIndex returns every wrestler, retired ones included, page by page.
 func (c *Client) RikishiIndex(ctx context.Context) ([]domain.Rikishi, error) {
 	var all []domain.Rikishi
-	for skip := 0; ; skip += pageSize {
+	for skip := 0; ; skip += PageSize {
 		var page rikishiPageDTO
-		path := fmt.Sprintf("/api/rikishis?intai=true&limit=%d&skip=%d", pageSize, skip)
+		path := fmt.Sprintf("/api/rikishis?intai=true&limit=%d&skip=%d", PageSize, skip)
 		if err := c.getJSON(ctx, path, &page); err != nil {
 			return nil, err
 		}
 		for _, r := range page.Records {
 			all = append(all, mapRikishi(r))
 		}
-		if len(page.Records) < pageSize || len(all) >= page.Total {
+		if len(page.Records) < PageSize || len(all) >= page.Total {
 			return all, nil
 		}
 	}

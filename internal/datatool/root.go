@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/thorstenpfister/basho/internal/buildinfo"
+	"github.com/thorstenpfister/basho/internal/cache"
 	"github.com/thorstenpfister/basho/internal/cli"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/httpx"
@@ -26,7 +27,7 @@ func NewRoot(info buildinfo.Info) *cobra.Command {
 		Args:  cobra.NoArgs,
 	}
 	cli.SetVersion(root, info)
-	root.AddCommand(newRecordCmd(info), newFixturesCmd(info))
+	root.AddCommand(newRecordCmd(info), newFixturesCmd(info), newSnapshotCmd(info))
 	return root
 }
 
@@ -89,14 +90,66 @@ func newRecordCmd(info buildinfo.Info) *cobra.Command {
 	return cmd
 }
 
-func newRecordClient(info buildinfo.Info) *httpx.Client {
-	return httpx.New(httpx.Options{
-		UserAgent: httpx.UserAgent(info.Version),
-		Hosts: map[string]httpx.HostPolicy{ // SPEC §7.1
-			host(sumoapi.DefaultBaseURL): {Interval: time.Second},
-			host(osada.DefaultBaseURL):   {Interval: 20 * time.Second},
+func newSnapshotCmd(info buildinfo.Info) *cobra.Command {
+	cfg := SnapshotConfig{Generator: info.Version}
+	var from, to, workCache string
+	update := &cobra.Command{
+		Use:   "update",
+		Short: "Add finished tournaments missing from the snapshot (about 33 requests each)",
+		Long: "update fetches every finished tournament between --from and --to that the manifest\n" +
+			"does not list yet, then rewrites the wrestler index. Responses go through a work\n" +
+			"cache, so an interrupted run resumes without fetching anything twice (SPEC §4.3).",
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			var err error
+			if cfg.From, err = optionalBashoID(from); err != nil {
+				return err
+			}
+			if cfg.To, err = optionalBashoID(to); err != nil {
+				return err
+			}
+			if cfg.Interval < time.Second {
+				return fmt.Errorf("the interval must be at least 1s for sumo-api, not %s", cfg.Interval)
+			}
+			cfg.Today = domain.DateOf(time.Now())
+			c, err := cache.Open(workCache, 4<<30)
+			if err != nil {
+				return err
+			}
+			g := &cache.Getter{Cache: c, Next: newClient(info, cfg.Interval, false), Policy: sumoapi.Freshness{}.Policy}
+			_, err = UpdateSnapshot(cmd.Context(), sumoapi.New(g, sumoapi.DefaultBaseURL), cfg, cmd.ErrOrStderr())
+			return err
 		},
-	})
+	}
+	f := update.Flags()
+	f.StringVar(&cfg.Dir, "dir", "data/snapshot", "snapshot directory")
+	f.StringVar(&workCache, "cache", ".cache/basho-data", "work cache directory")
+	f.StringVar(&from, "from", "", "first tournament (YYYYMM, default 196001)")
+	f.StringVar(&to, "to", "", "last tournament (YYYYMM, default the newest finished)")
+	f.DurationVar(&cfg.Interval, "interval", time.Second, "time between requests; at least 1s")
+	f.BoolVar(&cfg.DryRun, "dry-run", false, "print the plan and an estimated duration without fetching")
+	snap := &cobra.Command{Use: "snapshot", Short: "The embedded snapshot of finished tournaments"}
+	snap.AddCommand(update)
+	return snap
+}
+
+func optionalBashoID(s string) (domain.BashoID, error) {
+	if s == "" {
+		return domain.BashoID{}, nil
+	}
+	return domain.ParseBashoID(s)
+}
+
+func newRecordClient(info buildinfo.Info) *httpx.Client { return newClient(info, time.Second, true) }
+
+// newClient returns the polite client for sumo-api at interval per request,
+// and osada.us at its fixed 20 s if wanted (SPEC §7.1).
+func newClient(info buildinfo.Info, interval time.Duration, withOsada bool) *httpx.Client {
+	hosts := map[string]httpx.HostPolicy{host(sumoapi.DefaultBaseURL): {Interval: interval}}
+	if withOsada {
+		hosts[host(osada.DefaultBaseURL)] = httpx.HostPolicy{Interval: 20 * time.Second}
+	}
+	return httpx.New(httpx.Options{UserAgent: httpx.UserAgent(info.Version), Hosts: hosts})
 }
 
 func host(base string) string {

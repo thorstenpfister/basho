@@ -1350,7 +1350,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 6. Fixture snapshot (3 tournaments) for tests; equivalence tests between the snapshot path and the adapter path.
 7. Run the full build once (about 4 hours, not on a tournament day), measure V8, commit `data/snapshot/`.
 
-**AC:** with network access blocked, any tournament from 196001 to the snapshot's newest one loads in under 100 ms; `verify` passes on the committed snapshot; a second `snapshot update` without new tournaments makes no requests apart from the manifest check.
+**AC:** with network access blocked, any tournament from 196001 to the snapshot's newest one loads in under 100 ms; `verify` passes on the committed snapshot; a second `snapshot update` without new tournaments makes no requests, apart from one metadata request for a tournament past its estimated end that is not final yet (cached for an hour).
 
 ### Phase 4: Derived data engine
 

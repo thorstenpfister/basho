@@ -93,3 +93,13 @@ func TestHeld(t *testing.T) {
 		}
 	}
 }
+
+func TestIsFinal(t *testing.T) {
+	end := NewDate(2026, time.September, 27)
+	if IsFinal(end, true, end.AddDays(1)) || !IsFinal(end, true, end.AddDays(2)) || IsFinal(end, false, end.AddDays(30)) {
+		t.Error("IsFinal: want end + 2 days and a yusho")
+	}
+	if got := (BashoID{2026, time.September}).EstimatedEnd(); got != end {
+		t.Errorf("EstimatedEnd = %v", got)
+	}
+}

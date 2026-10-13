@@ -100,3 +100,16 @@ func MostRecentTournament(d Date) BashoID {
 // DayDate returns the date of tournament day n (1-based) for a tournament that
 // starts on start.
 func DayDate(start Date, n int) Date { return start.AddDays(n - 1) }
+
+// EstimatedEnd returns day 15 of EstimatedStart.
+func (b BashoID) EstimatedEnd() Date { return b.EstimatedStart().AddDays(BashoDays - 1) }
+
+// FinalMargin is how many days after its end a tournament's data counts as
+// final: late corrections happen (SPEC §7.2).
+const FinalMargin = 2
+
+// IsFinal reports whether a tournament that ended on end is final as of
+// today: FinalMargin days have passed and a yusho winner is known.
+func IsFinal(end Date, hasYusho bool, today Date) bool {
+	return hasYusho && today.DaysSince(end) >= FinalMargin
+}
