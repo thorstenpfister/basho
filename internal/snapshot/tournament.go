@@ -35,10 +35,12 @@ func (t Tournament) RikishiIDs() []domain.RikishiID {
 // SortBouts puts bouts in the snapshot's canonical order: by day, division,
 // regular bouts before playoffs, then match number.
 func SortBouts(bouts []domain.Bout) {
-	slices.SortStableFunc(bouts, func(a, b domain.Bout) int {
-		return cmp.Or(cmp.Compare(a.Day, b.Day), cmp.Compare(a.Division, b.Division),
-			boolCompare(a.IsPlayoff, b.IsPlayoff), cmp.Compare(a.MatchNo, b.MatchNo))
-	})
+	slices.SortStableFunc(bouts, compareBouts)
+}
+
+func compareBouts(a, b domain.Bout) int {
+	return cmp.Or(cmp.Compare(a.Day, b.Day), cmp.Compare(a.Division, b.Division),
+		boolCompare(a.IsPlayoff, b.IsPlayoff), cmp.Compare(a.MatchNo, b.MatchNo))
 }
 
 func boolCompare(a, b bool) int {
