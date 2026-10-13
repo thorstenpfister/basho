@@ -271,11 +271,12 @@ type RankTitle int             // Yokozuna, Ozeki, Sekiwake, Komusubi, Maegashir
 type Rank struct {
     Title  RankTitle
     Number int                 // 1-based
-    Side   Side
-    Raw    string              // source string, e.g. "Maegashira 17 East" / "前頭十七枚目"
+    Side   Side                // East = 1, West = 2; zero = none
 }
 func (r Rank) Short() string   // "Y1e", "O2w", "M17e", "J2w"
-func (r Rank) SortKey() int    // compatible with sumo-api rankValue
+func (r Rank) Compare(o Rank) int // highest first; East before West (rankValue cannot order sides)
+// The source strings ("Maegashira 17 East", "前頭十七枚目") stay in the adapters.
+// DivMakushita / Makushita exist only for Makushita wrestlers fighting in Juryo bouts.
 
 type Outcome int               // Win, Loss, FusenWin, FusenLoss, Absent, Draw, Pending, Unknown
 
@@ -1277,7 +1278,7 @@ Only once you have decided to make the repository public (D9, D22).
 - **V6** How osada represents a playoff once it is decided (`kimarite: 未定` was seen on playoff entries after the tournament ended).
 - **V7** Side inconsistencies: a wrestler listed on the West side of sumo-api's banzuke with an "East" rank string (Aonishiki "Ozeki 2 East", seen in a match record). Decide which one is authoritative (the rank string).
 - **V8** Actual snapshot size (compressed) and time to build the bout index at startup.
-- **V10** How sumo-api's `rankValue` is built (observed: `101` for "Yokozuna 1 East") and how old-era *haridashi* ranks (ranked outside the normal positions) appear in English rank strings.
+- ~~**V10**~~ **Answered (Phase 1):** `rankValue` = title × 100 + number (Yokozuna 1 → 101, Juryo 3 → 603); the side is not encoded, East and West share the value. Old-era haridashi wrestlers appear as ordinary numbered ranks (196001 has "Yokozuna 2 East"), so the English format is the same throughout. Side note for §6.8: Juryo had 18 ranks per side in 1960, not 14, so the rank bands must not assume J14 is the lowest.
 - **V11** Whether our kimarite keys (Appendix B) exactly match sumo-api's spellings. Compare against the `/kimarite` endpoint, which needs a `sortField` parameter (`count`, `kimarite` or `lastUsage`).
 - **V9** Whether Elo beats the "higher rank wins" baseline on log loss for 2015 onwards. This decides whether the win chance is shown at all.
 
@@ -1712,7 +1713,7 @@ Notes:
 | `前頭N枚目` | Maegashira N |
 | `十両N枚目` | Juryo N |
 | `前頭筆頭`, `十両筆頭` | **筆頭 (hittō) means number 1** |
-| `張出…` | haridashi (outside the regular positions); keep the title, flag it |
+| `張出…` | haridashi (outside the regular positions): keep the title and map to the next number within title and side, no flag (sumo-api does the same, V10) |
 
 - Kanji numerals: 一 二 三 四 五 六 七 八 九 十, compounds such as 十七 = 17 and 二十 = 20.
 
