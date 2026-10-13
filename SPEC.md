@@ -1277,7 +1277,7 @@ Only once you have decided to make the repository public (D9, D22).
 - **V7** Side inconsistencies: a wrestler listed on the West side of sumo-api's banzuke with an "East" rank string (Aonishiki "Ozeki 2 East", seen in a match record). Decide which one is authoritative (the rank string).
 - **V8** Actual snapshot size (compressed) and time to build the bout index at startup.
 - ~~**V10**~~ **Answered (Phase 1):** `rankValue` = title × 100 + number (Yokozuna 1 → 101, Juryo 3 → 603); the side is not encoded, East and West share the value. Old-era haridashi wrestlers appear as ordinary numbered ranks (196001 has "Yokozuna 2 East"), so the English format is the same throughout. Side note for §6.8: Juryo had 18 ranks per side in 1960, not 14, so the rank bands must not assume J14 is the lowest.
-- **V11** Whether our kimarite keys (Appendix B) exactly match sumo-api's spellings. Compare against the `/kimarite` endpoint, which needs a `sortField` parameter (`count`, `kimarite` or `lastUsage`).
+- ~~**V11**~~ **Answered (Phase 1):** sumo-api.com's `/kimarite` lists 90 values, all spelled as in Appendix B. Four were missing and are added: `dashinage` and `yobikaeshi` (historical), `hikiwake` and `itamiwake` (old-era draws). `kakezori`, `shumokuzori` and `sototasukizori` are official but never occur in sumo-api's data.
 - **V9** Whether Elo beats the "higher rank wins" baseline on log loss for 2015 onwards. This decides whether the win chance is shown at all.
 
 ---
@@ -1596,106 +1596,21 @@ Recorded by hand while researching. These are facts to rely on until the fixture
 
 ---
 
-## Appendix B: Kimarite table (draft)
+## Appendix B: Kimarite table
 
-Canonical key = sumo-api spelling, lower case, no spaces or hyphens (V11). The category is our own grouping (§6.7, D17), not the JSA's. Phase 1 checks every row against the official JSA list and sumo-api's spellings.
+The table lives in `internal/domain/kimarite.go`, which is the single source: key, kanji, English gloss and category for every technique. Tests check that it has the 82 official techniques, that every kanji is unique, and that it covers every value sumo-api.com uses.
 
-| Key | Kanji | English | Category |
-|---|---|---|---|
-| oshidashi | 押し出し | frontal push out | PUSH |
-| oshitaoshi | 押し倒し | frontal push down | PUSH |
-| tsukidashi | 突き出し | frontal thrust out | PUSH |
-| tsukitaoshi | 突き倒し | frontal thrust down | PUSH |
-| okuridashi | 送り出し | rear push out | PUSH |
-| okuritaoshi | 送り倒し | rear push down | PUSH |
-| yorikiri | 寄り切り | frontal force out | BELT |
-| yoritaoshi | 寄り倒し | frontal crush out | BELT |
-| abisetaoshi | 浴びせ倒し | backward force down | BELT |
-| kimedashi | 極め出し | arm barring force out | BELT |
-| kimetaoshi | 極め倒し | arm barring force down | BELT |
-| tsuridashi | 吊り出し | frontal lift out | BELT |
-| tsuriotoshi | 吊り落とし | frontal lift body slam | BELT |
-| okuritsuridashi | 送り吊り出し | rear lift out | BELT |
-| okuritsuriotoshi | 送り吊り落とし | rear lift body slam | BELT |
-| waridashi | 割り出し | upper-arm force out | BELT |
-| sabaori | 鯖折り | forward force down | BELT |
-| uwatenage | 上手投げ | overarm throw | THROW |
-| shitatenage | 下手投げ | underarm throw | THROW |
-| sukuinage | 掬い投げ | beltless arm throw | THROW |
-| kotenage | 小手投げ | armlock throw | THROW |
-| kubinage | 首投げ | headlock throw | THROW |
-| koshinage | 腰投げ | hip throw | THROW |
-| ipponzeoi | 一本背負い | one-armed shoulder throw | THROW |
-| kakenage | 掛け投げ | hooking inner thigh throw | THROW |
-| nichonage | 二丁投げ | body drop throw | THROW |
-| tsukaminage | 掴み投げ | lifting overarm throw | THROW |
-| uwatedashinage | 上手出し投げ | pulling overarm throw | THROW |
-| shitatedashinage | 下手出し投げ | pulling underarm throw | THROW |
-| yaguranage | 櫓投げ | inner thigh lifting throw | THROW |
-| okurinage | 送り投げ | rear throw down | THROW |
-| okurigake | 送り掛け | rear leg trip | THROW |
-| ashitori | 足取り | leg pick | THROW |
-| chongake | ちょん掛け | pulling heel hook | THROW |
-| kawazugake | 河津掛け | hooking backward counter throw | THROW |
-| kekaeshi | 蹴返し | minor inner foot sweep | THROW |
-| ketaguri | 蹴手繰り | leg kick pull down | THROW |
-| kirikaeshi | 切り返し | twisting backward knee trip | THROW |
-| komatasukui | 小股掬い | over thigh scooping body drop | THROW |
-| kozumatori | 小褄取り | ankle pick | THROW |
-| mitokorozeme | 三所攻め | triple attack force out | THROW |
-| nimaigeri | 二枚蹴り | ankle kicking twist down | THROW |
-| omata | 大股 | thigh scooping body drop | THROW |
-| sotogake | 外掛け | outside leg trip | THROW |
-| sotokomata | 外小股 | over thigh scooping body drop | THROW |
-| susoharai | 裾払い | rear foot sweep | THROW |
-| susotori | 裾取り | ankle pick | THROW |
-| tsumatori | 褄取り | rear toe pick | THROW |
-| uchigake | 内掛け | inside leg trip | THROW |
-| watashikomi | 渡し込み | thigh grabbing push down | THROW |
-| izori | 居反り | backwards body drop | THROW |
-| kakezori | 掛け反り | hooking backwards body drop | THROW |
-| shumokuzori | 撞木反り | bell hammer backwards body drop | THROW |
-| sototasukizori | 外襷反り | outer reverse backwards body drop | THROW |
-| tasukizori | 襷反り | reverse backwards body drop | THROW |
-| tsutaezori | 伝え反り | underarm forward body drop | THROW |
-| amiuchi | 網打ち | fisherman's throw | THROW |
-| gasshohineri | 合掌捻り | clasped-hand twist down | THROW |
-| harimanage | 波離間投げ | backward belt throw | THROW |
-| kainahineri | 腕捻り | two-handed arm twist down | THROW |
-| kotehineri | 小手捻り | arm-locking twist down | THROW |
-| kubihineri | 首捻り | head twisting throw | THROW |
-| makiotoshi | 巻き落とし | twist down | THROW |
-| osakate | 大逆手 | backward belt throw | THROW |
-| sakatottari | 逆とったり | arm bar throw counter | THROW |
-| shitatehineri | 下手捻り | twisting underarm throw | THROW |
-| sotomuso | 外無双 | outer thigh propping twist down | THROW |
-| tokkurinage | 徳利投げ | two-handed head twist down | THROW |
-| tottari | とったり | arm bar throw | THROW |
-| tsukiotoshi | 突き落とし | thrust down | THROW |
-| uchimuso | 内無双 | inner thigh propping twist down | THROW |
-| uwatehineri | 上手捻り | twisting overarm throw | THROW |
-| zubuneri | ずぶねり | head pivot throw | THROW |
-| utchari | うっちゃり | backward pivot throw | THROW |
-| yobimodoshi | 呼び戻し | pulling body slam | THROW |
-| hatakikomi | 叩き込み | slap down | PULL |
-| hikiotoshi | 引き落とし | hand pull down | PULL |
-| hikkake | 引っ掛け | arm grabbing force out | PULL |
-| katasukashi | 肩透かし | under-shoulder swing down | PULL |
-| okurihikiotoshi | 送り引き落とし | rear pull down | PULL |
-| sokubiotoshi | 素首落とし | head chop down | PULL |
-| ushiromotare | 後ろもたれ | backward lean out | OTHER |
-| isamiashi | 勇み足 | forward step out (non-technique) | OTHER |
-| koshikudake | 腰砕け | inadvertent collapse (non-technique) | OTHER |
-| tsukite | つき手 | hand down (non-technique) | OTHER |
-| tsukihiza | つきひざ | knee down (non-technique) | OTHER |
-| fumidashi | 踏み出し | rear step out (non-technique) | OTHER |
-| hansoku | 反則 | disqualification | OTHER |
-| fusen | 不戦 | win/loss by default | excluded |
-
-Notes:
-- 82 techniques plus 5 non-techniques, `hansoku` and `fusen`. Phase 1 confirms the count and every spelling.
-- Old-era data may contain techniques retired before 2001 (for example `abisetaoshi` variants or `kozumatori` spellings). Unknown keys keep their raw value, display as-is and count as OTHER.
-- Japanese names from osada map through the Kanji column. Prefixes such as `決まり手：` and full-width spaces are stripped first.
+- **Key:** sumo-api's spelling, lower case, no spaces or hyphens (`NormalizeKimarite`).
+- **Category:** basho's own grouping (§6.7, D17), not the JSA's:
+  - **PUSH:** pushing and thrusting
+  - **BELT:** belt fighting, forcing out or down
+  - **THROW:** throws, twists, trips and backward body drops
+  - **PULL:** pulling and slapping down
+  - **OTHER:** rare techniques and the opponent's own mistakes (the five *hiwaza*, `hansoku`, `ushiromotare`)
+  - **excluded:** `fusen` and the old-era draws `hikiwake` and `itamiwake`. They are not wins by technique and are left out of profiles.
+- **Contents:** the 82 official techniques, plus the 5 non-techniques, `hansoku`, `fusen`, the two draws, and two historical spellings sumo-api still uses (`dashinage`, `yobikaeshi`) (V11).
+- **Unknown keys** keep their raw value, display as-is and count as OTHER.
+- **Japanese names:** they map through `KimariteByKanji` (exact match). Source-specific cleanup, such as osada's `決まり手：` prefix and full-width spaces, happens in the osada adapter.
 
 ---
 
