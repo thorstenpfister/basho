@@ -48,6 +48,14 @@ func (d Date) AddDays(n int) Date {
 	return NewDate(d.Year, d.Month, d.Day+n)
 }
 
+// DaysSince returns the number of days from o to d (negative if d is earlier).
+func (d Date) DaysSince(o Date) int { return d.dayNumber() - o.dayNumber() }
+
+// dayNumber counts days since 1970-01-01 without overflow for any year.
+func (d Date) dayNumber() int {
+	return int(time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, time.UTC).Unix() / 86400)
+}
+
 // Weekday returns the day of the week.
 func (d Date) Weekday() time.Weekday { return d.Time().Weekday() }
 

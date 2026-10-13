@@ -26,6 +26,19 @@ func TestEstimatedStart(t *testing.T) {
 	}
 }
 
+func TestTournamentFor(t *testing.T) {
+	tests := map[Date]BashoID{
+		NewDate(2026, 11, 8):  {2026, time.November},
+		NewDate(2026, 10, 13): {2026, time.November},
+		NewDate(2026, 12, 31): {2027, time.January},
+	}
+	for d, want := range tests {
+		if got := TournamentFor(d); got != want {
+			t.Errorf("TournamentFor(%s) = %s, want %s", d, got, want)
+		}
+	}
+}
+
 func TestDayDate(t *testing.T) {
 	start := NewDate(2026, time.September, 13)
 	if got := DayDate(start, 1); got != start {

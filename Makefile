@@ -13,6 +13,9 @@ LDFLAGS = -X github.com/thorstenpfister/basho/internal/buildinfo.Version=$(shell
 # todo is the recipe of a target whose phase (see its description) has not arrived yet.
 todo = @echo "make $@: not implemented yet, see make help" >&2; exit 2
 
+# confirm asks before a target that calls the APIs; YES=1 skips the question.
+confirm = @[ "$(YES)" = 1 ] || { printf '%s Continue? [y/N] ' "$(1)"; read a; [ "$$a" = y ] || [ "$$a" = Y ]; }
+
 .DEFAULT_GOAL := help
 .PHONY: $(shell sed -n 's/^\([a-z][a-z-]*\):.*\#\# .*/\1/p' $(MAKEFILE_LIST))
 
@@ -81,8 +84,9 @@ tools: ## Check that external tools are installed
 fixtures: ## Record test fixtures politely (phase 1)
 	$(todo)
 
-record: ## Live recorder for tournament days, ARGS passed on (phase 1)
-	$(todo)
+record: build ## Live recorder for tournament days, ARGS passed on (SPEC Appendix E)
+	$(call confirm,basho-data record calls osada.us and sumo-api.com about 5 times per tick during the live window.)
+	$(BIN)/basho-data record $(ARGS)
 
 snapshot: ## Update and verify the embedded snapshot (phase 3)
 	$(todo)

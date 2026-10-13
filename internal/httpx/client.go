@@ -78,6 +78,9 @@ type Response struct {
 // NotModified reports a 304 answer to a conditional request.
 func (r *Response) NotModified() bool { return r.Status == http.StatusNotModified }
 
+// OK reports a 200 answer.
+func (r *Response) OK() bool { return r.Status == http.StatusOK }
+
 // Get fetches rawURL after any wait the host's policy requires. Non-2xx
 // statuses are responses, not errors; an error means no response was read.
 func (c *Client) Get(ctx context.Context, rawURL string, v Validators) (*Response, error) {

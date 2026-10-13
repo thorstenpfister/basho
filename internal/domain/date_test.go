@@ -40,6 +40,16 @@ func TestDateArithmetic(t *testing.T) {
 	if got := NewDate(2026, time.November, 8).Weekday(); got != time.Sunday {
 		t.Errorf("Weekday = %s, want Sunday", got)
 	}
+	if got := NewDate(2027, 1, 2).DaysSince(d); got != 5 {
+		t.Errorf("DaysSince = %d, want 5", got)
+	}
+	if got := d.DaysSince(NewDate(2027, 1, 2)); got != -5 {
+		t.Errorf("DaysSince backwards = %d, want -5", got)
+	}
+	// Far apart (a time.Duration would saturate beyond ~292 years).
+	if got := NewDate(1960, 1, 1).DaysSince(NewDate(1, 1, 1)); got != 715509 {
+		t.Errorf("DaysSince over 1959 years = %d, want 715509", got)
+	}
 	if NewDate(2026, 11, 8).Compare(NewDate(2026, 11, 9)) != -1 || d.Compare(d) != 0 {
 		t.Error("Compare")
 	}

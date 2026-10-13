@@ -79,6 +79,15 @@ func (b BashoID) EstimatedStart() Date {
 	return first.AddDays(toSunday + 7)
 }
 
+// TournamentFor returns the tournament of d's month, or in an even month the
+// upcoming one.
+func TournamentFor(d Date) BashoID {
+	if d.Month%2 == 0 {
+		return BashoID{d.Year, d.Month - 1}.Next()
+	}
+	return BashoID{d.Year, d.Month}
+}
+
 // DayDate returns the date of tournament day n (1-based) for a tournament that
 // starts on start.
 func DayDate(start Date, n int) Date { return start.AddDays(n - 1) }
