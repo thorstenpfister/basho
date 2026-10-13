@@ -1323,7 +1323,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 1. `httpx`: client with User-Agent, gzip and timeouts; per-host rate limit; concurrency limit; retries with jitter; 429 and `Retry-After`; circuit breaker; ETag/Last-Modified; singleflight; debug log.
 2. `cache`:
    - file store with entry metadata and the TTL table from §7.2
-   - stale-while-revalidate API (`Get` returns the value and its freshness, plus a background refresh hook)
+   - stale-while-revalidate: the caching `Getter` revalidates expired entries with conditional requests and falls back to the stale copy when the source fails; showing stale data first and refreshing in the background is the service layer's part (Phase 3)
    - LRU size cap, schema versioning, `--offline` support
 3. Data-class classification, including detecting finished tournaments (end date + 2 days and a yusho winner present). Each adapter supplies a freshness policy that sees the URL, status and body (the yusho is in the body), and the caching `Getter` applies it at read time. Banzuke responses carry no dates or yusho, so they go by the estimated end date.
 4. Connect the sumo-api adapter to `httpx` and `cache`.
