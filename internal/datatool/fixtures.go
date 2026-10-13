@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/thorstenpfister/basho/internal/atomicfile"
 	"github.com/thorstenpfister/basho/internal/fixture"
 	"github.com/thorstenpfister/basho/internal/httpx"
 	"github.com/thorstenpfister/basho/internal/source/osada"
@@ -79,7 +80,7 @@ func RecordFixtures(ctx context.Context, http httpx.Getter, out string, log io.W
 				return fmt.Errorf("%s%s: HTTP %d", s.base, p, resp.Status)
 			}
 			name := filepath.Join(dir, fixture.Name(p))
-			if err := writeFileAtomic(name, resp.Body); err != nil {
+			if err := atomicfile.Write(name, resp.Body); err != nil {
 				return err
 			}
 			_, _ = fmt.Fprintf(log, "%-60s %8d bytes\n", name, len(resp.Body))

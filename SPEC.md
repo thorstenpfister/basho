@@ -642,7 +642,8 @@ There is no public sumo rating API. Ozeki Analytics published an Elo analysis co
 ### 7.2 On-disk cache (`cache`)
 
 - Location: `$XDG_CACHE_HOME/basho/`, otherwise `~/Library/Caches/basho` on macOS. One file per request key. The key is a hash of source and URL; a human-readable path index makes debugging easier.
-- Each entry stores: body (gzipped), `FetchedAt`, `ETag`, `Last-Modified`, `SourceUpdatedAt`, `DataClass`, schema version.
+- Each entry is one file: a JSON header line (key, `FetchedAt`, `ETag`, `Last-Modified`, pinned flag, schema version) and the gzipped body. A 304 only rewrites the header (`Touch`).
+- **Freshness is decided at read time by the caching layer**, not stored: the same response changes class as the calendar moves (today's bouts are "live" now and "earlier day" tomorrow; the current tournament becomes finished). The cache only knows which entries are pinned (finished tournaments, never evicted).
 - Freshness is decided by data class:
 
   | Data class | Fresh for (TTL) | Notes |

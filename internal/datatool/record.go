@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/thorstenpfister/basho/internal/atomicfile"
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/fixture"
@@ -179,7 +180,7 @@ func (r *Recorder) tick(ctx context.Context, id domain.BashoID, day int, at time
 				if err := os.MkdirAll(filepath.Join(dir, s.dir), 0o755); err != nil {
 					return err
 				}
-				if err := writeFileAtomic(filepath.Join(dir, name), body.Body); err != nil {
+				if err := atomicfile.Write(filepath.Join(dir, name), body.Body); err != nil {
 					return err
 				}
 			}
@@ -190,7 +191,7 @@ func (r *Recorder) tick(ctx context.Context, id domain.BashoID, day int, at time
 	if err != nil {
 		return err
 	}
-	if err := writeFileAtomic(filepath.Join(dir, "meta.json"), b); err != nil {
+	if err := atomicfile.Write(filepath.Join(dir, "meta.json"), b); err != nil {
 		return err
 	}
 	r.logf("tick %s: %d requests, %d failed", dir, len(sources), failed)
@@ -201,14 +202,4 @@ func (r *Recorder) logf(format string, args ...any) {
 	if r.Log != nil {
 		_, _ = fmt.Fprintf(r.Log, time.Now().In(domain.JST).Format("2006-01-02 15:04:05 JST ")+format+"\n", args...)
 	}
-}
-
-// writeFileAtomic writes via a temporary file and a rename, so an interrupted
-// run never leaves a truncated file behind.
-func writeFileAtomic(path string, data []byte) error {
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, path)
 }
