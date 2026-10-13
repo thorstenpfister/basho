@@ -72,7 +72,7 @@ func TestKnownIssues(t *testing.T) {
 
 func TestVerifyTournament(t *testing.T) {
 	src := &fakeSource{}
-	tour, err := fetchTournament(t.Context(), src, b(2026, time.July), today)
+	tour, err := fetchTournament(t.Context(), src, b(2026, time.July), today, false)
 	if err != nil {
 		t.Fatal(err)
 	}

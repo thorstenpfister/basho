@@ -44,6 +44,10 @@ type SnapshotConfig struct {
 	Generator string        // basho-data version, for the manifest
 	Interval  time.Duration // time between requests, for the dry-run estimate
 	DryRun    bool
+
+	// For the fixture snapshot built from recorded responses (SPEC §13):
+	Only    []domain.BashoID // just these tournaments instead of From–To
+	Partial bool             // skip banzuke and bout lists that are not recorded
 }
 
 // Plan lists the tournaments an update would fetch.
@@ -63,8 +67,14 @@ func PlanSnapshot(m snapshot.Manifest, cfg SnapshotConfig) Plan {
 	if to.IsZero() {
 		to = domain.MostRecentTournament(cfg.Today)
 	}
+	candidates := cfg.Only
+	if candidates == nil {
+		for id := from; id.Compare(to) <= 0; id = id.Next() {
+			candidates = append(candidates, id)
+		}
+	}
 	var p Plan
-	for id := from; id.Compare(to) <= 0; id = id.Next() {
+	for _, id := range candidates {
 		if m.Has(id) || id.Held() == domain.NotHeld || cfg.Today.DaysSince(id.EstimatedEnd()) < domain.FinalMargin {
 			continue
 		}
@@ -103,7 +113,7 @@ func UpdateSnapshot(ctx context.Context, src SnapshotSource, cfg SnapshotConfig,
 		m.Files = map[string]string{}
 	}
 	for i, id := range plan.Tournaments {
-		t, err := fetchTournament(ctx, src, id, cfg.Today)
+		t, err := fetchTournament(ctx, src, id, cfg.Today, cfg.Partial)
 		switch {
 		case errors.Is(err, errNotFinal), errors.Is(err, source.ErrNotYetAvailable):
 			_, _ = fmt.Fprintf(log, "%s: skipped (%v)\n", id, err)
@@ -141,7 +151,7 @@ var errNotFinal = errors.New("not final yet")
 
 // fetchTournament reads one tournament and checks that it is final: end date
 // + 2 days passed and a yusho winner present (SPEC §7.2).
-func fetchTournament(ctx context.Context, src SnapshotSource, id domain.BashoID, today domain.Date) (snapshot.Tournament, error) {
+func fetchTournament(ctx context.Context, src SnapshotSource, id domain.BashoID, today domain.Date, partial bool) (snapshot.Tournament, error) {
 	b, err := src.Basho(ctx, id)
 	if err != nil {
 		return snapshot.Tournament{}, err
@@ -150,13 +160,19 @@ func fetchTournament(ctx context.Context, src SnapshotSource, id domain.BashoID,
 		return snapshot.Tournament{}, errNotFinal
 	}
 	t := snapshot.Tournament{Basho: b, Banzuke: map[domain.Division][]domain.BanzukeEntry{}}
+	unrecorded := func(err error) bool { return partial && errors.Is(err, source.ErrNotFound) }
 	for _, div := range snapshotDivisions {
-		if t.Banzuke[div], err = src.Banzuke(ctx, id, div); err != nil {
+		banzuke, err := src.Banzuke(ctx, id, div)
+		switch {
+		case unrecorded(err):
+		case err != nil:
 			return snapshot.Tournament{}, err
+		default:
+			t.Banzuke[div] = banzuke
 		}
 		for day := 1; day <= domain.BashoDays; day++ {
 			bouts, err := src.Torikumi(ctx, id, div, day)
-			if err != nil {
+			if err != nil && !unrecorded(err) {
 				return snapshot.Tournament{}, err
 			}
 			t.Bouts = append(t.Bouts, bouts...)

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "generator": "fixtures",
+  "generatedAt": "2026-10-13T17:33:21Z",
+  "source": "sumo-api.com",
+  "basho": [
+    "196001",
+    "202607",
+    "202609"
+  ],
+  "indexThrough": "202609",
+  "files": {
+    "basho/196001.json.zst": "39c4c676b37f2e30ed44c1c55bd1bc0492c9314543367da860f6ff9de8e59ed7",
+    "basho/202607.json.zst": "14c27dcf91566eeecd0812f63793077b3eea045eb4a40ecf98930dcc3501d94a",
+    "basho/202609.json.zst": "be94a7f4273d5457708e5481a2272651674df3ed800b369a6a9d88a4a52ba34e",
+    "rikishi.json.zst": "9e8204d44ab9ff0f54f8a6e484c10ead7939c3d92c4559b29ecb6a6a704100ca"
+  }
+}

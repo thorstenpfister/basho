@@ -225,7 +225,7 @@ func SnapshotStats(fsys fs.FS, w io.Writer) error {
 		len(m.Basho), m.Oldest(), m.Newest(), bouts, float64(size)/1e6, wrestlers, float64(len(index))/1e6,
 		m.GeneratedAt.Format("2006-01-02"), m.Generator)
 	if err == nil && len(missing) > 0 {
-		_, err = fmt.Fprintf(w, "missing in between: %v\n", missing)
+		_, err = fmt.Fprintf(w, "%d missing in between, first %v\n", len(missing), missing[:min(len(missing), 10)])
 	}
 	return err
 }

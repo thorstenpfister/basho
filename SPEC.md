@@ -1137,7 +1137,7 @@ adjacent_days = false
   - calendar (second-Sunday estimate, cancelled tournaments)
   - every `derive` function, with as-of cutoffs and table-driven edge cases (fusen, absence, re-entry after absence, playoff, Juryo wrestler in a Makuuchi bout)
 - **Snapshot tests:**
-  - A three-tournament fixture snapshot (202607, 202609, 196001) is built by `basho-data` from the recorded fixtures, then loaded by the app.
+  - A three-tournament fixture snapshot (202607, 202609, 196001) is built by `basho-data` from the recorded fixtures, then loaded by the app. It lives in `testdata/snapshot/`, built by the snapshot builder in partial mode (unrecorded days are skipped); a golden test fails when it drifts from the builder or the recordings, and `go test ./internal/datatool -run FixtureSnapshot -args -update` rebuilds it. An equivalence test checks that every recorded banzuke and day reads the same through the snapshot and through the adapter.
   - The answers must equal those from the live adapter path for the same data.
   - `verify` must catch deliberately corrupted files.
 - **Rating tests:** Elo update maths and the starting-rating and absence rules on a tiny hand-made bout set. A regression test pins the calibration metrics of the committed `params.json`, so a model change has to show it doesn't get worse.
