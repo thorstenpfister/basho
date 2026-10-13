@@ -106,7 +106,9 @@ func TestTorikumiFixtures(t *testing.T) {
 		bouts int
 	}{
 		{b202609, domain.DivMakuuchi, 1, 0},
+		{b202609, domain.DivMakuuchi, 13, 0},
 		{b202609, domain.DivMakuuchi, 15, 19},
+		{b202609, domain.DivJuryo, 13, 0},
 		{b202609, domain.DivJuryo, 15, 14}, // the Juryo playoff is not in sumo-api's list (V2)
 		{b202607, domain.DivMakuuchi, 15, 20},
 		{b196001, domain.DivMakuuchi, 15, 21},
