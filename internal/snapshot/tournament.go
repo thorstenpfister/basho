@@ -55,8 +55,10 @@ func boolCompare(a, b bool) int {
 
 // The file stores each fact once (SPEC §4.3, V8):
 //
-//   - A bout side is only the wrestler's id when their shikona and rank are
-//     those on the banzuke; visitors from a lower division are written out.
+//   - A bout side is only the wrestler's id when its romaji shikona and rank
+//     are those on the banzuke and it has no kanji or kana (sumo-api's bout
+//     lists carry romaji only); visitors and other differences are written
+//     out.
 //   - A banzuke record is one letter per day. Opponent and kimarite come from
 //     that day's bout; only days where they differ are written out.
 //
@@ -107,7 +109,7 @@ type boutFile struct {
 }
 
 // sideFile is a bout side; the name and rank are omitted when they are the
-// banzuke's.
+// banzuke's romaji name and rank.
 type sideFile struct {
 	ID   domain.RikishiID `json:"id"`
 	En   string           `json:"en,omitempty"`
@@ -242,7 +244,7 @@ func banzukeSides(banzuke map[domain.Division][]domain.BanzukeEntry) sides {
 }
 
 func (s sides) compact(b domain.BoutSide) sideFile {
-	if known, ok := s[b.RikishiID]; ok && known == b {
+	if known, ok := s[b.RikishiID]; ok && b == romaji(known) {
 		return sideFile{ID: b.RikishiID}
 	}
 	return sideFile{b.RikishiID, b.Shikona.En, b.Shikona.Jp, b.Shikona.Kana, b.Rank}
@@ -250,9 +252,14 @@ func (s sides) compact(b domain.BoutSide) sideFile {
 
 func (s sides) full(f sideFile) domain.BoutSide {
 	if known, ok := s[f.ID]; ok && f.En == "" && f.Jp == "" && f.Kana == "" && f.Rank == (domain.Rank{}) {
-		return known
+		return romaji(known)
 	}
 	return domain.BoutSide{RikishiID: f.ID, Shikona: domain.Name{En: f.En, Jp: f.Jp, Kana: f.Kana}, Rank: f.Rank}
+}
+
+// romaji is a banzuke side as a bout list writes it: romaji name and rank.
+func romaji(b domain.BoutSide) domain.BoutSide {
+	return domain.BoutSide{RikishiID: b.RikishiID, Shikona: domain.Name{En: b.Shikona.En}, Rank: b.Rank}
 }
 
 // DayIndex finds a wrestler's regular (non-playoff) bout of a day.

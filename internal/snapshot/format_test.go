@@ -117,11 +117,23 @@ func TestTournamentSize(t *testing.T) {
 			}
 		}
 	}
+	// Bout sides are only ids, except visitors from another division.
+	full := 0
+	for _, b := range f.Bouts {
+		for _, side := range []sideFile{b.East, b.West} {
+			if side.En != "" {
+				full++
+			}
+		}
+	}
+	if full > len(f.Bouts)/5 {
+		t.Errorf("%d of %d bout sides written out in full; want only visitors", full, 2*len(f.Bouts))
+	}
 	// Scale the recorded days to a full tournament: bouts ×15/3, entries once.
 	entries := len(in.Banzuke[domain.DivMakuuchi]) + len(in.Banzuke[domain.DivJuryo])
-	full := len(enc) * 15 / len(days) // an overestimate: entries are counted 5 times
-	total := full * 400
-	t.Logf("%d bouts, %d entries: %d bytes; a full tournament < %d B, 400 < %.1f MB", len(in.Bouts), entries, len(enc), full, float64(total)/1e6)
+	perTournament := len(enc) * 15 / len(days) // an overestimate: entries are counted 5 times
+	total := perTournament * 400
+	t.Logf("%d bouts, %d entries: %d bytes; a full tournament < %d B, 400 < %.1f MB", len(in.Bouts), entries, len(enc), perTournament, float64(total)/1e6)
 	if total > 10e6 {
 		t.Errorf("estimated snapshot %.1f MB, budget 10 MB", float64(total)/1e6)
 	}
