@@ -262,7 +262,8 @@ Dependency rules:
 ### 5.2 Domain model (sketch)
 
 ```go
-type BashoID string            // "YYYYMM"; validated: 196001 ≤ id, odd month
+type BashoID struct{ Year int; Month time.Month } // prints/parses "YYYYMM"; validated: ≥ 196001, odd month
+type Date struct{ Year int; Month time.Month; Day int } // calendar day in Japan; ==-comparable, map key, "2026-11-08"
 type Division int              // Makuuchi, Juryo
 type Side int                  // East, West
 
@@ -310,13 +311,13 @@ type Name struct { En, Jp, Kana string }   // Jp cleaned (see §5.6)
 type Rikishi struct {
     ID RikishiID; NSKID int; SumoDBID int
     Name Name; Heya string; Shusshin string
-    BirthDate time.Time; Debut BashoID
+    BirthDate Date; Debut BashoID
     Height, Weight float64     // current, from profile
 }
 
 type Basho struct {
     ID BashoID; Name string /* "Aki" */; Venue string
-    Start, End time.Time       // JST dates
+    Start, End Date
     Yusho map[Division]RikishiID
     Sansho []Prize
     Status BashoStatus         // Upcoming, BanzukeOut, InProgress, Finished, Cancelled
@@ -406,7 +407,7 @@ Rules:
   - `Scheduled`: bout list exists, no results.
   - `InProgress`: today, at least one result missing, inside the live window.
   - `Complete`: every bout in the enabled divisions has a winner, and no playoff is pending on day 15.
-- **Cancelled tournaments** (known: 2011-03 Haru, 2020-05 Natsu) come from a built-in list and appear in the picker as "cancelled", not selectable. 2011-05 was a "technical examination tournament" and is labelled as such.
+- **Cancelled tournaments** (known: 2011-03 Haru, 2020-05 Natsu) come from a built-in list and appear in the picker as "cancelled", not selectable. 2011-05 was a "technical examination tournament" and is labelled as such. In `domain` this is `BashoID.Held()` (`HeldRegular`, `NotHeld`, `HeldSpecial`); the service maps `NotHeld` to `BashoStatus` `Cancelled`.
 
 ### 5.8 Data layers
 
@@ -1306,7 +1307,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
    - `Rank` parsing for English strings, `Short()`, `SortKey()`
    - the `Outcome` enum and `BashoID` validation
    - the calendar: fixed months, second-Sunday estimate, list of cancelled tournaments, venue by month, tournament names
-   - decide the date representation first: a small `domain.Date` value type (year, month, day; `==`-comparable, usable as a map key, prints as `2026-11-08`) or `time.Time` at JST midnight. Record the choice in §5.2.
+   - the date representation: decided as `domain.Date`, a value type (year, month, day) that is `==`-comparable, works as a map key and prints as `2026-11-08` (§5.2)
    - tournament argument parsing (D18)
 2. Kimarite table as embedded data: 82 techniques plus non-techniques, each with romaji, kanji, English gloss and moveset category (§6.7).
 3. Name cleanup (§5.6).

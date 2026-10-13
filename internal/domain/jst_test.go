@@ -23,30 +23,6 @@ func TestJSTMatchesAsiaTokyo(t *testing.T) {
 	}
 }
 
-func TestStartOfDay(t *testing.T) {
-	tests := []struct {
-		name string
-		t    time.Time
-		want string // JST date
-	}{
-		{"evening in Europe is already tomorrow in Japan", time.Date(2026, 11, 7, 16, 30, 0, 0, time.UTC), "2026-11-08"},
-		{"just before JST midnight", time.Date(2026, 11, 8, 14, 59, 59, 0, time.UTC), "2026-11-08"},
-		{"exactly JST midnight", time.Date(2026, 11, 8, 15, 0, 0, 0, time.UTC), "2026-11-09"},
-		{"year boundary", time.Date(2026, 12, 31, 15, 0, 0, 0, time.UTC), "2027-01-01"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := StartOfDay(tt.t)
-			if s := got.Format("2006-01-02"); s != tt.want {
-				t.Errorf("StartOfDay = %s, want %s", s, tt.want)
-			}
-			if got.Location() != JST || TimeOfDay(got) != 0 {
-				t.Errorf("StartOfDay = %v, want midnight JST", got)
-			}
-		})
-	}
-}
-
 func TestTimeOfDay(t *testing.T) {
 	// 05:30 UTC is 14:30 JST: inside the live window that opens at 14:00.
 	got := TimeOfDay(time.Date(2026, 11, 8, 5, 30, 0, 0, time.UTC))

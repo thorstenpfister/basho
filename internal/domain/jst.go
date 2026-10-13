@@ -7,14 +7,8 @@ import "time"
 // covers (1960 on) and needs no time zone database.
 var JST = time.FixedZone("JST", 9*60*60)
 
-// StartOfDay returns midnight JST of the Japanese calendar day containing t.
-func StartOfDay(t time.Time) time.Time {
-	y, m, d := t.In(JST).Date()
-	return time.Date(y, m, d, 0, 0, 0, 0, JST)
-}
-
 // TimeOfDay returns how far t is into its Japanese calendar day, for
 // comparisons like "between 14:00 and 18:45 JST".
 func TimeOfDay(t time.Time) time.Duration {
-	return t.Sub(StartOfDay(t))
+	return t.Sub(DateOf(t).Time())
 }
