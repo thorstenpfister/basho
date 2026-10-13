@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  basho live recorder, a LaunchDaemon running as __USER__ (replace before
+  installing). See docs/runbooks/kyushu-recorder.md.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>io.github.thorstenpfister.basho.record</string>
+
+  <key>UserName</key>
+  <string>__USER__</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/__USER__/basho/bin/basho-data</string>
+    <string>record</string>
+    <string>--out</string>
+    <string>/Users/__USER__/basho-live</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>5</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+
+  <!-- Also start after a reboot; a run that starts late skips past ticks. -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Restart a run that failed (non-zero exit), at most once a minute.
+       Normal ends and SIGTERM exit 0 and stay stopped. -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>60</integer>
+
+  <key>StandardOutPath</key>
+  <string>/Users/__USER__/Library/Logs/basho-record.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/__USER__/Library/Logs/basho-record.log</string>
+
+  <!-- Background work: lower priority than anything interactive. -->
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

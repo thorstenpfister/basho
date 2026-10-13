@@ -1776,16 +1776,20 @@ If a year boundary is uncertain, show the city only.
 
 ## Appendix E: Live recorder for Kyushu 2026
 
-`basho-data record [--out testdata/live] [--interval 10m] [--until 19:15] [--division both]`
+`basho-data record [--out DIR] [--interval 10m] [--from 14:00] [--until 19:15] [--tournament YYYYMM] [--once]`
 
-- Runs only on tournament days, between 14:00 and the `--until` time (JST). Each tick saves into `testdata/live/<YYYYMMDD>/<HHMM>/`:
-  - osada `torikumi.json` and `banzuke.json` (conditional GET; a 304 is recorded as `not-modified` with the ETag)
-  - sumo-api `/basho/{id}/torikumi/{Makuuchi|Juryo}/{today}` and `/basho/{id}`
-  - `meta.json` with request times, status codes, ETags and durations
-- About 5 requests per tick, so about 150 per day at a 10-minute interval. Stays within the §7.1 limits.
-- Run on at least three days: day 1 (2026-11-08), a weekday in the middle, and day 15 (2026-11-22), for playoffs.
-- Afterwards, `basho-data record analyze` compares when each result first appears in osada vs sumo-api (V1). It writes `docs/v1-latency.md`.
-- Recorded data is trimmed to a representative set before committing (for example 6 ticks per day), so the repository stays small.
+- **When it runs:** only on tournament days, between `--from` and `--until` (JST). On other days it logs one line and exits, so launchd can start it every day.
+- **Which tournament:** the tournament is this month's, or the upcoming one in an even month. Its start date comes from sumo-api `/basho/{id}`, falling back to the second-Sunday estimate.
+- **What each tick saves** into `DIR/<YYYYMMDD>/<HHMM>/`:
+  - osada `torikumi.json` and `banzuke.json`, fetched with a conditional GET. A 304 is recorded with its status, and the body file repeats the last 200, so every tick folder is self-contained.
+  - sumo-api `/basho/{id}`, plus `/basho/{id}/torikumi/{Makuuchi|Juryo}/{day}`
+  - `meta.json`: request times, status codes, ETags, sizes, durations and errors
+- **Volume:** 5 requests per tick, 32 ticks a day (about 160 requests), within the §7.1 limits.
+- **Robustness:** a tick that is less than half an interval late still runs. Failed requests are recorded, not fatal. Files are written atomically, and SIGTERM stops the run between files.
+- **`--once`:** records one tick immediately, ignoring the window and the tournament days. This is the installation test.
+- **Where it runs:** unattended via launchd; see `docs/runbooks/kyushu-recorder.md` and `deploy/launchd/`.
+- **Later:** `basho-data record analyze` compares when each result first appears in osada vs sumo-api (V1) and writes `docs/v1-latency.md`. It is built after the tournament.
+- **Committing:** recordings are trimmed to about 6 ticks on three days (day 1, a mid-tournament weekday, day 15) before committing to `testdata/live/`. The full set stays outside the repository.
 
 ---
 
