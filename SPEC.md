@@ -1316,7 +1316,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 6. A slow, polite fixture recorder (`make fixtures`) and the fixtures from §13.
 7. Unit tests: rank parsing, calendar, tournament argument parsing, mapping for 202609, 196001 and 202607.
 8. Answer V2, V3, V4, V5, V7 and V10 from the fixtures and record the answers in this spec.
-9. Live recorder `basho-data record` (Appendix E). It can be built with a plain `net/http` client and the same User-Agent if `httpx` isn't ready yet.
+9. Live recorder `basho-data record` (Appendix E), on a minimal `httpx` (User-Agent, timeouts, conditional requests, minimum interval per host) that Phase 2 extends. Runs on an always-on machine via launchd; see `docs/runbooks/kyushu-recorder.md`.
 
 **AC:** a test can load the 202609 Makuuchi banzuke and the day 13 bout list from fixtures into domain objects, with every outcome type represented; V2–V5 and V7 are documented.
 
