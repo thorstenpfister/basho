@@ -206,12 +206,14 @@ func SnapshotStats(fsys fs.FS, w io.Writer) error {
 		return err
 	}
 
+	if len(m.Basho) == 0 {
+		_, err := fmt.Fprintln(w, "\nempty snapshot: run make snapshot")
+		return err
+	}
 	var missing []domain.BashoID
-	if len(m.Basho) > 0 {
-		for id := m.Basho[0]; id.Compare(m.Newest()) <= 0; id = id.Next() {
-			if !m.Has(id) && id.Held() != domain.NotHeld {
-				missing = append(missing, id)
-			}
+	for id := m.Oldest(); id.Compare(m.Newest()) <= 0; id = id.Next() {
+		if !m.Has(id) && id.Held() != domain.NotHeld {
+			missing = append(missing, id)
 		}
 	}
 	index, _ := fs.ReadFile(fsys, snapshot.RikishiPath)

@@ -54,8 +54,9 @@ func violations(pkgs []pkg) []string {
 				if !under(p.path, "internal/source") && !under(p.path, "internal/httpx") {
 					out = append(out, p.path+": imports "+imp+"; only internal/source/... and internal/httpx may touch the network")
 				}
-			case !under(imp, "internal") && !under(imp, "cmd"):
-				// Standard library or third party: no rule.
+			case !under(imp, "internal") && !under(imp, "cmd") && imp != "data":
+				// Standard library or third party: no rule. data (the embedded
+				// snapshot) is ours and follows the rules below.
 			case p.path == "internal/domain":
 				out = append(out, p.path+": imports "+imp+"; domain imports nothing internal")
 			case p.path == "internal/derive" && imp != "internal/domain":
@@ -148,6 +149,7 @@ func TestViolationsDetectsEachRule(t *testing.T) {
 		{path: "internal/source/osada", imports: []string{"net/http", "internal/httpx"}},
 		{path: "internal/tui/day", imports: []string{"internal/service", "internal/tui/theme", "internal/source/osada"}},
 		{path: "internal/cli", imports: []string{"internal/domain", "internal/rating"}},
+		{path: "internal/tui", imports: []string{"data"}},
 		{path: "cmd/basho", imports: []string{"internal/service"}},
 		{path: "cmd/basho-data", imports: []string{"internal/datatool"}},
 	}
@@ -158,6 +160,7 @@ func TestViolationsDetectsEachRule(t *testing.T) {
 		"internal/service: imports net/http",
 		"internal/tui/day: imports internal/source/osada",
 		"internal/cli: imports internal/rating",
+		"internal/tui: imports data",
 		"cmd/basho: depends on internal/datatool",
 	}
 	if len(got) != len(want) {
