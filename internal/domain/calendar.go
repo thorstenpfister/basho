@@ -79,11 +79,20 @@ func (b BashoID) EstimatedStart() Date {
 	return first.AddDays(toSunday + 7)
 }
 
-// TournamentFor returns the tournament of d's month, or in an even month the
-// upcoming one.
-func TournamentFor(d Date) BashoID {
+// UpcomingTournament returns the tournament of d's month, or in an even month
+// the next one. The live recorder uses it.
+func UpcomingTournament(d Date) BashoID {
 	if d.Month%2 == 0 {
-		return BashoID{d.Year, d.Month - 1}.Next()
+		return MostRecentTournament(d).Next()
+	}
+	return BashoID{d.Year, d.Month}
+}
+
+// MostRecentTournament returns the tournament of d's month, or in an even month
+// the one before. "current" in a tournament argument means this one.
+func MostRecentTournament(d Date) BashoID {
+	if d.Month%2 == 0 {
+		return BashoID{d.Year, d.Month - 1}
 	}
 	return BashoID{d.Year, d.Month}
 }

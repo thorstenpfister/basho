@@ -26,15 +26,22 @@ func TestEstimatedStart(t *testing.T) {
 	}
 }
 
-func TestTournamentFor(t *testing.T) {
-	tests := map[Date]BashoID{
-		NewDate(2026, 11, 8):  {2026, time.November},
-		NewDate(2026, 10, 13): {2026, time.November},
-		NewDate(2026, 12, 31): {2027, time.January},
+func TestUpcomingAndMostRecentTournament(t *testing.T) {
+	tests := []struct {
+		d                Date
+		upcoming, recent BashoID
+	}{
+		{NewDate(2026, 11, 8), BashoID{2026, time.November}, BashoID{2026, time.November}},
+		{NewDate(2026, 10, 13), BashoID{2026, time.November}, BashoID{2026, time.September}},
+		{NewDate(2026, 12, 31), BashoID{2027, time.January}, BashoID{2026, time.November}},
+		{NewDate(2027, 2, 1), BashoID{2027, time.March}, BashoID{2027, time.January}},
 	}
-	for d, want := range tests {
-		if got := TournamentFor(d); got != want {
-			t.Errorf("TournamentFor(%s) = %s, want %s", d, got, want)
+	for _, tt := range tests {
+		if got := UpcomingTournament(tt.d); got != tt.upcoming {
+			t.Errorf("UpcomingTournament(%s) = %s, want %s", tt.d, got, tt.upcoming)
+		}
+		if got := MostRecentTournament(tt.d); got != tt.recent {
+			t.Errorf("MostRecentTournament(%s) = %s, want %s", tt.d, got, tt.recent)
 		}
 	}
 }

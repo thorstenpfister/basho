@@ -24,7 +24,7 @@ type RecordConfig struct {
 	Interval   time.Duration  // between ticks
 	From       time.Duration  // window start, time of day JST
 	Until      time.Duration  // window end, time of day JST
-	Tournament domain.BashoID // zero: domain.TournamentFor(today)
+	Tournament domain.BashoID // zero: domain.UpcomingTournament(today)
 	Once       bool           // one tick now, ignoring the window and the tournament days
 	SumoAPI    string         // base URL, e.g. https://www.sumo-api.com
 	Osada      string         // base URL, e.g. https://osada.us
@@ -56,7 +56,7 @@ func (r *Recorder) Run(ctx context.Context) error {
 	today := domain.DateOf(time.Now())
 	id := cfg.Tournament
 	if id.IsZero() {
-		id = domain.TournamentFor(today)
+		id = domain.UpcomingTournament(today)
 	}
 	day := today.DaysSince(r.startDate(ctx, id)) + 1
 

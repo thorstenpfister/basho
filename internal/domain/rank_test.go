@@ -30,6 +30,9 @@ func TestParseRank(t *testing.T) {
 	if (Rank{}).String() != "" || (Rank{}).Short() != "" {
 		t.Error("the zero Rank must print as empty")
 	}
+	if Side(0).String() != "" {
+		t.Error("the zero Side must print as empty (an undecided bout's winner)")
+	}
 	if got := (Rank{Title: Yokozuna, Number: 1}).Short(); got != "Y1" {
 		t.Errorf("Short without a side = %q, want Y1", got)
 	}

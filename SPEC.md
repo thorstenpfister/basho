@@ -278,41 +278,39 @@ func (r Rank) Compare(o Rank) int // highest first; East before West (rankValue 
 // The source strings ("Maegashira 17 East", "前頭十七枚目") stay in the adapters.
 // DivMakushita / Makushita exist only for Makushita wrestlers fighting in Juryo bouts.
 
-type Outcome int               // Win, Loss, FusenWin, FusenLoss, Absent, Draw, Pending, Unknown
+type Outcome int               // Pending (zero), Win, Loss, FusenWin, FusenLoss, Absent, Draw, Unknown; JSON by name
 
-type DayResult struct {
-    Day        int
+type DayResult struct {        // day = index in BanzukeEntry.Results + 1
     Outcome    Outcome
-    OpponentID RikishiID
+    OpponentID RikishiID       // zero when absent
     Kimarite   Kimarite        // canonical romaji key, e.g. "yorikiri"
 }
 
-type BanzukeEntry struct {
+type BanzukeEntry struct {     // the division follows from Rank.Title.Division()
     RikishiID RikishiID
     Shikona   Name             // as of this tournament
     Rank      Rank
-    Division  Division
     Results   [15]DayResult    // index = day-1
 }
 
 type BoutSide struct { RikishiID RikishiID; Shikona Name; Rank Rank }
 type Bout struct {
-    BashoID   BashoID
+    Basho     BashoID
     Division  Division
     Day       int              // 1..15
     MatchNo   int              // 1-based display order
     East, West BoutSide
-    Winner    *Side            // nil = not yet decided
+    Winner    Side             // zero = not decided yet
     Kimarite  Kimarite
     IsPlayoff bool
 }
 
-type Name struct { En, Jp, Kana string }   // Jp cleaned (see §5.6)
+type Name struct { En, Jp, Kana string }   // Jp cleaned (see §5.6); Kana only from osada.us
 
 type Rikishi struct {
     ID RikishiID; NSKID int; SumoDBID int
     Name Name; Heya string; Shusshin string
-    BirthDate Date; Debut BashoID
+    Birth Date; Debut BashoID
     Height, Weight float64     // current, from profile
 }
 
