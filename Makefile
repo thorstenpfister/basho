@@ -81,8 +81,9 @@ tools: ## Check that external tools are installed
 
 ## Data (network targets will ask before fetching unless YES=1)
 
-fixtures: ## Record test fixtures politely (phase 1)
-	$(todo)
+fixtures: build ## Record the test fixtures into testdata/ (SPEC §13)
+	$(call confirm,basho-data fixtures record fetches each fixture once from sumo-api.com and osada.us.)
+	$(BIN)/basho-data fixtures record
 
 record: build ## Live recorder for tournament days, ARGS passed on (SPEC Appendix E)
 	$(call confirm,basho-data record calls osada.us and sumo-api.com about 5 times per tick during the live window.)

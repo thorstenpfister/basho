@@ -2,6 +2,7 @@ package datatool
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,6 +14,8 @@ import (
 	"github.com/thorstenpfister/basho/internal/cli"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/httpx"
+	"github.com/thorstenpfister/basho/internal/source/osada"
+	"github.com/thorstenpfister/basho/internal/source/sumoapi"
 )
 
 // NewRoot returns the basho-data root command with all subcommands.
@@ -23,12 +26,28 @@ func NewRoot(info buildinfo.Info) *cobra.Command {
 		Args:  cobra.NoArgs,
 	}
 	cli.SetVersion(root, info)
-	root.AddCommand(newRecordCmd(info))
+	root.AddCommand(newRecordCmd(info), newFixturesCmd(info))
 	return root
 }
 
+func newFixturesCmd(info buildinfo.Info) *cobra.Command {
+	var out string
+	record := &cobra.Command{
+		Use:   "record",
+		Short: fmt.Sprintf("Record the test fixtures (%d requests)", FixtureRequests()),
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return RecordFixtures(cmd.Context(), newRecordClient(info), out, cmd.ErrOrStderr())
+		},
+	}
+	record.Flags().StringVar(&out, "out", "testdata", "output directory")
+	fixtures := &cobra.Command{Use: "fixtures", Short: "Test fixtures recorded from the APIs"}
+	fixtures.AddCommand(record)
+	return fixtures
+}
+
 func newRecordCmd(info buildinfo.Info) *cobra.Command {
-	cfg := RecordConfig{SumoAPI: "https://www.sumo-api.com", Osada: "https://osada.us"}
+	cfg := RecordConfig{SumoAPI: sumoapi.DefaultBaseURL, Osada: osada.DefaultBaseURL}
 	var from, until, tournament string
 	cmd := &cobra.Command{
 		Use:   "record",
@@ -73,11 +92,19 @@ func newRecordCmd(info buildinfo.Info) *cobra.Command {
 func newRecordClient(info buildinfo.Info) *httpx.Client {
 	return httpx.New(httpx.Options{
 		UserAgent: httpx.UserAgent(info.Version),
-		Hosts: map[string]httpx.HostPolicy{
-			"www.sumo-api.com": {Interval: time.Second},      // SPEC §7.1
-			"osada.us":         {Interval: 20 * time.Second}, // SPEC §7.1
+		Hosts: map[string]httpx.HostPolicy{ // SPEC §7.1
+			host(sumoapi.DefaultBaseURL): {Interval: time.Second},
+			host(osada.DefaultBaseURL):   {Interval: 20 * time.Second},
 		},
 	})
+}
+
+func host(base string) string {
+	u, err := url.Parse(base)
+	if err != nil {
+		panic(err) // the bases are constants
+	}
+	return u.Host
 }
 
 // parseClock parses "HH:MM" into a time of day.

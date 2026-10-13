@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/fixture"
 	"github.com/thorstenpfister/basho/internal/httpx"
 )
 
@@ -88,23 +89,28 @@ func TestRecordsTheWholeWindow(t *testing.T) {
 			t.Errorf("run ended at %s, want after the last tick", now.Format("15:04"))
 		}
 
-		if tmp, _ := filepath.Glob(filepath.Join(r.Config.Out, "*", "*", "*.tmp")); len(tmp) != 0 {
+		if tmp, _ := filepath.Glob(filepath.Join(r.Config.Out, "*", "*", "*", "*.tmp")); len(tmp) != 0 {
 			t.Errorf("leftover temporary files: %v", tmp)
 		}
 		// Every tick is self-contained: a 304 repeats the last body.
 		for _, tick := range []string{"1400", "1410"} {
 			dir := filepath.Join(r.Config.Out, "20000101", tick)
 			for _, name := range []string{
-				"osada-torikumi.json", "osada-banzuke.json", "sumoapi-basho.json",
-				"sumoapi-torikumi-makuuchi.json", "sumoapi-torikumi-juryo.json", "meta.json",
+				"osada/torikumi.json", "osada/banzuke.json", "sumoapi/basho_200001.json",
+				"sumoapi/basho_200001_torikumi_Makuuchi_1.json", "sumoapi/basho_200001_torikumi_Juryo_1.json", "meta.json",
 			} {
 				if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
 					t.Errorf("tick %s: %v", tick, err)
 				}
 			}
 		}
+		// A tick replays through fixture.Getter, the way tests read testdata/.
+		replay := fixture.Getter{Dir: filepath.Join(r.Config.Out, "20000101", "1410", "osada"), Base: "https://osada.test"}
+		if resp, err := replay.Get(t.Context(), "https://osada.test/api/v1/torikumi.json", httpx.Validators{}); err != nil || string(resp.Body) != `{"osada":true}` {
+			t.Errorf("replay = %v, %v", resp, err)
+		}
 		meta := readMeta(t, filepath.Join(r.Config.Out, "20000101", "1410"))
-		if meta[0].Status != 304 {
+		if meta[0].Status != 304 || meta[0].Name != "osada/torikumi.json" {
 			t.Errorf("second tick osada entry = %+v, want 304", meta[0])
 		}
 		if !strings.HasSuffix(meta[3].URL, "/torikumi/Makuuchi/1") {

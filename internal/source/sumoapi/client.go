@@ -83,19 +83,6 @@ func (c *Client) RikishiIndex(ctx context.Context) ([]domain.Rikishi, error) {
 	}
 }
 
-// Measurements returns every wrestler's height and weight at a tournament.
-func (c *Client) Measurements(ctx context.Context, id domain.BashoID) (map[domain.RikishiID]domain.Measurement, error) {
-	var dto []measurementDTO
-	if err := c.getJSON(ctx, "/api/measurements?bashoId="+id.String(), &dto); err != nil {
-		return nil, err
-	}
-	m := make(map[domain.RikishiID]domain.Measurement, len(dto))
-	for _, d := range dto {
-		m[domain.RikishiID(d.RikishiID)] = domain.Measurement{Height: d.Height, Weight: d.Weight}
-	}
-	return m, nil
-}
-
 // getJSON fetches path and decodes it into v, mapping failures to the
 // source errors.
 func (c *Client) getJSON(ctx context.Context, path string, v any) error {

@@ -150,7 +150,7 @@ Endpoints used:
 | `GET /rikishi/{id}` | A single profile, with optional `?ranks=true&shikonas=true&measurements=true` | Only used when the bulk index is missing or stale for that wrestler |
 | `GET /rikishi/{id}/matches` | Full career of matches, newest first. **Each match includes `eastRank` and `westRank`.** | Basis for kinboshi, last 5 results across tournaments, and head-to-head records as of a given date. One request per wrestler, cached and topped up incrementally. |
 | `GET /rikishi/{id}/stats` | Career totals: yusho, sansho, wins, losses, absences by division | These are **today's** values; see §6.6 for how this affects older tournaments |
-| `GET /measurements?bashoId={id}` | Height and weight of **every** wrestler **at that tournament**, in one request | Sparse before about 2000; fall back to the profile |
+| ~~`GET /measurements?bashoId={id}`~~ | Not used: it only lists the tournament's **newcomers**, because sumo-api records height and weight once, at a wrestler's debut (Phase 1 finding) | Height and weight come from the wrestler index (current values) |
 | `GET /rikishi/{a}/matches/{b}` | Head-to-head summary and list of matches | Optional; can be computed from the cached matches instead |
 
 Freshness: tournament data is updated during the tournament (some profiles had `updatedAt` 2026-09-17). How quickly bout results appear is **not documented and not yet measured** (§16 V1).
@@ -187,12 +187,11 @@ Finished tournaments never change. Instead of every user fetching them, a separa
     - metadata (dates, yusho, sansho)
     - Makuuchi and Juryo banzuke (rank, wrestler, shikona at that tournament, 15 day results)
     - every bout of both divisions (day, match number, both sides with ranks, winner, kimarite, playoff flag)
-    - measurements for those wrestlers
-  - `rikishi.json.zst`: every wrestler who appeared in Makuuchi or Juryo since 1960, with IDs (`id`, `nskId`, `sumodbId`), names, heya, birth date, hometown, debut and retired flag.
+  - `rikishi.json.zst`: every wrestler who appeared in Makuuchi or Juryo since 1960, with IDs (`id`, `nskId`, `sumodbId`), names, heya, birth date, hometown, debut, latest height and weight, and retired flag.
 - **Format:** compact JSON compressed with zstd (`github.com/klauspost/compress/zstd`). Each tournament file is written once and never changes, so an update only **adds** files to git. Only `rikishi.json.zst` and the manifest are rewritten.
 - **Size estimate:** about 400 tournaments × about 525 bouts ≈ 210,000 bouts, which should be 4–6 MB compressed (to be measured, V8). If it exceeds 15 MB, it ships as a separate release asset instead of being embedded.
 - **Building it:**
-  - **First full build:** about 400 tournaments × about 34 requests (1 basho, 2 banzuke, 30 torikumi, 1 measurements) ≈ 13,600 requests, about 4 hours at 1 request per second. This runs once, not on a tournament day (D24).
+  - **First full build:** about 400 tournaments × about 34 requests (1 basho, 2 banzuke, 30 torikumi) ≈ 13,200 requests, about 4 hours at 1 request per second. This runs once, not on a tournament day (D24).
   - **Updates:** the tool reads the manifest and only fetches tournaments that are finished (rule in §7.2) and not yet included. That is about 34 requests per new tournament, plus 1 for the active-wrestler index.
   - **Resumable:** requests go through the normal `httpx` client (§7.1) and a work cache (`.cache/basho-data/`, ignored by git), so an interrupted run continues without fetching anything twice.
   - **Verification:** `basho-data snapshot verify` checks that each wrestler's bouts match their banzuke record and totals, that every bout appears for both wrestlers, that the schema is valid and that the checksums match.
@@ -341,7 +340,6 @@ type HistoricalSource interface {           // sumo-api
     Basho(ctx, BashoID) (Basho, error)
     Banzuke(ctx, BashoID, Division) ([]BanzukeEntry, error)
     Torikumi(ctx, BashoID, Division, day int) ([]Bout, error)
-    Measurements(ctx, BashoID) (map[RikishiID]Measurement, error)
 }
 type RikishiSource interface {              // sumo-api
     RikishiIndex(ctx) ([]Rikishi, error)    // bulk, paged internally
@@ -366,7 +364,7 @@ The resolver chooses sources **per data type and tournament state**, and records
 | Banzuke (ranks) | sumo-api | sumo-api, then osada |
 | Day results and records | sumo-api | **osada**, then sumo-api |
 | Day schedule (future days) | — | **osada**, then sumo-api |
-| Profiles, measurements | sumo-api (no fallback; fields left empty) | same |
+| Profiles (incl. height, weight) | sumo-api (no fallback; fields left empty) | same |
 | Matches, kinboshi, head-to-head | sumo-api (no fallback) | same, plus results from the live snapshot for today |
 
 Rules:
@@ -536,7 +534,7 @@ Inputs: banzuke entries, cut off at day N.
 
 ### 6.6 Career statistics as of a date
 
-- **Height and weight:** from `Measurements(bashoID)`, so they are as of that tournament. If missing, fall back to the profile and mark "(today)".
+- **Height and weight:** sumo-api only records them at a wrestler's debut, so per-tournament values do not exist. The wrestler index holds the latest values (updated over a career; for retired wrestlers the last known), and the VS screen uses those, labelled "latest" for tournaments other than the current one.
 - **Age:** birth date to tournament start date.
 - **Yusho and sansho:** counted exactly as of the tournament, from each tournament's yusho and sansho lists in the snapshot plus later tournaments (§5.8). The current tournament's results only count once they fall before the cutoff, so nothing is spoiled.
 - **Heya and hometown:** sumo-api only provides current values. Stable closures and moves aren't reflected (known limitation, noted in the help screen).
@@ -649,7 +647,7 @@ There is no public sumo rating API. Ozeki Analytics published an Elo analysis co
 
   | Data class | Fresh for (TTL) | Notes |
   |---|---|---|
-  | Finished tournament: metadata, banzuke, bout lists, measurements | **forever** | Finished = end date + 2 days has passed **and** a yusho winner exists. The 2-day margin allows for late corrections. |
+  | Finished tournament: metadata, banzuke, bout lists | **forever** | Finished = end date + 2 days has passed **and** a yusho winner exists. The 2-day margin allows for late corrections. |
   | Current tournament: earlier days | 30 min | Fixes do happen |
   | Current tournament: today, during the live window | the live interval (§10) | |
   | Current tournament: anything, outside the live window | 60 min | |
@@ -668,7 +666,7 @@ There is no public sumo rating API. Ozeki Analytics published an Elo analysis co
 | Action | Cold cache | Warm cache |
 |---|---|---|
 | Open any tournament in the snapshot | **0** | 0 |
-| Open a tournament that finished after the snapshot, day 1, one division | 4 requests: basho, banzuke, torikumi, measurements | 0 |
+| Open a tournament that finished after the snapshot, day 1, one division | 3 requests: basho, banzuke, torikumi | 0 |
 | Move to another day (not in the snapshot) | 1 | 0 |
 | Toggle division (not in the snapshot) | 2 (banzuke and torikumi) | 0 |
 | Open a VS screen | **0** (all statistics come from the bout index); ≤ 4 without a snapshot | 0 |
@@ -769,7 +767,7 @@ BASHO ─ select tournament                                            [/] filte
   - The result glyphs sit next to the technique.
   - Records are **as of before the bout**; the record after the bout is shown on the VS screen.
   - Juryo wrestlers appearing in Makuuchi bouts keep their `J` rank.
-  - The last bout of the day gets a `結び` tag. Playoff bouts are grouped below a `── Kettei-sen ──` divider.
+  - The last bout of the day gets a `結び` tag. Playoff bouts are grouped below a `── Kettei-sen ──` divider; only osada has them, so they appear for the current tournament only (V2).
 - **Live updates:** newly decided bouts briefly show a `NEW` badge until the next poll or 60 s. The selection never moves when the list updates.
 - **Wide layout:** right-hand panel with the yusho race after the selected day (top two bands).
 - **Kyujo footer:** wrestlers absent on that day (osada `absentees`, or sumo-api records with `absent`).
@@ -815,7 +813,7 @@ BASHO ─ select tournament                                            [/] filte
 (The values in the mockup are illustrative. In the STYLE bars, each segment has its own colour; the shading only stands in for colour here. See §6.7.)
 
 - Layout: mirrored columns around a centre column of labels. The left column is right-aligned towards the centre and the right column left-aligned (both "face" the middle).
-- **Bars:** height and weight are scaled to the division's minimum–maximum for that tournament, so differences are visible. Each pair's bars point outwards from the labels.
+- **Bars:** height and weight are the latest values (§6.6), scaled to the minimum–maximum of the wrestlers in that tournament's division, so differences are visible. Each pair's bars point outwards from the labels.
 - **Result panel:**
   - Normal mode: visible when the bout is decided.
   - Spoiler-free mode: shows `[space] reveal` instead.
@@ -1122,7 +1120,7 @@ adjacent_days = false
 ## 13. Testing strategy
 
 - **Fixtures** (`testdata/`), recorded once with a `make fixtures` script that calls slowly, 1 request every 2 s:
-  - sumo-api `202609`, finished (Makuuchi and Juryo banzuke, days 1, 13 and 15, measurements, matches for about 6 wrestlers including a kinboshi holder)
+  - sumo-api `202609`, finished (Makuuchi and Juryo banzuke, days 1, 13 and 15)
   - `196001`, old era: no kanji, older rank strings, possible draws
   - `202607`, day 15, to check playoffs
   - osada `torikumi.json` / `banzuke.json`, current snapshot
@@ -1269,12 +1267,12 @@ Only once you have decided to make the repository public (D9, D22).
 **To check (V = verification):**
 
 - **V1** How quickly sumo-api results appear during the live window. Measure during Kyushu 2026 (2026-11-08 to 22) by recording `resultUpdatedAt` against the first appearance of each result in sumo-api.
-- **V2** Whether sumo-api includes playoff bouts in day 15's bout list, and how they are marked (`matchNo` above the regular count?).
-- **V3** Old-era outcomes (draws `hikiwake`, `azukari`) and how sumo-api encodes them.
-- **V4** Maximum `limit` for `/rikishis` (pagination).
-- **V5** Whether sumo-api supports `ETag`/`Last-Modified` (none seen so far; it uses nginx).
-- **V6** How osada represents a playoff once it is decided (`kimarite: 未定` was seen on playoff entries after the tournament ended).
-- **V7** Side inconsistencies: a wrestler listed on the West side of sumo-api's banzuke with an "East" rank string (Aonishiki "Ozeki 2 East", seen in a match record). Decide which one is authoritative (the rank string).
+- ~~**V2**~~ **Answered (Phase 1):** sumo-api's bout lists contain **no playoff bouts**: on day 15 of 202609 nobody fights twice in Juryo although osada shows a two-bout Juryo playoff; only the yusho winner records the result. A day can still have an odd number of entries when a Juryo wrestler fills in (202607 day 15: 20 Makuuchi bouts). Playoffs therefore exist only for the current tournament, via osada.
+- ~~**V3**~~ **Answered (Phase 1):** the fixtures (196001, 202607, 202609) contain only `win`, `loss`, `fusen win`, `fusen loss` and `absent` (kimarite `fusen` or empty); W-L-A computed from the records matches sumo-api's own totals for every wrestler. Draws exist as kimarite values (`hikiwake`, `itamiwake`, V11) but did not occur in these tournaments; an unrecognised result maps to `Unknown`, so the full snapshot build will surface any.
+- ~~**V4**~~ **Answered (Phase 1):** `limit=1000` returns 1000 records; the index has 9,132 wrestlers, so 10 pages. Larger limits were not tried.
+- ~~**V5**~~ **Answered (Phase 1):** sumo-api sends no `ETag` or `Last-Modified`; its responses can only be cached by time (§7.2). osada sends ETags, weak ones (`W/"…"`) when gzip is negotiated, and answers both forms with 304.
+- ~~**V6**~~ **Answered (Phase 1):** decided playoff bouts appear in `resultDays` with `isPlayoff: true`, a kimarite and a winner (202609 Juryo: bouts 15 and 16). The `未定` seen earlier was in `scheduleDays`.
+- ~~**V7**~~ **Answered (Phase 1):** in the banzuke fixtures every entry's rank string matches the list it is on. The "Ozeki 2 East" seen earlier came from a match record, not the banzuke; the rank string is authoritative anyway.
 - **V8** Actual snapshot size (compressed) and time to build the bout index at startup.
 - ~~**V10**~~ **Answered (Phase 1):** `rankValue` = title × 100 + number (Yokozuna 1 → 101, Juryo 3 → 603); the side is not encoded, East and West share the value. Old-era haridashi wrestlers appear as ordinary numbered ranks (196001 has "Yokozuna 2 East"), so the English format is the same throughout. Side note for §6.8: Juryo had 18 ranks per side in 1960, not 14, so the rank bands must not assume J14 is the lowest.
 - ~~**V11**~~ **Answered (Phase 1):** sumo-api.com's `/kimarite` lists 90 values, all spelled as in Appendix B. Four were missing and are added: `dashinage` and `yobikaeshi` (historical), `hikiwake` and `itamiwake` (old-era draws). `kakezori`, `shumokuzori` and `sototasukizori` are official but never occur in sumo-api's data.
@@ -1310,11 +1308,11 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
    - tournament argument parsing (D18)
 2. Kimarite table as embedded data: 82 techniques plus non-techniques, each with romaji, kanji, English gloss and moveset category (§6.7).
 3. Name cleanup (§5.6).
-4. `source/sumoapi` DTOs for basho, banzuke, torikumi, rikishis (paged) and measurements. The "zero object" for unknown tournaments becomes `ErrNotYetAvailable`; data that cannot be mapped is `ErrBadData` (not retryable, unlike `ErrUpstream`). `rikishi`, `matches` and `stats` are deferred: they are only a fallback without a snapshot (§5.8). The §5.3 interfaces are declared with the resolver (Phase 9).
+4. `source/sumoapi` DTOs for basho, banzuke, torikumi and rikishis (paged). The "zero object" for unknown tournaments becomes `ErrNotYetAvailable`; data that cannot be mapped is `ErrBadData` (not retryable, unlike `ErrUpstream`). `rikishi`, `matches` and `stats` are deferred: they are only a fallback without a snapshot (§5.8). The §5.3 interfaces are declared with the resolver (Phase 9).
 5. Mapping from DTOs to the domain, with an explicit strategy for unknown values.
 6. A slow, polite fixture recorder (`make fixtures`) and the fixtures from §13.
 7. Unit tests: rank parsing, calendar, tournament argument parsing, mapping for 202609, 196001 and 202607.
-8. Answer V2, V3, V4, V5, V7 and V10 from the fixtures and record the answers in this spec.
+8. Answer V2–V7, V10 and V11 from the fixtures and record the answers in this spec. Done; also found that sumo-api records height and weight only at the debut (§4.1, §6.6).
 9. Live recorder `basho-data record` (Appendix E), on a minimal `httpx` (User-Agent, timeouts, conditional requests, minimum interval per host) that Phase 2 extends. Runs on an always-on machine via launchd; see `docs/runbooks/kyushu-recorder.md`.
 
 **AC:** a test can load the 202609 Makuuchi banzuke and the day 13 bout list from fixtures into domain objects, with every outcome type represented; V2–V5 and V7 are documented.
@@ -1358,7 +1356,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 4. Kinboshi count and `ThisBashoScalps`.
 5. Head-to-head summary (wins, top techniques, last N meetings).
 6. Standings after day N: sorting, bands, contention calculation, yusho decided, kachi-koshi/make-koshi markers including "reached today", hoshitori grid model.
-7. Career statistics as of a date: measurements per tournament with fallback, age, exact yusho/sansho as of the tournament, "now: X" when the shikona has changed.
+7. Career statistics as of a date: height and weight from the index ("latest" for older tournaments), age, exact yusho/sansho as of the tournament, "now: X" when the shikona has changed.
 8. Day recap: leaders, kachi-koshi/make-koshi reached today, kinboshi today, upsets (using the rating once Phase 5 is done; rank gap until then), rarest technique.
 9. Technique profile (§6.7): category shares, sample window with widening, signature move, fighter type, matchup line. Tune the fighter-type thresholds against about 10 well-known wrestlers and record the final values in this spec.
 10. Table-driven tests for each, including edge cases: absence then return, fusen against a yokozuna, playoff, Juryo wrestler in Makuuchi, fewer than 10 sekitori wins.
@@ -1418,7 +1416,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 6. RATING and WIN CHANCE rows, hidden if V9 failed.
 7. `[`/`]` navigation including crossing day boundaries.
 8. Harmonica slide-in and reveal flash; switched off by config, compact layout, or when the output isn't a terminal.
-9. Golden snapshots for: a regular bout, a kinboshi bout, a fusen bout, an undecided bout, an old-era bout without kanji or measurements, a newly promoted wrestler.
+9. Golden snapshots for: a regular bout, a kinboshi bout, a fusen bout, an undecided bout, an old-era bout without kanji, a newly promoted wrestler.
 
 **AC:** every Makuuchi bout of 202609 renders without layout problems at 90 and 130 columns; opening a VS screen for a snapshot tournament makes no requests.
 
@@ -1570,7 +1568,7 @@ Recorded by hand while researching. These are facts to rely on until the fixture
 - `GET /rikishi/8850/matches` → `{"limit","skip","total":276,"records":[…]}` with the full career, newest first, **without** passing `limit`. The records have the torikumi shape, including `eastRank`/`westRank`.
 - `GET /rikishi/8850/matches/9` (head-to-head) → `{"kimariteLosses":{"yorikiri":1},"kimariteWins":{"hatakikomi":6,"oshidashi":3,"abisetaoshi":1},"opponentWins":1,"rikishiWins":10,"total":11, "matches":[…]}`.
 - `GET /rikishi/8850/stats` → keys `absenceByDivision`, `basho`, `bashoByDivision`, `lossByDivision`, `sansho` (map by prize), `totalAbsences`, `totalByDivision`, `totalLosses`, `totalMatches`, `totalWins`, `winsByDivision`, `yusho`, `yushoByDivision`.
-- `GET /measurements?bashoId=202609` → array of `{"id":"202609-9144","bashoId":"202609","rikishiId":9144,"height":177,"weight":124}` for all divisions; `196001` → only 1 entry.
+- `GET /measurements?bashoId=202609` → array of `{"id":"202609-9144","bashoId":"202609","rikishiId":9144,"height":177,"weight":124}`, but **only the 7 newcomers** of that tournament; `196001` → 1 entry. `measurementHistory` of a profile has one entry, from the debut. Not used.
 - `GET /kimarite` without parameters → `{"error":"NOT_A_VALID_KIMARITE_SORT_FIELD,_CHOOSE_FROM_[COUNT,_KIMARITE,_LASTUSAGE]"}`.
 
 ### A.2 osada.us
@@ -1675,15 +1673,14 @@ If a year boundary is uncertain, show the city only.
       ]
     },
     "juryo": {"banzuke": [], "bouts": []}
-  },
-  "measurements": {"8850": [190, 188]}
+  }
 }
 ```
 
 - `res`: one character per day: `W` win, `L` loss, `w` fusen win, `l` fusen loss, `A` absent, `D` draw, `-` no entry. `opp` and `km` have 15 entries each (0 / `""` when not applicable). The example is shortened.
 - `bouts`: `[day, matchNo, eastId, eastRank, westId, westRank, winner ("e" | "w" | ""), kimarite, playoff (0/1)]`.
 - `shikona` (`en`, `jp`) as of that tournament; `jp` already cleaned (§5.6).
-- `rikishi.json.zst`: `[{"id","nsk","sdb","en","jp","heya","birth","from","debut","retired"}]`.
+- `rikishi.json.zst`: `[{"id","nsk","sdb","en","jp","heya","birth","from","debut","height","weight","retired"}]`.
 - `manifest.json`: `{"schema":1,"generator":"basho-data vX","generatedAt":"…","source":"sumo-api.com","basho":["196001",…],"sha256":{"basho/196001.json.zst":"…",…}}`.
 
 ---
@@ -1695,6 +1692,7 @@ If a year boundary is uncertain, show the city only.
 - **When it runs:** only on tournament days, between `--from` and `--until` (JST). On other days it logs one line and exits, so launchd can start it every day.
 - **Which tournament:** the tournament is this month's, or the upcoming one in an even month. Its start date comes from sumo-api `/basho/{id}`, falling back to the second-Sunday estimate.
 - **What each tick saves** into `DIR/<YYYYMMDD>/<HHMM>/`:
+  - Files are named like the fixtures (`fixture.Name`, under `osada/` and `sumoapi/`), so a tick can be replayed with `fixture.Getter` in tests.
   - osada `torikumi.json` and `banzuke.json`, fetched with a conditional GET. A 304 is recorded with its status, and the body file repeats the last 200, so every tick folder is self-contained.
   - sumo-api `/basho/{id}`, plus `/basho/{id}/torikumi/{Makuuchi|Juryo}/{day}`
   - `meta.json`: request times, status codes, ETags, sizes, durations and errors

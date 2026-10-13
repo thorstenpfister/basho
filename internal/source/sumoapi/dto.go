@@ -73,9 +73,3 @@ type rikishiDTO struct {
 	Weight    float64   `json:"weight"`
 	Debut     string    `json:"debut"`
 }
-
-type measurementDTO struct {
-	RikishiID int     `json:"rikishiId"`
-	Height    float64 `json:"height"`
-	Weight    float64 `json:"weight"`
-}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/fixture"
 	"github.com/thorstenpfister/basho/internal/httpx"
 )
 
@@ -138,23 +139,27 @@ func (r *Recorder) tick(ctx context.Context, id domain.BashoID, day int, at time
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	sources := []struct{ name, url string }{
-		{"osada-torikumi.json", r.Config.Osada + "/api/v1/torikumi.json"},
-		{"osada-banzuke.json", r.Config.Osada + "/api/v1/banzuke.json"},
+	// Files go to <tick>/<source>/ under fixture.Name, the layout of testdata/,
+	// so a tick can be replayed with fixture.Getter.
+	sources := []struct{ dir, base, path string }{
+		{"osada", r.Config.Osada, "/api/v1/torikumi.json"},
+		{"osada", r.Config.Osada, "/api/v1/banzuke.json"},
 		// Per tick, not once: yusho and prizes appear here on day 15.
-		{"sumoapi-basho.json", fmt.Sprintf("%s/api/basho/%s", r.Config.SumoAPI, id)},
-		{"sumoapi-torikumi-makuuchi.json", fmt.Sprintf("%s/api/basho/%s/torikumi/Makuuchi/%d", r.Config.SumoAPI, id, day)},
-		{"sumoapi-torikumi-juryo.json", fmt.Sprintf("%s/api/basho/%s/torikumi/Juryo/%d", r.Config.SumoAPI, id, day)},
+		{"sumoapi", r.Config.SumoAPI, "/api/basho/" + id.String()},
+		{"sumoapi", r.Config.SumoAPI, fmt.Sprintf("/api/basho/%s/torikumi/Makuuchi/%d", id, day)},
+		{"sumoapi", r.Config.SumoAPI, fmt.Sprintf("/api/basho/%s/torikumi/Juryo/%d", id, day)},
 	}
 	var meta []tickEntry
 	failed := 0
 	for _, s := range sources {
-		e := tickEntry{Name: s.name, URL: s.url, FetchedAt: time.Now().UTC()}
+		url := s.base + s.path
+		name := filepath.Join(s.dir, fixture.Name(s.path))
+		e := tickEntry{Name: filepath.ToSlash(name), URL: url, FetchedAt: time.Now().UTC()}
 		var validators httpx.Validators
-		if prev := r.last[s.url]; prev != nil {
+		if prev := r.last[url]; prev != nil {
 			validators = prev.Validators
 		}
-		resp, err := r.HTTP.Get(ctx, s.url, validators)
+		resp, err := r.HTTP.Get(ctx, url, validators)
 		switch {
 		case ctx.Err() != nil:
 			return ctx.Err()
@@ -165,12 +170,15 @@ func (r *Recorder) tick(ctx context.Context, id domain.BashoID, day int, at time
 			e.Status, e.ETag, e.LastModified = resp.Status, resp.Validators.ETag, resp.Validators.LastModified
 			e.Bytes, e.DurationMS = len(resp.Body), resp.Duration.Milliseconds()
 			if resp.OK() {
-				r.last[s.url] = resp
+				r.last[url] = resp
 			} else if !resp.NotModified() {
 				failed++
 			}
-			if body := r.last[s.url]; body != nil && (resp.OK() || resp.NotModified()) {
-				if err := writeFileAtomic(filepath.Join(dir, s.name), body.Body); err != nil {
+			if body := r.last[url]; body != nil && (resp.OK() || resp.NotModified()) {
+				if err := os.MkdirAll(filepath.Join(dir, s.dir), 0o755); err != nil {
+					return err
+				}
+				if err := writeFileAtomic(filepath.Join(dir, name), body.Body); err != nil {
 					return err
 				}
 			}

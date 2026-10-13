@@ -107,7 +107,7 @@ rm -rf /tmp/basho-smoke
 Expect:
 
 - five entries with `"status": 200` and no `"error"`
-- five `.json` files next to `meta.json`
+- `meta.json`, plus two files in `osada/` and three in `sumoapi/`
 - before the Kyushu banzuke is published (about 26 October), the line `no
   start date from sumo-api (not published yet), using the estimate 2026-11-08`
 

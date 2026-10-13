@@ -149,16 +149,6 @@ func TestRikishiIndexPages(t *testing.T) {
 	}
 }
 
-func TestMeasurements(t *testing.T) {
-	c := fakeAPI{
-		"/api/measurements?bashoId=202609": ok(`[{"id":"202609-8850","bashoId":"202609","rikishiId":8850,"height":190,"weight":188}]`),
-	}.client()
-	got, err := c.Measurements(t.Context(), aki)
-	if err != nil || got[8850] != (domain.Measurement{Height: 190, Weight: 188}) {
-		t.Errorf("Measurements = %v, %v", got, err)
-	}
-}
-
 func TestErrorMapping(t *testing.T) {
 	c := fakeAPI{
 		"/api/basho/196001": {Status: 429},
