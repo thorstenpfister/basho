@@ -29,6 +29,11 @@ type Options struct {
 	Hosts     map[string]HostPolicy
 }
 
+// Getter is what callers need from a Client; tests substitute a fake.
+type Getter interface {
+	Get(ctx context.Context, url string, v Validators) (*Response, error)
+}
+
 // Client is basho's polite HTTP client, a subset of SPEC §7.1. It is safe for
 // concurrent use.
 type Client struct {

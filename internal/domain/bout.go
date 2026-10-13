@@ -81,6 +81,28 @@ type Bout struct {
 	IsPlayoff  bool
 }
 
+// Prize is an award of a tournament: a yusho or a special prize (sansho).
+type Prize struct {
+	Type      string // e.g. "Kanto-sho"
+	RikishiID RikishiID
+}
+
+// Basho is a tournament's metadata.
+type Basho struct {
+	ID       BashoID
+	Start    Date
+	End      Date
+	Location string                 // from the source, often empty; see BashoID.Venue
+	Yusho    map[Division]RikishiID // only the divisions basho knows
+	Prizes   []Prize                // special prizes
+}
+
+// Measurement is a wrestler's height (cm) and weight (kg) at a tournament.
+type Measurement struct {
+	Height float64
+	Weight float64
+}
+
 // Rikishi is a wrestler's profile.
 type Rikishi struct {
 	ID       RikishiID

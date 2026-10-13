@@ -13,11 +13,6 @@ import (
 	"github.com/thorstenpfister/basho/internal/httpx"
 )
 
-// Getter is the HTTP the recorder needs; *httpx.Client implements it.
-type Getter interface {
-	Get(ctx context.Context, url string, v httpx.Validators) (*httpx.Response, error)
-}
-
 // RecordConfig configures a recording run (SPEC Appendix E).
 type RecordConfig struct {
 	Out        string         // root directory; ticks go to Out/YYYYMMDD/HHMM
@@ -36,7 +31,7 @@ const MinRecordInterval = 2 * time.Minute
 // Recorder saves raw API responses during the live window of tournament days.
 type Recorder struct {
 	Config RecordConfig
-	HTTP   Getter
+	HTTP   httpx.Getter
 	Log    io.Writer
 
 	last map[string]*httpx.Response // last 200 per URL: validators, and the body to repeat on 304
@@ -95,7 +90,9 @@ func (r *Recorder) Run(ctx context.Context) error {
 
 // startDate returns day 1 of id from sumo-api. It falls back to the estimate
 // when the banzuke is not published yet or sumo-api cannot be reached, so one
-// failed request does not cost a recording day.
+// failed request does not cost a recording day. It decodes the response itself
+// rather than using sumoapi.Client.Basho because it keeps the raw response for
+// conditional requests.
 func (r *Recorder) startDate(ctx context.Context, id domain.BashoID) domain.Date {
 	url := r.Config.SumoAPI + "/api/basho/" + id.String()
 	resp, err := r.HTTP.Get(ctx, url, httpx.Validators{})

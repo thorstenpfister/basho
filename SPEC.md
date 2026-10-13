@@ -1310,7 +1310,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
    - tournament argument parsing (D18)
 2. Kimarite table as embedded data: 82 techniques plus non-techniques, each with romaji, kanji, English gloss and moveset category (§6.7).
 3. Name cleanup (§5.6).
-4. `source/sumoapi` DTOs for basho, banzuke, torikumi, rikishis (paged), rikishi, matches, stats and measurements. The "zero object" for unknown tournaments becomes `ErrNotYetAvailable`.
+4. `source/sumoapi` DTOs for basho, banzuke, torikumi, rikishis (paged) and measurements. The "zero object" for unknown tournaments becomes `ErrNotYetAvailable`; data that cannot be mapped is `ErrBadData` (not retryable, unlike `ErrUpstream`). `rikishi`, `matches` and `stats` are deferred: they are only a fallback without a snapshot (§5.8). The §5.3 interfaces are declared with the resolver (Phase 9).
 5. Mapping from DTOs to the domain, with an explicit strategy for unknown values.
 6. A slow, polite fixture recorder (`make fixtures`) and the fixtures from §13.
 7. Unit tests: rank parsing, calendar, tournament argument parsing, mapping for 202609, 196001 and 202607.
@@ -1326,7 +1326,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
    - file store with entry metadata and the TTL table from §7.2
    - stale-while-revalidate API (`Get` returns the value and its freshness, plus a background refresh hook)
    - LRU size cap, schema versioning, `--offline` support
-3. Data-class classification, including detecting finished tournaments (end date + 2 days and a yusho winner present).
+3. Data-class classification, including detecting finished tournaments (end date + 2 days and a yusho winner present). The class cannot be read from a URL, so the adapter passes it to the cache (its single `getJSON` choke point is the place).
 4. Connect the sumo-api adapter to `httpx` and `cache`.
 5. Counting RoundTripper and request-budget tests (§7.3, sumo-api rows).
 6. httpx and cache test suites (§13).
