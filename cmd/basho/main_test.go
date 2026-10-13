@@ -19,11 +19,11 @@ func TestVersionViaLdflags(t *testing.T) {
 	bin := filepath.Join(t.TempDir(), "basho")
 	const pkg = "github.com/thorstenpfister/basho/internal/buildinfo"
 	ldflags := "-X " + pkg + ".Version=v9.8.7 -X " + pkg + ".Commit=abcdef123456 -X " + pkg + ".Date=2026-10-13T12:00:00Z"
-	if out, err := exec.Command("go", "build", "-ldflags", ldflags, "-o", bin, ".").CombinedOutput(); err != nil {
+	if out, err := exec.CommandContext(t.Context(), "go", "build", "-ldflags", ldflags, "-o", bin, ".").CombinedOutput(); err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)
 	}
 	for _, arg := range []string{"version", "--version"} {
-		out, err := exec.Command(bin, arg).CombinedOutput()
+		out, err := exec.CommandContext(t.Context(), bin, arg).CombinedOutput()
 		if err != nil {
 			t.Fatalf("basho %s: %v\n%s", arg, err, out)
 		}

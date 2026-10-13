@@ -1,0 +1,30 @@
+version: "2"
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - bodyclose
+    - depguard
+    - errorlint
+    - misspell
+    - noctx
+    - nolintlint
+    - unconvert
+    - usestdlibvars
+  settings:
+    depguard:
+      rules:
+        charm-v2:
+          files: ["$all", "$test"]
+          deny:
+            - pkg: github.com/charmbracelet/bubbletea
+              desc: Bubble Tea v1; use charm.land/bubbletea/v2 (docs/charm-v2-notes.md)
+            - pkg: github.com/charmbracelet/lipgloss
+              desc: Lip Gloss v1; use charm.land/lipgloss/v2
+            - pkg: github.com/charmbracelet/bubbles
+              desc: Bubbles v1; use charm.land/bubbles/v2
+            - pkg: github.com/charmbracelet/x/exp/teatest$
+              desc: teatest for Bubble Tea v1; use github.com/charmbracelet/x/exp/teatest/v2
+    nolintlint:
+      require-explanation: true
+      require-specific: true

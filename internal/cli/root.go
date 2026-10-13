@@ -2,9 +2,7 @@ package cli
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"strings"
 
 	"github.com/charmbracelet/fang"
 	"github.com/spf13/cobra"
@@ -24,10 +22,8 @@ func Execute(root *cobra.Command) int {
 // SetVersion makes --version print the same text as `version`. fang's own
 // version output is turned off in Execute because it shortens the commit.
 func SetVersion(root *cobra.Command, info buildinfo.Info) {
-	var b strings.Builder
-	writeVersion(&b, root.Name(), info)
 	root.Version = info.Version
-	root.SetVersionTemplate(b.String())
+	root.SetVersionTemplate(versionText(root.Name(), info))
 }
 
 // NewRoot returns the basho root command with all subcommands.
@@ -47,19 +43,21 @@ func NewRoot(info buildinfo.Info) *cobra.Command {
 		Use:   "version",
 		Short: "Print version information",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, _ []string) {
-			writeVersion(cmd.OutOrStdout(), cmd.Root().Name(), info)
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			_, err := io.WriteString(cmd.OutOrStdout(), versionText(cmd.Root().Name(), info))
+			return err
 		},
 	})
 	return root
 }
 
-func writeVersion(w io.Writer, name string, info buildinfo.Info) {
-	fmt.Fprintf(w, "%s %s\n", name, info.Version)
+func versionText(name string, info buildinfo.Info) string {
+	text := name + " " + info.Version + "\n"
 	if info.Commit != "" {
-		fmt.Fprintf(w, "  commit  %s\n", info.Commit)
+		text += "  commit  " + info.Commit + "\n"
 	}
 	if info.Date != "" {
-		fmt.Fprintf(w, "  built   %s\n", info.Date)
+		text += "  date    " + info.Date + "\n"
 	}
+	return text
 }

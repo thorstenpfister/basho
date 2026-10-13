@@ -1,5 +1,6 @@
-// Package archtest enforces the dependency rules of SPEC §5.1 on the real
-// import graph, so the layering cannot erode unnoticed.
+// Package archtest checks the repository against SPEC.md, so it cannot drift
+// unnoticed: the dependency rules of §5.1 on the real import graph, and the
+// Makefile targets of §14.1.
 //
 // The graph is loaded in-process with go/build rather than via `go list`: the
 // go test cache only tracks files this process opens, so reading the sources
@@ -16,7 +17,10 @@ import (
 	"testing"
 )
 
-const module = "github.com/thorstenpfister/basho"
+const (
+	module = "github.com/thorstenpfister/basho"
+	root   = "../.." // go test runs in the package directory
+)
 
 // pkg is a package by module-relative path ("internal/domain") with its
 // direct, non-test imports, internal ones also module-relative.
@@ -95,10 +99,6 @@ func reachable(pkgs []pkg, from string) []string {
 // the go tool ignores (testdata, and names starting with "." or "_").
 func load(t *testing.T) []pkg {
 	t.Helper()
-	root, err := filepath.Abs("../..") // go test runs in the package directory
-	if err != nil {
-		t.Fatal(err)
-	}
 	var pkgs []pkg
 	for _, top := range []string{"cmd", "internal"} {
 		err := filepath.WalkDir(filepath.Join(root, top), func(dir string, d fs.DirEntry, err error) error {

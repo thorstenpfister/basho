@@ -13,7 +13,7 @@ var (
 type Info struct {
 	Version string // release tag, module version, or "devel"
 	Commit  string // short revision, "-dirty" if built from a modified tree; may be empty
-	Date    string // build or commit time (RFC 3339); may be empty
+	Date    string // commit time from VCS stamping, or what -ldflags set (RFC 3339); may be empty
 }
 
 const shortCommit = 12

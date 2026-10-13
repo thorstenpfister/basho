@@ -1,0 +1,13 @@
+# Build output
+/bin/
+/dist/
+
+# Work caches (basho-data, SPEC §4.3)
+/.cache/
+
+# Coverage
+coverage.out
+coverage.html
+
+# OS
+.DS_Store

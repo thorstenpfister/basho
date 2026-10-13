@@ -26,7 +26,7 @@ func TestVersionOutput(t *testing.T) {
 		{
 			name: "full",
 			info: buildinfo.Info{Version: "v1.2.3", Commit: "0123456789ab-dirty", Date: "2026-10-13T10:15:00Z"},
-			want: "basho v1.2.3\n  commit  0123456789ab-dirty\n  built   2026-10-13T10:15:00Z\n",
+			want: "basho v1.2.3\n  commit  0123456789ab-dirty\n  date    2026-10-13T10:15:00Z\n",
 		},
 		{
 			name: "devel without VCS data",

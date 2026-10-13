@@ -1156,7 +1156,7 @@ adjacent_days = false
 - **Go version:** the current stable release (1.27 locally); the `go` directive in `go.mod` follows it (currently `go 1.27`).
 - **Time zone data** is compiled in (`import _ "time/tzdata"`), so JST works without a system time zone database.
 - **Task runner:** a `Makefile` (§14.1). CI runs `make check`, so local and CI checks are identical.
-- **Build information:** version, commit and build date are set via `-ldflags -X` on `internal/buildinfo`. The snapshot date isn't an ldflag: `basho version` reads it from the embedded manifest, so it can never be out of sync.
+- **Build information:** only the version (`git describe --tags --always`) is set via `-ldflags -X` on `internal/buildinfo`. Commit, dirty flag and commit time come from the Go toolchain's VCS stamping, so there is one source for them. The snapshot date isn't an ldflag either: `basho version` reads it from the embedded manifest, so it can never be out of sync.
 - **Build targets:** darwin/arm64, darwin/amd64, linux/amd64, linux/arm64. Only `cmd/basho` is released; `cmd/basho-data` is never shipped.
 - **GitHub Actions:**
   - `test.yml` on every push and pull request.
@@ -1164,7 +1164,7 @@ adjacent_days = false
 
 ### 14.1 Makefile
 
-`make` with no target runs `help`. Variables: `GO ?= go`, `BIN := bin`, `ARGS` (passed to `run` and the data tool), `LDFLAGS` built from `git describe --tags --always --dirty`, the commit hash and the UTC build time.
+`make` with no target runs `help`. Variables: `GO ?= go`, `BIN := bin`, `ARGS` (passed to `run` and the data tool), `LDFLAGS` with the version from `git describe --tags --always`.
 
 | Target | What it does | From phase |
 |---|---|---|
