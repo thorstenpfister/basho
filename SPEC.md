@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **Draft v0.6** (2026-10-13) — for iteration. Nothing here is implemented yet.
+> Status: **Draft v0.7** (2026-10-13) — for iteration. Nothing here is implemented yet.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -71,6 +71,7 @@ Not in v1 (possible later, §15):
 | D25 | Signing and notarization | Not for now; after 1.0 at the earliest (§15). The binary works unsigned, as with many CLI tools. |
 | D26 | Win chance | Shown on the VS screen by default (`ui.win_chance = true`); the day-view column stays opt-in (`p`) |
 | D27 | Build tooling | A `Makefile` (no `just`), with the targets in §14.1. Third-party dependencies are kept to the short list in §5.9. |
+| D28 | No GitHub Actions | All checks, builds, snapshot updates and releases run locally through the Makefile (`make check` before committing). There are no workflow files. |
 
 ---
 
@@ -195,7 +196,7 @@ Finished tournaments never change. Instead of every user fetching them, a separa
   - **Updates:** the tool reads the manifest and only fetches tournaments that are finished (rule in §7.2) and not yet included. That is about 34 requests per new tournament, plus 1 for the active-wrestler index.
   - **Resumable:** requests go through the normal `httpx` client (§7.1) and a work cache (`.cache/basho-data/`, ignored by git), so an interrupted run continues without fetching anything twice.
   - **Verification:** `basho-data snapshot verify` checks that each wrestler's bouts match their banzuke record and totals, that every bout appears for both wrestlers, that the schema is valid and that the checksums match.
-- **Update flow:** `make snapshot` (update and verify), commit `data: snapshot through 202611`, then tag a patch release. There is no fixed schedule: the app works with a snapshot of any age, because it fetches whatever came later (§5.8). An optional GitHub Actions workflow (manual trigger, plus a cron run about 3 days after each tournament) can open a pull request with the update.
+- **Update flow:** `make snapshot` (update and verify), commit `data: snapshot through 202611`, then tag a patch release. There is no fixed schedule: the app works with a snapshot of any age, because it fetches whatever came later (§5.8).
 - **Licence:** sumo-api.com publishes no terms beyond asking for responsible use. We stay within that through the limits above and credit sumo-api.com in the README, in `basho credits` and in the manifest (D24).
 
 ### 4.4 Wikimedia Commons and Wikidata (portraits, build time only)
@@ -1146,8 +1147,8 @@ adjacent_days = false
 - **Live scheduler tests:** fake clock covering the window, jitter range, doubling interval, stop conditions and day 15 extension.
 - **TUI tests:** `teatest` with a fixed 120×40 and 80×24 size and a fake clock. Golden snapshots of each screen; key flows (picker → day → VS → reveal → back); resizing; spoiler-free flow.
 - **CLI tests:** golden text output and JSON schema golden files.
-- **Live smoke tests** behind `//go:build live`, never in CI by default: one request per endpoint to catch API changes.
-- Tooling: `golangci-lint`, `gofumpt`, `go test -race`. CI runs on GitHub Actions (macOS and Linux).
+- **Live smoke tests** behind `//go:build live`, never part of `make check`: one request per endpoint to catch API changes.
+- Tooling: `golangci-lint`, `gofumpt`, `go test -race`, all through `make check` (D28).
 
 ---
 
@@ -1155,12 +1156,9 @@ adjacent_days = false
 
 - **Go version:** the current stable release (1.27 locally); the `go` directive in `go.mod` follows it (currently `go 1.27`).
 - **Time zone data** is compiled in (`import _ "time/tzdata"`), so JST works without a system time zone database.
-- **Task runner:** a `Makefile` (§14.1). CI runs `make check`, so local and CI checks are identical.
+- **Task runner:** a `Makefile` (§14.1). `make check` is the full check, run locally before committing (D28).
 - **Build information:** only the version (`git describe --tags --always`) is set via `-ldflags -X` on `internal/buildinfo`. Commit, dirty flag and commit time come from the Go toolchain's VCS stamping, so there is one source for them. The snapshot date isn't an ldflag either: `basho version` reads it from the embedded manifest, so it can never be out of sync.
 - **Build targets:** darwin/arm64, darwin/amd64, linux/amd64, linux/arm64. Only `cmd/basho` is released; `cmd/basho-data` is never shipped.
-- **GitHub Actions:**
-  - `test.yml` on every push and pull request.
-  - Optional `snapshot.yml`: manual trigger plus a cron run about 3 days after each tournament. It runs `basho-data snapshot update` and `verify` and opens a pull request.
 
 ### 14.1 Makefile
 
@@ -1182,7 +1180,7 @@ adjacent_days = false
 | `lint` | `golangci-lint run` | 0 |
 | `vuln` | `go tool govulncheck ./...` | 0 |
 | `tidy` | `go mod tidy` and `go mod verify` | 0 |
-| `check` | `fmt-check lint vuln test-race`; the CI entry point | 0 |
+| `check` | `fmt-check lint vuln test-race`; the full check before committing | 0 |
 | `tools` | Checks that external tools exist (golangci-lint; goreleaser from Phase 13) and prints install hints | 0 |
 | `fixtures` | `basho-data fixtures record`: polite recording of the test fixtures | 1 |
 | `record` | `basho-data record $(ARGS)`: live recorder (Appendix E) | 1 |
@@ -1203,9 +1201,8 @@ adjacent_days = false
 - `make install`: `go install` of `./cmd/basho` with the ldflags. This is the main way to install v1.0.
 - **GoReleaser v2** for reproducible builds:
   - archives for the targets above, checksums, completions and man page (from Fang)
-  - `release.yml` on a `v*` tag creates a GitHub release in the private repository (only reachable with access)
   - `make release-snapshot` (`goreleaser release --snapshot --clean`) for local test builds
-- **Release flow after a snapshot update:** commit the snapshot (or merge the pull request), tag the next patch version (`v1.2.3` → `v1.2.4`), run `make install`.
+- **Release flow after a snapshot update:** commit the snapshot, tag the next patch version (`v1.2.3` → `v1.2.4`), run `make install`.
 - **Brewfile in `macos-setup`:** nothing for v1.0. Optionally a `config.toml` in its `home/` directory.
 
 ### 14.3 After 1.0: public repository and Homebrew tap
@@ -1213,7 +1210,7 @@ adjacent_days = false
 Only once you have decided to make the repository public (D9, D22).
 
 - GoReleaser's `homebrew_casks` section has `repository: {owner: thorstenpfister, name: basho, branch: main}` and `directory: Casks`. On every release it commits `Casks/basho.rb` to `main`.
-- The release workflow's own `GITHUB_TOKEN` (with `contents: write`) is enough, because it is the same repository.
+- Releases run locally: `GITHUB_TOKEN=$(gh auth token) goreleaser release --clean` after tagging. It publishes the GitHub release and commits the cask (D28).
 - Installing needs an explicit URL, because the repository isn't named `homebrew-*`:
   ```
   brew tap thorstenpfister/basho https://github.com/thorstenpfister/basho
@@ -1297,11 +1294,10 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 2. Add the dependencies from §5.9, including the `tool` directives for gofumpt and govulncheck. Before writing TUI code, read the actual Charm v2 sources and examples, because the v2 APIs differ from v1.
 3. `cmd/basho/main.go` with Fang and `basho version` (build information via ldflags); an empty `cmd/basho-data/main.go`.
 4. Tooling: `Makefile` with every target from §14.1 (later targets print "not implemented yet" until their phase), `.golangci.yml` (including a depguard rule that bans the v1 Charm imports `github.com/charmbracelet/bubbletea`, `lipgloss`, `bubbles` and the non-`/v2` `x/exp/teatest`, in test files too), `tool` directives in `go.mod` (§5.9), `.editorconfig`, `.gitignore` (`bin/`, `dist/`, `.cache/`, `coverage.*`).
-5. CI: GitHub Actions `test.yml` running `make check` and `make build` on macOS and Linux.
-6. `clock` package (real and fake), JST helpers, `time/tzdata` import.
-7. Short README with a project description and data source credits.
+5. `clock` package (real and fake), JST helpers, `time/tzdata` import.
+6. Short README with a project description and data source credits.
 
-**AC:** `make check` and `make build` pass locally and in CI; `make help` lists every target; `basho version` prints version, commit and date.
+**AC:** `make check` and `make build` pass; `make help` lists every target; `basho version` prints version, commit and date.
 
 ### Phase 1: Domain model and sumo-api adapter
 
@@ -1350,7 +1346,6 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 5. Bout index (by wrestler and by tournament), built lazily and extendable with later tournaments.
 6. Fixture snapshot (3 tournaments) for tests; equivalence tests between the snapshot path and the adapter path.
 7. Run the full build once (about 4 hours, not on a tournament day), measure V8, commit `data/snapshot/`.
-8. Optional `snapshot.yml` workflow that opens a pull request.
 
 **AC:** with network access blocked, any tournament from 196001 to the snapshot's newest one loads in under 100 ms; `verify` passes on the committed snapshot; a second `snapshot update` without new tournaments makes no requests apart from the manifest check.
 
@@ -1491,7 +1486,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 
 1. `make install` with the ldflags; `basho version` shows the snapshot date from the manifest.
 2. `.goreleaser.yaml`: targets, ldflags, archives with completions and man page, checksums. No Homebrew section yet.
-3. `release.yml` on `v*` tags; dry run with `make release-snapshot`.
+3. Dry run with `make release-snapshot`.
 4. Document the snapshot release flow (update → verify → commit → patch tag → install) in `docs/releasing.md`; CHANGELOG.
 5. Tag `v1.0.0`.
 
@@ -1516,7 +1511,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 ### Phase 15: Public repository and Homebrew tap
 
 1. Decide to go public (D9). Review the history, README, LICENSE for the code and the data credits beforehand.
-2. Add `homebrew_casks` to `.goreleaser.yaml` (§14.3) with the quarantine `postflight` hook; `contents: write` for `release.yml`.
+2. Add `homebrew_casks` to `.goreleaser.yaml` (§14.3) with the quarantine `postflight` hook; release locally with `goreleaser release` (§14.3).
 3. Release, then check `brew tap … && brew install --cask thorstenpfister/basho/basho` on a clean user account.
 4. Add the tap and cask to the Brewfile in `macos-setup`.
 

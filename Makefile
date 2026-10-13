@@ -69,7 +69,7 @@ tidy: ## go mod tidy and verify
 	$(GO) mod tidy
 	$(GO) mod verify
 
-check: fmt-check lint vuln test-race ## Everything CI runs
+check: fmt-check lint vuln test-race ## All checks; run before committing
 
 tools: ## Check that external tools are installed
 	@command -v golangci-lint >/dev/null || { echo "missing golangci-lint: brew install golangci-lint"; exit 1; }
