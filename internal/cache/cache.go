@@ -26,7 +26,8 @@ const Schema = 1
 // depends on the tournament calendar at read time, so the caller decides from
 // FetchedAt (SPEC §7.2).
 type Entry struct {
-	Key        string           `json:"key"` // e.g. the URL; also aids debugging
+	Key        string           `json:"key"`    // e.g. the URL; also aids debugging
+	Status     int              `json:"status"` // 200, or 404 for a cached "not found"
 	FetchedAt  time.Time        `json:"fetchedAt"`
 	Validators httpx.Validators `json:"validators"`
 	Pinned     bool             `json:"pinned,omitempty"` // never evicted: finished tournaments
@@ -125,6 +126,16 @@ func (c *Cache) Touch(key string, fetchedAt time.Time, v httpx.Validators) error
 		return err
 	}
 	e.FetchedAt, e.Validators = fetchedAt, v
+	return c.write(e, body)
+}
+
+// Pin marks key's entry as never to be evicted, without rewriting its body.
+func (c *Cache) Pin(key string) error {
+	e, body, err := readFile(c.path(key))
+	if err != nil {
+		return err
+	}
+	e.Pinned = true
 	return c.write(e, body)
 }
 

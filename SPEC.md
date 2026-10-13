@@ -1325,7 +1325,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
    - file store with entry metadata and the TTL table from §7.2
    - stale-while-revalidate API (`Get` returns the value and its freshness, plus a background refresh hook)
    - LRU size cap, schema versioning, `--offline` support
-3. Data-class classification, including detecting finished tournaments (end date + 2 days and a yusho winner present). The class cannot be read from a URL, so the adapter passes it to the cache (its single `getJSON` choke point is the place).
+3. Data-class classification, including detecting finished tournaments (end date + 2 days and a yusho winner present). Each adapter supplies a freshness policy that sees the URL, status and body (the yusho is in the body), and the caching `Getter` applies it at read time. Banzuke responses carry no dates or yusho, so they go by the estimated end date.
 4. Connect the sumo-api adapter to `httpx` and `cache`.
 5. Counting RoundTripper and request-budget tests (§7.3, sumo-api rows).
 6. httpx and cache test suites (§13).
