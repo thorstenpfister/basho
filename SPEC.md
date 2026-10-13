@@ -458,7 +458,7 @@ The rule: **standard library first.** A third-party module is only added when it
 
 | Module or tool | Purpose | How |
 |---|---|---|
-| `github.com/charmbracelet/x/exp/teatest` | Driving the TUI in tests | test dependency |
+| `github.com/charmbracelet/x/exp/teatest/v2` | Driving the TUI in tests | test dependency |
 | `github.com/charmbracelet/x/exp/golden` | Golden-file assertions (`-update` flag) | test dependency |
 | `github.com/google/go-cmp` | Readable diffs of domain structs | test dependency |
 | `mvdan.cc/gofumpt` | Formatting | `tool` directive in `go.mod`, run as `go tool gofumpt` |
@@ -466,7 +466,9 @@ The rule: **standard library first.** A third-party module is only added when it
 | `golangci-lint` | Linting | Homebrew (already installed; the project advises against building it from source) |
 | `goreleaser` | Release builds (Phase 13) | Homebrew; `make tools` reports if missing |
 
-**After 1.0 (portraits):** `github.com/esimov/pigo` (face detection), `golang.org/x/image/draw` (scaling), `charm.land/x/mosaic` (half-block rendering, or our own renderer), and `vhs` (Homebrew) for the README GIF.
+**After 1.0 (portraits):** `github.com/esimov/pigo` (face detection), `golang.org/x/image/draw` (scaling), `github.com/charmbracelet/x/mosaic` (half-block rendering, or our own renderer), and `vhs` (Homebrew) for the README GIF.
+
+**Charm v2 API facts and import-path rules:** `docs/charm-v2-notes.md`. Versions: `go.mod`.
 
 **Deliberately not used:** Viper (TOML plus our own precedence rules is enough), testify (standard `testing` plus go-cmp), an HTTP client library, a dependency injection framework, a database (plain files and embedded data cover everything).
 
@@ -939,7 +941,7 @@ Pixel-art portraits beside the tale of the tape, facing each other like a fighti
 
 **Rendering:**
 
-- Half-block characters (`▀`): the foreground colour is the upper pixel, the background colour the lower one. This is pure text, so it fits into Bubble Tea and Lip Gloss layouts and works in any truecolor terminal (Ghostty included). `charm.land/x/mosaic` (experimental) or a small renderer of our own.
+- Half-block characters (`▀`): the foreground colour is the upper pixel, the background colour the lower one. This is pure text, so it fits into Bubble Tea and Lip Gloss layouts and works in any truecolor terminal (Ghostty included). `github.com/charmbracelet/x/mosaic` (experimental) or a small renderer of our own.
 - The West portrait is mirrored horizontally so the fighters face each other.
 - On 256-colour terminals, colours map to the nearest palette entry. Portraits are hidden with `NO_COLOR`, `--ascii`, in compact layout and with `ui.portraits = false`.
 - Size: 32 px portraits at ≥ 140 columns, 20 px at 110–139, none below that.
@@ -1294,7 +1296,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 1. `go mod init github.com/thorstenpfister/basho`; create the directory layout from §5.1 with placeholder packages.
 2. Add the dependencies from §5.9, including the `tool` directives for gofumpt and govulncheck. Before writing TUI code, read the actual Charm v2 sources and examples, because the v2 APIs differ from v1.
 3. `cmd/basho/main.go` with Fang and `basho version` (build information via ldflags); an empty `cmd/basho-data/main.go`.
-4. Tooling: `Makefile` with every target from §14.1 (later targets print "not implemented yet" until their phase), `.golangci.yml`, `tool` directives in `go.mod` (§5.9), `.editorconfig`, `.gitignore` (`bin/`, `dist/`, `.cache/`, `coverage.*`).
+4. Tooling: `Makefile` with every target from §14.1 (later targets print "not implemented yet" until their phase), `.golangci.yml` (including a depguard rule that bans the v1 Charm imports `github.com/charmbracelet/bubbletea`, `lipgloss`, `bubbles` and the non-`/v2` `x/exp/teatest`, in test files too), `tool` directives in `go.mod` (§5.9), `.editorconfig`, `.gitignore` (`bin/`, `dist/`, `.cache/`, `coverage.*`).
 5. CI: GitHub Actions `test.yml` running `make check` and `make build` on macOS and Linux.
 6. `clock` package (real and fake), JST helpers, `time/tzdata` import.
 7. Short README with a project description and data source credits.
