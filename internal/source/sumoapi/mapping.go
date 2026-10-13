@@ -67,11 +67,15 @@ func mapBanzuke(dto banzukeDTO) ([]domain.BanzukeEntry, error) {
 			Rank:      rank,
 		}
 		for day, r := range e.Record[:min(len(e.Record), domain.BashoDays)] {
-			entry.Results[day] = domain.DayResult{
+			res := domain.DayResult{
 				Outcome:    mapOutcome(r.Result),
 				OpponentID: domain.RikishiID(r.OpponentID),
 				Kimarite:   domain.NormalizeKimarite(r.Kimarite),
 			}
+			if res.Outcome == domain.Absent {
+				res.OpponentID = 0 // sumo-api writes a placeholder id (7402) on absent days
+			}
+			entry.Results[day] = res
 		}
 		entries = append(entries, entry)
 	}
@@ -126,6 +130,7 @@ func mapRikishi(r rikishiDTO) domain.Rikishi {
 		Shusshin: r.Shusshin,
 		Height:   r.Height,
 		Weight:   r.Weight,
+		Retired:  !r.Intai.IsZero(),
 	}
 	if !r.BirthDate.IsZero() {
 		out.Birth = domain.DateOf(r.BirthDate)

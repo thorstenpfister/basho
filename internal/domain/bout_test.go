@@ -33,3 +33,17 @@ func TestOutcome(t *testing.T) {
 		t.Errorf("JSON = %s, want the outcome by name", b)
 	}
 }
+
+func TestOutcomeText(t *testing.T) {
+	for o := Pending; o <= Unknown; o++ {
+		b, _ := o.MarshalText()
+		var got Outcome
+		if err := got.UnmarshalText(b); err != nil || got != o {
+			t.Errorf("%v: round trip = %v, %v", o, got, err)
+		}
+	}
+	var o Outcome
+	if o.UnmarshalText([]byte("victory")) == nil {
+		t.Error("unknown outcome accepted")
+	}
+}

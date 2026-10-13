@@ -48,6 +48,25 @@ func (d Division) String() string {
 	return ""
 }
 
+// ParseDivision parses the names of String, as sumo-api writes them.
+func ParseDivision(s string) (Division, error) {
+	for d := DivMakuuchi; d <= DivMakushita; d++ {
+		if d.String() == s {
+			return d, nil
+		}
+	}
+	return 0, fmt.Errorf("unknown division %q", s)
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (d Division) MarshalText() ([]byte, error) { return []byte(d.String()), nil }
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (d *Division) UnmarshalText(b []byte) (err error) {
+	*d, err = ParseDivision(string(b))
+	return err
+}
+
 // RankTitle is a rank within the banzuke, highest first.
 type RankTitle int
 
@@ -139,6 +158,19 @@ func (r Rank) String() string {
 		return ""
 	}
 	return fmt.Sprintf("%s %d %s", r.Title, r.Number, r.Side)
+}
+
+// MarshalText implements encoding.TextMarshaler with the long form.
+func (r Rank) MarshalText() ([]byte, error) { return []byte(r.String()), nil }
+
+// UnmarshalText implements encoding.TextUnmarshaler; empty text is the zero Rank.
+func (r *Rank) UnmarshalText(b []byte) (err error) {
+	if len(b) == 0 {
+		*r = Rank{}
+		return nil
+	}
+	*r, err = ParseRank(string(b))
+	return err
 }
 
 // Short returns the compact form, e.g. "M17e", "Y1w", "Ms3e".

@@ -72,4 +72,5 @@ type rikishiDTO struct {
 	Height    float64   `json:"height"`
 	Weight    float64   `json:"weight"`
 	Debut     string    `json:"debut"`
+	Intai     time.Time `json:"intai"` // retirement; zero while active
 }

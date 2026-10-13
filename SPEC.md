@@ -189,6 +189,9 @@ Finished tournaments never change. Instead of every user fetching them, a separa
     - every bout of both divisions (day, match number, both sides with ranks, winner, kimarite, playoff flag)
   - `rikishi.json.zst`: every wrestler who appeared in Makuuchi or Juryo since 1960, with IDs (`id`, `nskId`, `sumodbId`), names, heya, birth date, hometown, debut, latest height and weight, and retired flag.
 - **Format:** compact JSON compressed with zstd (`github.com/klauspost/compress/zstd`). Each tournament file is written once and never changes, so an update only **adds** files to git. Only `rikishi.json.zst` and the manifest are rewritten.
+  - Each fact is stored once: a bout side is only the wrestler's id when their shikona and rank match the banzuke (visitors from Makushita are written out), and a banzuke record is one outcome letter per day, with opponent and kimarite taken from that day's bout unless they differ. Decoding restores the data exactly.
+  - Every file carries the schema version (`"v"`), and encoding is deterministic (bouts sorted by day, division, playoff, match number), so a rebuild leaves git unchanged.
+  - sumo-api writes a placeholder opponent (7402) on absent days; the adapter maps it to none.
 - **Size estimate:** about 400 tournaments × about 525 bouts ≈ 210,000 bouts, which should be 4–6 MB compressed (to be measured, V8). If it exceeds 15 MB, it ships as a separate release asset instead of being embedded.
 - **Building it:**
   - **First full build:** about 400 tournaments × about 34 requests (1 basho, 2 banzuke, 30 torikumi) ≈ 13,200 requests, about 4 hours at 1 request per second. This runs once, not on a tournament day (D24).

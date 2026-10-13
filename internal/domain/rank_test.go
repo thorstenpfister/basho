@@ -80,3 +80,24 @@ func TestRankTitleProperties(t *testing.T) {
 		}
 	}
 }
+
+func TestRankDivisionText(t *testing.T) {
+	for _, r := range []Rank{{}, {Yokozuna, 1, East}, {Makushita, 3, West}} {
+		b, _ := r.MarshalText()
+		var got Rank
+		if err := got.UnmarshalText(b); err != nil || got != r {
+			t.Errorf("rank %v: round trip = %v, %v", r, got, err)
+		}
+	}
+	for d := DivMakuuchi; d <= DivMakushita; d++ {
+		b, _ := d.MarshalText()
+		var got Division
+		if err := got.UnmarshalText(b); err != nil || got != d {
+			t.Errorf("division %v: round trip = %v, %v", d, got, err)
+		}
+	}
+	var d Division
+	if d.UnmarshalText([]byte("Sandanme")) == nil {
+		t.Error("unknown division accepted")
+	}
+}

@@ -1,5 +1,7 @@
 package domain
 
+import "fmt"
+
 // RikishiID identifies a wrestler by sumo-api.com's id.
 type RikishiID int
 
@@ -33,6 +35,17 @@ func (o Outcome) String() string {
 
 // MarshalText implements encoding.TextMarshaler, so JSON carries the name.
 func (o Outcome) MarshalText() ([]byte, error) { return []byte(o.String()), nil }
+
+// UnmarshalText implements encoding.TextUnmarshaler for the names of String.
+func (o *Outcome) UnmarshalText(b []byte) error {
+	for i, name := range outcomeNames {
+		if name == string(b) {
+			*o = Outcome(i)
+			return nil
+		}
+	}
+	return fmt.Errorf("unknown outcome %q", b)
+}
 
 // IsWin reports a win, including by default.
 func (o Outcome) IsWin() bool { return o == Win || o == FusenWin }
@@ -109,4 +122,5 @@ type Rikishi struct {
 	Debut    BashoID
 	Height   float64 // cm, current
 	Weight   float64 // kg, current
+	Retired  bool
 }

@@ -61,6 +61,9 @@ func TestBanzukeRecordsMatchAPITotals(t *testing.T) {
 					l++
 				case r.Outcome == domain.Absent:
 					a++
+					if r.OpponentID != 0 {
+						t.Errorf("%s: %s absent against %d", tt.id, e.Shikona.En, r.OpponentID)
+					}
 				case r.Outcome != domain.Pending:
 					t.Errorf("%s: %s has outcome %s", tt.id, e.Shikona.En, r.Outcome)
 				}
@@ -157,11 +160,18 @@ func TestRikishiIndexFixture(t *testing.T) {
 	if len(page.Records) != 1000 || page.Total <= 1000 {
 		t.Errorf("page: %d records of %d", len(page.Records), page.Total)
 	}
-	withNSK := 0
+	withNSK, retired := 0, 0
 	for _, dto := range page.Records {
-		if mapRikishi(dto).NSKID != 0 {
+		r := mapRikishi(dto)
+		if r.NSKID != 0 {
 			withNSK++
 		}
+		if r.Retired {
+			retired++
+		}
+	}
+	if retired != 590 { // counted in the recording
+		t.Errorf("retired = %d, want 590", retired)
 	}
 	if withNSK == 0 {
 		t.Error("no wrestler has a JSA id: the osada.us mapping (SPEC §5.5) would fail")
