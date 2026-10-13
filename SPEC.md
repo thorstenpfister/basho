@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **Draft v0.7** (2026-10-13) — for iteration. Nothing here is implemented yet.
+> Status: **v0.8** (2026-10-13). Implemented: Phases 0–2, Phase 3 steps 1–6 (step 7, the full snapshot build, is run by the owner). Later phases are still the plan.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1288,6 +1288,13 @@ Only once you have decided to make the repository public (D9, D22).
 
 Each phase ends with something usable and has acceptance criteria (AC). Phases 1–6 build and prove the data foundation through the CLI before the TUI starts.
 
+**Working agreement** (how the phases are implemented):
+
+- One sub-step at a time: implement → tests green → review for reuse, simplification, efficiency and altitude (one combined review) → tests still green → a full code review for risky logic (retries, concurrency, state machines) → `make check` → **one commit per sub-step** → a short summary and a preview of the next sub-step. A whole phase may be run in one go when the owner asks, with an overview at the end.
+- Review findings are applied or explicitly skipped with a reason; format and design changes found this way are written back into this spec in the same commit.
+- Network-heavy targets (`make snapshot`, long `record` runs) are run by the owner; small smoke tests (fixtures, a single tournament) may be run during development.
+- No CI workflows (D28); `make check` before every commit. The `go` directive tracks the locally installed Go release.
+
 **Deadline-sensitive, outside the phase order:** during Kyushu 2026 (2026-11-08 to 22), record the in-progress fixtures and measure V1 with the live recorder (Appendix E). It must be ready by **2026-11-07**, so it is built as Phase 1 step 9, ahead of everything else in that phase if needed.
 
 ### Phase 0: Project scaffolding
@@ -1653,39 +1660,35 @@ If a year boundary is uncertain, show the city only.
 
 ---
 
-## Appendix D: Snapshot file schema (draft, schema version 1)
+## Appendix D: Snapshot file schema (schema version 1, as implemented)
 
-`basho/YYYYMM.json.zst` (decompressed):
+Owned by `internal/snapshot` (`manifest.go`, `tournament.go`, `rikishi.go`). Every file carries the schema version; a reader refuses others. Encoding is deterministic.
+
+`basho/YYYYMM.json.zst` (decompressed, shortened; real values from Aki 2026):
 
 ```json
 {
-  "schema": 1,
-  "id": "202609",
-  "start": "2026-09-13",
-  "end": "2026-09-27",
-  "location": null,
-  "yusho": {"makuuchi": 8850, "juryo": 66},
-  "sansho": [{"type": "kanto", "rikishi": 615}],
-  "divisions": {
-    "makuuchi": {
-      "banzuke": [
-        {"r": 8850, "rank": "Y1e", "rv": 101, "en": "Onosato", "jp": "大の里",
-         "res": "WWWLWWWWWWWWLLW", "opp": [9, 0], "km": ["hatakikomi"]}
-      ],
-      "bouts": [
-        [15, 1, 49, "M17e", 8865, "J2w", "w", "oshidashi", 0]
-      ]
-    },
-    "juryo": {"banzuke": [], "bouts": []}
-  }
+  "v": 1, "id": "202609", "start": "2026-09-13", "end": "2026-09-27",
+  "yusho": {"Juryo": 66, "Makushita": 8860, "Makuuchi": 8850},
+  "prizes": [{"type": "Kanto-sho", "id": 615}, {"type": "Kanto-sho", "id": 71}],
+  "banzuke": {
+    "Makuuchi": [{"id": 8850, "en": "Onosato", "jp": "大の里", "rank": "Yokozuna 1 East", "rec": "WWWLWWWWWWWWLLW"}],
+    "Juryo": []
+  },
+  "bouts": [
+    {"div": "Makuuchi", "d": 1, "n": 1, "e": {"id": 49}, "w": {"id": 135, "en": "Dewanoryu", "r": "Juryo 1 East"}, "win": 2, "k": "yorikiri"}
+  ]
 }
 ```
 
-- `res`: one character per day: `W` win, `L` loss, `w` fusen win, `l` fusen loss, `A` absent, `D` draw, `-` no entry. `opp` and `km` have 15 entries each (0 / `""` when not applicable). The example is shortened.
-- `bouts`: `[day, matchNo, eastId, eastRank, westId, westRank, winner ("e" | "w" | ""), kimarite, playoff (0/1)]`.
-- `shikona` (`en`, `jp`) as of that tournament; `jp` already cleaned (§5.6).
-- `rikishi.json.zst`: `[{"id","nsk","sdb","en","jp","heya","birth","from","debut","height","weight","retired"}]`.
-- `manifest.json`: `{"schema":1,"generator":"basho-data vX","generatedAt":"…","source":"sumo-api.com","basho":["196001",…],"sha256":{"basho/196001.json.zst":"…",…}}`.
+- `location` is omitted when the source has none; `yusho` holds every division the source names, `prizes` the special prizes.
+- `rec`: one letter per day, by `domain.Outcome`: `.` pending, `W` win, `L` loss, `F` fusen win, `f` fusen loss, `A` absent, `D` draw, `U` unknown. Opponent and kimarite of a day come from that day's regular bout; only days where the record differs are written in `"x": [{"d": day, "o": opponent, "k": kimarite}]`.
+- Bouts are sorted by day, division, playoff (`"p": true`) last, then match number. `win`: 1 east, 2 west, omitted while undecided. A side that is only `{"id"}` has the banzuke's romaji name and rank and no kanji or kana (what sumo-api's bout lists carry); anything else, such as a Makushita visitor in a Juryo bout, is written out (`en`, `jp`, `kana`, `r`).
+- Ranks are the long form (`"Maegashira 17 East"`), divisions and outcomes their names (`domain` text marshalling).
+- `rikishi.json.zst`: `{"v":1,"rikishi":[{"id","nsk","sumodb","en","jp","kana","heya","shusshin","birth","debut","cm","kg","retired"}]}`, sorted by id, only wrestlers who appear in the snapshot.
+- `manifest.json` (indented, plain JSON): `{"schema":1,"generator":"<basho-data version>","generatedAt":"…","source":"sumo-api.com","basho":["196001",…],"indexThrough":"<newest tournament the index covers>","files":{"basho/196001.json.zst":"<sha256>",…}}`.
+- `known-issues.txt` (optional, not in the manifest): accepted source oddities for `verify`, one exact problem line each after a `#` reason.
+- Measured: Aki 2026, 507 bouts, 6,976 bytes; the full snapshot is expected around 3 MB (V8).
 
 ---
 
