@@ -1151,7 +1151,7 @@ adjacent_days = false
 
 ## 14. Build, release, distribution
 
-- **Go version:** the current stable release (1.27 locally); the `go` directive in `go.mod` is 1.26 or higher.
+- **Go version:** the current stable release (1.27 locally); the `go` directive in `go.mod` follows it (currently `go 1.27`).
 - **Time zone data** is compiled in (`import _ "time/tzdata"`), so JST works without a system time zone database.
 - **Task runner:** a `Makefile` (§14.1). CI runs `make check`, so local and CI checks are identical.
 - **Build information:** version, commit and build date are set via `-ldflags -X` on `internal/buildinfo`. The snapshot date isn't an ldflag: `basho version` reads it from the embedded manifest, so it can never be out of sync.
