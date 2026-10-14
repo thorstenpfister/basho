@@ -3,11 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/thorstenpfister/basho/data"
+	"github.com/thorstenpfister/basho/internal/cache"
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
@@ -336,4 +338,23 @@ func b2i(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+func TestErrorClasses(t *testing.T) {
+	for _, tt := range []struct {
+		err                   error
+		notFound, unavailable bool
+	}{
+		{source.ErrNotFound, true, false},
+		{fmt.Errorf("day 3: %w", source.ErrNotYetAvailable), true, false},
+		{fmt.Errorf("x: %w", source.ErrUpstream), false, true},
+		{source.ErrRateLimited, false, true},
+		{fmt.Errorf("u: %w: %w", source.ErrUpstream, cache.ErrOffline), false, true},
+		{httpx.ErrCircuitOpen, false, true},
+		{errors.New("bug"), false, false},
+	} {
+		if NotFound(tt.err) != tt.notFound || Unavailable(tt.err) != tt.unavailable {
+			t.Errorf("%v: not found %v, unavailable %v", tt.err, NotFound(tt.err), Unavailable(tt.err))
+		}
+	}
 }

@@ -1068,7 +1068,7 @@ Output rules:
   }
   ```
 
-  Enums use stable lowercase strings (`"win"`, `"fusen_loss"`, `"maegashira"`). The schema is documented in `docs/json.md`, and golden files lock it down.
+  Enums use stable lowercase strings (`"win"`, `"fusen_loss"`, `"maegashira"`). The schema is documented in `docs/json.md`, and golden files lock it down. The schema types live in `internal/cli` and are converted from the service's views, so internal changes don't change the output. Errors go to stderr as text, also with `--json`.
 
 - **Exit codes:**
 
@@ -1402,7 +1402,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 2. Background refresh of the active-wrestler index when the snapshot's index is older than 7 days, plus the `idmap` skeleton (filled in Phase 9). Done: `service.RefreshWrestlers` fetches `/rikishis` without `intai` (the ~600 active wrestlers, one page) once the snapshot is more than 7 days old and overlays their current profiles; `StartBackground` runs it for long sessions (the TUI), while one-shot CLI commands don't wait for it. `idmap.Map` maps JSA IDs from the index.
 3. Config loading (file, environment, flags, defaults) and validation, including minimum intervals and maximum rates. Done (`internal/config`, BurntSushi/toml); the per-host intervals are the `sources.*_interval` settings (§12).
 4. Commands: `list`, `info`, `day`, `bout`, `standings` (`--grid`), `ratings`, `credits`, with text renderers (Lip Gloss tables in a terminal, plain when piped). Done; `service.Open` wires the production layers from the configuration (snapshot, sumo-api over the disk cache and `httpx`, debug log). `--source osada` is refused until Phase 9.
-5. The `--json` envelope, `docs/json.md` and exit codes.
+5. The `--json` envelope, `docs/json.md` and exit codes. Done; `service.NotFound` and `service.Unavailable` classify failures for exit codes 3 and 4.
 6. Golden tests for text and JSON.
 
 **AC:** `basho day 13 -t 202609`, `basho bout 13 19 -t aki2026` and `basho standings --day 15 -t 2026-09 --grid` give correct, readable output with no network access (snapshot), and their `--json` versions match the golden files.

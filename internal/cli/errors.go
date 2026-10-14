@@ -1,12 +1,18 @@
 package cli
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/thorstenpfister/basho/internal/service"
+)
 
 // Exit codes (SPEC §11).
 const (
-	exitOK       = 0
-	exitInternal = 1
-	exitUsage    = 2
+	exitOK          = 0
+	exitInternal    = 1
+	exitUsage       = 2
+	exitNotFound    = 3 // not found, or not available yet
+	exitUnavailable = 4 // every source failed and nothing is cached
 )
 
 // exitError carries the exit code of a failure.
@@ -29,6 +35,10 @@ func exitCode(err error) int {
 		return exitOK
 	case errors.As(err, &e):
 		return e.code
+	case service.NotFound(err):
+		return exitNotFound
+	case service.Unavailable(err):
+		return exitUnavailable
 	default:
 		return exitInternal
 	}

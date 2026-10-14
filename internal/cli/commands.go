@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -19,13 +20,28 @@ func (a *app) data(run func(cmd *cobra.Command, svc *service.Service, args []str
 		if err != nil {
 			return err
 		}
-		return run(cmd, svc, args)
+		return a.explain(run(cmd, svc, args))
 	}
 }
 
-// emit writes a result as text.
-func (a *app) emit(cmd *cobra.Command, text string) error {
-	_, err := a.out(cmd).Write([]byte(text))
+// explain leads a failure to reach the data with a sentence; fang prints the
+// error with its first word capitalised.
+func (a *app) explain(err error) error {
+	if !service.Unavailable(err) {
+		return err
+	}
+	if a.cfg.Offline {
+		return fmt.Errorf("not in the snapshot or the cache, and --offline is set: %w", err)
+	}
+	return fmt.Errorf("every source failed and nothing is cached: %w", err)
+}
+
+// emit writes a result: the JSON envelope with --json, otherwise text.
+func (a *app) emit(cmd *cobra.Command, kind string, p service.Provenance, text func() string, data func() any) error {
+	if a.json {
+		return writeJSON(cmd.OutOrStdout(), kind, p, data())
+	}
+	_, err := a.out(cmd).Write([]byte(text()))
 	return err
 }
 
@@ -46,7 +62,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			return a.emit(cmd, renderList(res.Value, res.Prov))
+			return a.emit(cmd, "list", res.Prov, func() string { return renderList(res.Value, res.Prov) }, func() any { return listJSON(res.Value) })
 		}),
 	}
 	list.Flags().IntVar(&from, "from", 0, "first year")
@@ -67,7 +83,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			return a.emit(cmd, renderInfo(res.Value, res.Prov))
+			return a.emit(cmd, "info", res.Prov, func() string { return renderInfo(res.Value, res.Prov) }, func() any { return infoJSON(res.Value) })
 		}),
 	}
 
@@ -90,7 +106,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			return a.emit(cmd, renderDay(a.glyphs(), res.Value, res.Prov))
+			return a.emit(cmd, "day", res.Prov, func() string { return renderDay(a.glyphs(), res.Value, res.Prov) }, func() any { return dayJSON(res.Value) })
 		}),
 	}
 	tFlag(day)
@@ -119,7 +135,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			return a.emit(cmd, renderTale(a.glyphs(), res.Value, res.Prov))
+			return a.emit(cmd, "bout", res.Prov, func() string { return renderTale(a.glyphs(), res.Value, res.Prov) }, func() any { return taleJSON(res.Value) })
 		}),
 	}
 	tFlag(bout)
@@ -150,7 +166,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			return a.emit(cmd, renderStandings(a.glyphs(), res.Value, grid, res.Prov))
+			return a.emit(cmd, "standings", res.Prov, func() string { return renderStandings(a.glyphs(), res.Value, grid, res.Prov) }, func() any { return standingsJSON(res.Value) })
 		}),
 	}
 	tFlag(standings)
@@ -175,7 +191,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			return a.emit(cmd, renderRatings(a.glyphs(), res.Value, res.Prov))
+			return a.emit(cmd, "ratings", res.Prov, func() string { return renderRatings(a.glyphs(), res.Value, res.Prov) }, func() any { return ratingsJSON(res.Value) })
 		}),
 	}
 	tFlag(ratings)
@@ -183,7 +199,10 @@ func (a *app) commands() []*cobra.Command {
 
 	creditsCmd := &cobra.Command{
 		Use: "credits", Short: "Data sources", Args: usageArgs(cobra.NoArgs),
-		RunE: func(cmd *cobra.Command, _ []string) error { return a.emit(cmd, credits) },
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			p := service.Provenance{Source: "basho"}
+			return a.emit(cmd, "credits", p, func() string { return credits }, func() any { return map[string]string{"text": credits} })
+		},
 	}
 	return []*cobra.Command{list, info, day, bout, standings, ratings, creditsCmd}
 }

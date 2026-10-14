@@ -8,7 +8,9 @@ tool (
 )
 
 require (
+	charm.land/lipgloss/v2 v2.0.6 // stable release over fang v1.0.0's beta requirement
 	github.com/BurntSushi/toml v1.6.0
+	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/charmbracelet/fang v1.0.0
 	github.com/klauspost/compress v1.20.3
 	github.com/spf13/cobra v1.10.2
@@ -17,8 +19,6 @@ require (
 )
 
 require (
-	charm.land/lipgloss/v2 v2.0.6 // indirect; stable release over fang v1.0.0's beta requirement
-	github.com/charmbracelet/colorprofile v0.4.3 // indirect
 	github.com/charmbracelet/ultraviolet v0.0.0-20260811164956-006e29f97886 // indirect
 	github.com/charmbracelet/x/ansi v0.11.8 // indirect
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250603201427-c31516f43444 // indirect
