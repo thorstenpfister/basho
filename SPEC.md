@@ -503,18 +503,18 @@ Rule: count the wrestler's matches where
 - the wrestler's rank title at the time was `Maegashira`,
 - the opponent's rank title was `Yokozuna`,
 - the wrestler won,
-- `kimarite ≠ fusen`,
-- the match was in the Makuuchi division,
+- `kimarite ≠ fusen` (nor a draw, which sumo-api records with a winner),
+- the match was a regular bout (not a playoff) in the Makuuchi division,
 - and the match was before the cutoff.
 
-The result is cached per wrestler as `{count, lastBashoCovered}` and topped up when new matches arrive.
+`derive.KinboshiOf` counts a career in the bout index in microseconds, so nothing is cached; `derive.IsKinboshi` also drives the VS stamp and the recap.
 
 Display:
 - `★` per kinboshi. Five or more becomes `★×12`.
 - Kinboshi from **this tournament** are drawn in a brighter gold.
 - Shown for every wrestler, not only current Maegashira, because a san'yaku wrestler can have kinboshi from earlier tournaments.
 
-Also stored (shown in the day recap, §8.5): `ThisBashoScalps` = wins against Yokozuna/Ozeki in this tournament.
+Also derived (shown in the day recap, §8.5): `ThisBashoScalps` (`derive.Scalps`) = regular-bout wins by technique against Yokozuna/Ozeki in this tournament, before the cutoff.
 
 ### 6.4 Head-to-head record
 

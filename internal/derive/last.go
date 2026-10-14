@@ -42,16 +42,14 @@ func LastResults(id domain.RikishiID, career []*domain.Bout, c AsOf, n int) Last
 
 // resultOf returns b from id's side, if it is decided.
 func resultOf(id domain.RikishiID, b *domain.Bout) (Result, bool) {
-	if b.Winner == 0 {
+	winner, loser, ok := sides(b)
+	if !ok {
 		return Result{}, false
 	}
-	east := b.East.RikishiID == id
-	them := b.East.RikishiID
-	if east {
-		them = b.West.RikishiID
+	won := winner.RikishiID == id
+	opp := winner.RikishiID
+	if won {
+		opp = loser.RikishiID
 	}
-	return Result{
-		Basho: b.Basho, Day: b.Day, Opponent: them, Won: (b.Winner == domain.East) == east,
-		Fusen: b.Kimarite == fusen, Kimarite: b.Kimarite,
-	}, true
+	return Result{Basho: b.Basho, Day: b.Day, Opponent: opp, Won: won, Fusen: b.Kimarite == fusen, Kimarite: b.Kimarite}, true
 }
