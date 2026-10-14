@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.10** (2026-10-14). Implemented: Phases 0–4; the full snapshot (196001–202609) is committed. Later phases are still the plan.
+> Status: **v0.11** (2026-10-14). Implemented: Phases 0–5; the full snapshot (196001–202609) and the calibrated rating are committed. Later phases are still the plan.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1386,7 +1386,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 3. **Decide V9** and record the metrics in this spec. If Elo doesn't beat the rank baseline, the win-chance UI stays switched off and a revised model goes on the list. Done: shown (§16, V9).
 4. Plausibility check: the top-rated wrestlers of all time compared with published Elo lists (Ozeki Analytics) and common sense. Done: the calibration report lists the 10 highest peaks (`docs/rating.md`). With the chosen parameters they are Taiho (2072, 196711), Hakuho (2054, 201101), Kitanoumi, Tamanoumi, Asashoryu, Chiyonofuji, Kitanofuji, Kashiwado, Takanohana and Wajima: all dominant yokozuna. Ozeki Analytics (all divisions from 1958, K 20) has Hakuho first, peaking in 2021, and notes rating inflation among top yokozuna; with sekitori bouts only and a lower K, our Hakuho peaks during his 2010 winning streak, just behind Taiho.
 5. Service output: rating, change since the tournament start, win chance; `basho ratings` command. Done: `service.Ratings` (as-of rating with change since the tournament start, win chance, upsets, live `Set`) on a lazy `service.Service`; `basho ratings` prints plain text for snapshot tournaments, and the remote layers, `--json` and exit codes follow in Phase 6.
-6. Tests from §13 (maths, rules, metric regression).
+6. Tests from §13 (maths, rules, metric regression). Done: the regression test reruns the committed `params.json` over the embedded snapshot and must reproduce its evaluation scores and rank baseline exactly, which also proves the model deterministic.
 
 **AC:** the calibration report is committed under `docs/rating.md`; `params.json` is embedded; win chances for a sample of bouts are plausible and identical between two runs (deterministic).
 
