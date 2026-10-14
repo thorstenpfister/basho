@@ -60,7 +60,7 @@ An array, newest first: `{"basho", "name", "venue", "status", "yusho": Wrestler 
 
 `{"basho", "name", "venue", "division", "day", "date", "status", "bouts": [Bout], "playoffs": [Bout], "kyujo": [Wrestler]}`. `division` is `makuuchi` or `juryo`; `status` is `not_published`, `scheduled`, `in_progress` or `complete`.
 
-A Bout: `{"matchNo", "east": Side, "west": Side, "winner": "east" | "west" | null, "technique": Technique | null, "fusen", "kinboshi", "musubi", "winChance"}`. A Side is a Wrestler with `before` and `after` Records (empty for a Makushita visitor, who has no record in the division). `winChance` is the east side's chance before the bout, `null` when the rating is hidden (V9).
+A Bout: `{"matchNo", "east": Side, "west": Side, "winner": "east" | "west" | null, "technique": Technique | null, "fusen", "kinboshi", "musubi", "winChance"}`. A Side is a Wrestler with `before` and `after` Records, both `null` for a visitor from a lower division, who has no record in this one. `winChance` is the east side's chance before the bout, `null` when the rating is hidden (V9).
 
 ### `bout`
 
@@ -79,7 +79,7 @@ A TaleSide is a Wrestler with:
 | `now` | Optional: today's shikona when it differs |
 | `yusho` | Division name → count, from tournaments over before the cutoff |
 | `sansho` | Prize name → count |
-| `record` | Record going into the bout |
+| `record` | Record going into the bout; `null` for a visitor from a lower division |
 | `last5` | `{"results": [{"basho", "day", "opponent", "won", "fusen", "kimarite"}], "new"}`, oldest first, across tournaments; `new` when the career is shorter |
 | `kinboshi` | `{"count", "thisBasho"}` |
 | `moveset` | `{"window", "tournaments", "wins", "losses", "winShare", "lossShare", "topWins", "topLosses", "signature", "signatureShare", "fighterType", "enough"}`. Shares are keyed `push`, `belt`, `throw`, `pull`, `other`; counts are `{"kimarite", "count"}`; `fighterType` is empty and `enough` false below 10 wins |

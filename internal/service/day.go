@@ -63,6 +63,7 @@ type BoutRow struct {
 type BoutSide struct {
 	Wrestler
 	Before, After derive.Record
+	Visitor       bool // from a lower division: no record here
 }
 
 // Technique is a kimarite with its display names.
@@ -153,8 +154,9 @@ func (s *Service) Day(ctx context.Context, id domain.BashoID, div domain.Divisio
 
 func (s *Service) boutRow(b domain.Bout, entries map[domain.RikishiID]domain.BanzukeEntry, days derive.DayBouts, r *Ratings) BoutRow {
 	side := func(bs domain.BoutSide) BoutSide {
-		out := BoutSide{Wrestler: Wrestler{RikishiID: bs.RikishiID, Shikona: bs.Shikona, Rank: bs.Rank}}
+		out := BoutSide{Wrestler: Wrestler{RikishiID: bs.RikishiID, Shikona: bs.Shikona, Rank: bs.Rank}, Visitor: true}
 		if e, ok := entries[bs.RikishiID]; ok { // a Makushita visitor has no record here
+			out.Visitor = false
 			out.Shikona = e.Shikona // with kanji, which bout sides may lack
 			out.Before = derive.RecordAt(e, days, derive.BeforeBout(b))
 			out.After = derive.RecordAt(e, days, derive.ThroughBout(b))

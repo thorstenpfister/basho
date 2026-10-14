@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.11** (2026-10-14). Implemented: Phases 0–5; the full snapshot (196001–202609) and the calibrated rating are committed. Later phases are still the plan.
+> Status: **v0.12** (2026-10-14). Implemented: Phases 0–6; the full snapshot (196001–202609) and the calibrated rating are committed, and the non-interactive CLI works offline. Later phases are still the plan.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1157,7 +1157,7 @@ adjacent_days = false
 - **Request-budget tests:** a counting `RoundTripper` checks the numbers in §7.3.
 - **Live scheduler tests:** fake clock covering the window, jitter range, doubling interval, stop conditions and day 15 extension.
 - **TUI tests:** `teatest` with a fixed 120×40 and 80×24 size and a fake clock. Golden snapshots of each screen; key flows (picker → day → VS → reveal → back); resizing; spoiler-free flow.
-- **CLI tests:** golden text output and JSON schema golden files.
+- **CLI tests:** golden text output and JSON schema golden files (`internal/cli/testdata/TestGolden/`, refreshed with `go test ./internal/cli -run Golden -update`). They run over the fixture snapshot, which does not change with `make snapshot`; an acceptance test checks the Phase 6 commands' facts against the embedded snapshot without remote layers.
 - **Live smoke tests** behind `//go:build live`, never part of `make check`: one request per endpoint to catch API changes.
 - Tooling: `golangci-lint`, `gofumpt`, `go test -race`, all through `make check` (D28).
 
@@ -1403,7 +1403,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 3. Config loading (file, environment, flags, defaults) and validation, including minimum intervals and maximum rates. Done (`internal/config`, BurntSushi/toml); the per-host intervals are the `sources.*_interval` settings (§12).
 4. Commands: `list`, `info`, `day`, `bout`, `standings` (`--grid`), `ratings`, `credits`, with text renderers (Lip Gloss tables in a terminal, plain when piped). Done; `service.Open` wires the production layers from the configuration (snapshot, sumo-api over the disk cache and `httpx`, debug log). `--source osada` is refused until Phase 9.
 5. The `--json` envelope, `docs/json.md` and exit codes. Done; `service.NotFound` and `service.Unavailable` classify failures for exit codes 3 and 4.
-6. Golden tests for text and JSON.
+6. Golden tests for text and JSON. Done.
 
 **AC:** `basho day 13 -t 202609`, `basho bout 13 19 -t aki2026` and `basho standings --day 15 -t 2026-09 --grid` give correct, readable output with no network access (snapshot), and their `--json` versions match the golden files.
 

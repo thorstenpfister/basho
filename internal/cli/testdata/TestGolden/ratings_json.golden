@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "kind": "ratings",
+  "provenance": {
+    "source": "snapshot",
+    "fetchedAt": "2026-10-13T17:43:02Z",
+    "sourceUpdatedAt": null,
+    "stale": false
+  },
+  "data": {
+    "basho": "202609",
+    "shown": true,
+    "rows": [
+      {
+        "id": 7,
+        "shikona": {
+          "en": "Kirishima",
+          "jp": "霧島"
+        },
+        "rank": {
+          "title": "ozeki",
+          "number": 1,
+          "side": "east",
+          "short": "O1e"
+        },
+        "value": 1645.43,
+        "change": 33.43,
+        "provisional": false
+      },
+      {
+        "id": 8850,
+        "shikona": {
+          "en": "Onosato",
+          "jp": "大の里"
+        },
+        "rank": {
+          "title": "yokozuna",
+          "number": 1,
+          "side": "east",
+          "short": "Y1e"
+        },
+        "value": 1642.11,
+        "change": 6.83,
+        "provisional": false
+      },
+      {
+        "id": 19,
+        "shikona": {
+          "en": "Hoshoryu",
+          "jp": "豊昇龍"
+        },
+        "rank": {
+          "title": "yokozuna",
+          "number": 1,
+          "side": "west",
+          "short": "Y1w"
+        },
+        "value": 1625,
+        "change": 0,
+        "provisional": true
+      },
+      {
+        "id": 71,
+        "shikona": {
+          "en": "Churanoumi",
+          "jp": "美ノ海"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 3,
+          "side": "west",
+          "short": "M3w"
+        },
+        "value": 1583.95,
+        "change": 34.45,
+        "provisional": false
+      },
+      {
+        "id": 8854,
+        "shikona": {
+          "en": "Aonishiki",
+          "jp": "安青錦"
+        },
+        "rank": {
+          "title": "ozeki",
+          "number": 2,
+          "side": "east",
+          "short": "O2e"
+        },
+        "value": 1576.46,
+        "change": 13.46,
+        "provisional": false
+      },
+      {
+        "id": 20,
+        "shikona": {
+          "en": "Kotozakura",
+          "jp": "琴櫻"
+        },
+        "rank": {
+          "title": "ozeki",
+          "number": 1,
+          "side": "west",
+          "short": "O1w"
+        },
+        "value": 1575.12,
+        "change": -12.88,
+        "provisional": false
+      },
+      {
+        "id": 74,
+        "shikona": {
+          "en": "Atamifuji",
+          "jp": "熱海富士"
+        },
+        "rank": {
+          "title": "sekiwake",
+          "number": 1,
+          "side": "east",
+          "short": "S1e"
+        },
+        "value": 1570.1,
+        "change": -16.9,
+        "provisional": false
+      },
+      {
+        "id": 615,
+        "shikona": {
+          "en": "Fujinokawa",
+          "jp": "藤ノ川"
+        },
+        "rank": {
+          "title": "sekiwake",
+          "number": 1,
+          "side": "west",
+          "short": "S1w"
+        },
+        "value": 1562.28,
+        "change": 13.21,
+        "provisional": false
+      },
+      {
+        "id": 8857,
+        "shikona": {
+          "en": "Yoshinofuji",
+          "jp": "義ノ富士"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 2,
+          "side": "west",
+          "short": "M2w"
+        },
+        "value": 1562.06,
+        "change": 12.42,
+        "provisional": false
+      },
+      {
+        "id": 41,
+        "shikona": {
+          "en": "Oho",
+          "jp": "王鵬"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 10,
+          "side": "east",
+          "short": "M10e"
+        },
+        "value": 1558.77,
+        "change": 9.13,
+        "provisional": false
+      }
+    ]
+  }
+}

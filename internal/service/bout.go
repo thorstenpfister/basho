@@ -35,6 +35,7 @@ type TaleSide struct {
 	Career         derive.CareerStats
 	Profile        bool          // false: no profile (height, weight, heya and age are empty)
 	Record         derive.Record // before the bout
+	Visitor        bool          // from a lower division: no record here
 	Last5          derive.LastN
 	Kinboshi       derive.Kinboshi
 	Moveset        derive.Profile // last 6 basho
@@ -105,8 +106,10 @@ func (s *Service) Bout(ctx context.Context, id domain.BashoID, div domain.Divisi
 			Last5:    derive.LastResults(bs.RikishiID, career, c, 5),
 			Kinboshi: derive.KinboshiOf(bs.RikishiID, career, c),
 			Moveset:  derive.ProfileOf(bs.RikishiID, career, c, derive.LastSix),
+			Visitor:  true,
 		}
 		if e, ok := entries[bs.RikishiID]; ok {
+			t.Visitor = false
 			t.Record = derive.RecordAt(e, d.days, c)
 			t.Shikona = e.Shikona // bout sides may carry romaji only (SPEC Appendix D)
 		}

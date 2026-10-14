@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "kind": "list",
+  "provenance": {
+    "source": "snapshot",
+    "fetchedAt": "2026-10-13T17:43:02Z",
+    "sourceUpdatedAt": null,
+    "stale": false
+  },
+  "data": [
+    {
+      "basho": "202609",
+      "name": "Aki",
+      "venue": "Ryogoku Kokugikan",
+      "status": "finished",
+      "yusho": {
+        "id": 8850,
+        "shikona": {
+          "en": "Onosato",
+          "jp": "大の里"
+        },
+        "rank": {
+          "title": "yokozuna",
+          "number": 1,
+          "side": "east",
+          "short": "Y1e"
+        }
+      },
+      "inSnapshot": true
+    },
+    {
+      "basho": "202607",
+      "name": "Nagoya",
+      "venue": "IG Arena",
+      "status": "finished",
+      "yusho": {
+        "id": 8854,
+        "shikona": {
+          "en": "Aonishiki",
+          "jp": "安青錦"
+        },
+        "rank": {
+          "title": "sekiwake",
+          "number": 2,
+          "side": "west",
+          "short": "S2w"
+        }
+      },
+      "inSnapshot": true
+    },
+    {
+      "basho": "202605",
+      "name": "Natsu",
+      "venue": "Ryogoku Kokugikan",
+      "status": "upcoming",
+      "yusho": null,
+      "inSnapshot": false
+    },
+    {
+      "basho": "202603",
+      "name": "Haru",
+      "venue": "Osaka Prefectural Gymnasium",
+      "status": "upcoming",
+      "yusho": null,
+      "inSnapshot": false
+    },
+    {
+      "basho": "202601",
+      "name": "Hatsu",
+      "venue": "Ryogoku Kokugikan",
+      "status": "upcoming",
+      "yusho": null,
+      "inSnapshot": false
+    }
+  ]
+}

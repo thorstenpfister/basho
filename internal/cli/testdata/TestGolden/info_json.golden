@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "kind": "info",
+  "provenance": {
+    "source": "snapshot",
+    "fetchedAt": "2026-10-13T17:43:02Z",
+    "sourceUpdatedAt": null,
+    "stale": false
+  },
+  "data": {
+    "basho": "202609",
+    "name": "Aki",
+    "venue": "Ryogoku Kokugikan",
+    "status": "finished",
+    "start": "2026-09-13",
+    "end": "2026-09-27",
+    "yusho": [
+      {
+        "division": "makuuchi",
+        "id": 8850,
+        "shikona": {
+          "en": "Onosato",
+          "jp": "大の里"
+        },
+        "rank": {
+          "title": "yokozuna",
+          "number": 1,
+          "side": "east",
+          "short": "Y1e"
+        }
+      },
+      {
+        "division": "juryo",
+        "id": 66,
+        "shikona": {
+          "en": "Kitanowaka",
+          "jp": "北の若"
+        },
+        "rank": {
+          "title": "juryo",
+          "number": 6,
+          "side": "east",
+          "short": "J6e"
+        }
+      }
+    ],
+    "prizes": [
+      {
+        "prize": "Kanto-sho",
+        "id": 615,
+        "shikona": {
+          "en": "Fujinokawa",
+          "jp": "藤ノ川"
+        },
+        "rank": {
+          "title": "sekiwake",
+          "number": 1,
+          "side": "west",
+          "short": "S1w"
+        }
+      },
+      {
+        "prize": "Kanto-sho",
+        "id": 71,
+        "shikona": {
+          "en": "Churanoumi",
+          "jp": "美ノ海"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 3,
+          "side": "west",
+          "short": "M3w"
+        }
+      }
+    ]
+  }
+}

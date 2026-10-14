@@ -1,0 +1,948 @@
+{
+  "schemaVersion": 1,
+  "kind": "day",
+  "provenance": {
+    "source": "snapshot",
+    "fetchedAt": "2026-10-13T17:43:02Z",
+    "sourceUpdatedAt": null,
+    "stale": false
+  },
+  "data": {
+    "basho": "202609",
+    "name": "Aki",
+    "venue": "Ryogoku Kokugikan",
+    "division": "juryo",
+    "day": 15,
+    "date": "2026-09-27",
+    "status": "complete",
+    "bouts": [
+      {
+        "matchNo": 1,
+        "east": {
+          "id": 8868,
+          "shikona": {
+            "en": "Okaryu"
+          },
+          "rank": {
+            "title": "makushita",
+            "number": 5,
+            "side": "west",
+            "short": "Ms5w"
+          },
+          "before": null,
+          "after": null
+        },
+        "west": {
+          "id": 16,
+          "shikona": {
+            "en": "Nishikigi",
+            "jp": "錦木"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 14,
+            "side": "west",
+            "short": "J14w"
+          },
+          "before": {
+            "wins": 5,
+            "losses": 9,
+            "absences": 0,
+            "draws": 0,
+            "text": "5-9"
+          },
+          "after": {
+            "wins": 6,
+            "losses": 9,
+            "absences": 0,
+            "draws": 0,
+            "text": "6-9"
+          }
+        },
+        "winner": "west",
+        "technique": {
+          "kimarite": "yorikiri",
+          "kanji": "寄り切り",
+          "english": "frontal force out"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.5314
+      },
+      {
+        "matchNo": 2,
+        "east": {
+          "id": 140,
+          "shikona": {
+            "en": "Tokifudo",
+            "jp": "時不動"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 13,
+            "side": "west",
+            "short": "J13w"
+          },
+          "before": {
+            "wins": 6,
+            "losses": 8,
+            "absences": 0,
+            "draws": 0,
+            "text": "6-8"
+          },
+          "after": {
+            "wins": 7,
+            "losses": 8,
+            "absences": 0,
+            "draws": 0,
+            "text": "7-8"
+          }
+        },
+        "west": {
+          "id": 111,
+          "shikona": {
+            "en": "Hitoshi",
+            "jp": "日翔志"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 11,
+            "side": "west",
+            "short": "J11w"
+          },
+          "before": {
+            "wins": 9,
+            "losses": 5,
+            "absences": 0,
+            "draws": 0,
+            "text": "9-5"
+          },
+          "after": {
+            "wins": 9,
+            "losses": 6,
+            "absences": 0,
+            "draws": 0,
+            "text": "9-6"
+          }
+        },
+        "winner": "east",
+        "technique": {
+          "kimarite": "okuridashi",
+          "kanji": "送り出し",
+          "english": "rear push out"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.4507
+      },
+      {
+        "matchNo": 3,
+        "east": {
+          "id": 81,
+          "shikona": {
+            "en": "Tochitaikai",
+            "jp": "栃大海"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 14,
+            "side": "east",
+            "short": "J14e"
+          },
+          "before": {
+            "wins": 4,
+            "losses": 10,
+            "absences": 0,
+            "draws": 0,
+            "text": "4-10"
+          },
+          "after": {
+            "wins": 5,
+            "losses": 10,
+            "absences": 0,
+            "draws": 0,
+            "text": "5-10"
+          }
+        },
+        "west": {
+          "id": 102,
+          "shikona": {
+            "en": "Tomokaze",
+            "jp": "友風"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 7,
+            "side": "west",
+            "short": "J7w"
+          },
+          "before": {
+            "wins": 5,
+            "losses": 9,
+            "absences": 0,
+            "draws": 0,
+            "text": "5-9"
+          },
+          "after": {
+            "wins": 5,
+            "losses": 10,
+            "absences": 0,
+            "draws": 0,
+            "text": "5-10"
+          }
+        },
+        "winner": "east",
+        "technique": {
+          "kimarite": "oshidashi",
+          "kanji": "押し出し",
+          "english": "frontal push out"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.5158
+      },
+      {
+        "matchNo": 4,
+        "east": {
+          "id": 38,
+          "shikona": {
+            "en": "Meisei",
+            "jp": "明生"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 13,
+            "side": "east",
+            "short": "J13e"
+          },
+          "before": {
+            "wins": 6,
+            "losses": 8,
+            "absences": 0,
+            "draws": 0,
+            "text": "6-8"
+          },
+          "after": {
+            "wins": 7,
+            "losses": 8,
+            "absences": 0,
+            "draws": 0,
+            "text": "7-8"
+          }
+        },
+        "west": {
+          "id": 98,
+          "shikona": {
+            "en": "Shirokuma",
+            "jp": "白熊"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 6,
+            "side": "west",
+            "short": "J6w"
+          },
+          "before": {
+            "wins": 6,
+            "losses": 8,
+            "absences": 0,
+            "draws": 0,
+            "text": "6-8"
+          },
+          "after": {
+            "wins": 6,
+            "losses": 9,
+            "absences": 0,
+            "draws": 0,
+            "text": "6-9"
+          }
+        },
+        "winner": "east",
+        "technique": {
+          "kimarite": "yoritaoshi",
+          "kanji": "寄り倒し",
+          "english": "frontal crush out"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.5181
+      },
+      {
+        "matchNo": 5,
+        "east": {
+          "id": 66,
+          "shikona": {
+            "en": "Kitanowaka",
+            "jp": "北の若"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 6,
+            "side": "east",
+            "short": "J6e"
+          },
+          "before": {
+            "wins": 10,
+            "losses": 4,
+            "absences": 0,
+            "draws": 0,
+            "text": "10-4"
+          },
+          "after": {
+            "wins": 11,
+            "losses": 4,
+            "absences": 0,
+            "draws": 0,
+            "text": "11-4"
+          }
+        },
+        "west": {
+          "id": 29,
+          "shikona": {
+            "en": "Kagayaki",
+            "jp": "輝"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 11,
+            "side": "east",
+            "short": "J11e"
+          },
+          "before": {
+            "wins": 11,
+            "losses": 3,
+            "absences": 0,
+            "draws": 0,
+            "text": "11-3"
+          },
+          "after": {
+            "wins": 11,
+            "losses": 4,
+            "absences": 0,
+            "draws": 0,
+            "text": "11-4"
+          }
+        },
+        "winner": "east",
+        "technique": {
+          "kimarite": "oshitaoshi",
+          "kanji": "押し倒し",
+          "english": "frontal push down"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.5518
+      },
+      {
+        "matchNo": 6,
+        "east": {
+          "id": 287,
+          "shikona": {
+            "en": "Tanji",
+            "jp": "丹治"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 10,
+            "side": "west",
+            "short": "J10w"
+          },
+          "before": {
+            "wins": 9,
+            "losses": 5,
+            "absences": 0,
+            "draws": 0,
+            "text": "9-5"
+          },
+          "after": {
+            "wins": 9,
+            "losses": 6,
+            "absences": 0,
+            "draws": 0,
+            "text": "9-6"
+          }
+        },
+        "west": {
+          "id": 8858,
+          "shikona": {
+            "en": "Arashifuji",
+            "jp": "嵐富士"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 5,
+            "side": "west",
+            "short": "J5w"
+          },
+          "before": {
+            "wins": 9,
+            "losses": 5,
+            "absences": 0,
+            "draws": 0,
+            "text": "9-5"
+          },
+          "after": {
+            "wins": 10,
+            "losses": 5,
+            "absences": 0,
+            "draws": 0,
+            "text": "10-5"
+          }
+        },
+        "winner": "west",
+        "technique": {
+          "kimarite": "yorikiri",
+          "kanji": "寄り切り",
+          "english": "frontal force out"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.4804
+      },
+      {
+        "matchNo": 7,
+        "east": {
+          "id": 35,
+          "shikona": {
+            "en": "Sadanoumi",
+            "jp": "佐田の海"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 5,
+            "side": "east",
+            "short": "J5e"
+          },
+          "before": {
+            "wins": 3,
+            "losses": 11,
+            "absences": 0,
+            "draws": 0,
+            "text": "3-11"
+          },
+          "after": {
+            "wins": 3,
+            "losses": 12,
+            "absences": 0,
+            "draws": 0,
+            "text": "3-12"
+          }
+        },
+        "west": {
+          "id": 101,
+          "shikona": {
+            "en": "Tamashoho",
+            "jp": "玉正鳳"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 12,
+            "side": "east",
+            "short": "J12e"
+          },
+          "before": {
+            "wins": 5,
+            "losses": 9,
+            "absences": 0,
+            "draws": 0,
+            "text": "5-9"
+          },
+          "after": {
+            "wins": 6,
+            "losses": 9,
+            "absences": 0,
+            "draws": 0,
+            "text": "6-9"
+          }
+        },
+        "winner": "west",
+        "technique": {
+          "kimarite": "hatakikomi",
+          "kanji": "叩き込み",
+          "english": "slap down"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.5518
+      },
+      {
+        "matchNo": 8,
+        "east": {
+          "id": 77,
+          "shikona": {
+            "en": "Hatsuyama",
+            "jp": "羽出山"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 8,
+            "side": "west",
+            "short": "J8w"
+          },
+          "before": {
+            "wins": 3,
+            "losses": 11,
+            "absences": 0,
+            "draws": 0,
+            "text": "3-11"
+          },
+          "after": {
+            "wins": 4,
+            "losses": 11,
+            "absences": 0,
+            "draws": 0,
+            "text": "4-11"
+          }
+        },
+        "west": {
+          "id": 26,
+          "shikona": {
+            "en": "Mitakeumi",
+            "jp": "御嶽海"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 4,
+            "side": "west",
+            "short": "J4w"
+          },
+          "before": {
+            "wins": 5,
+            "losses": 9,
+            "absences": 0,
+            "draws": 0,
+            "text": "5-9"
+          },
+          "after": {
+            "wins": 5,
+            "losses": 10,
+            "absences": 0,
+            "draws": 0,
+            "text": "5-10"
+          }
+        },
+        "winner": "east",
+        "technique": {
+          "kimarite": "uwatenage",
+          "kanji": "上手投げ",
+          "english": "overarm throw"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.4515
+      },
+      {
+        "matchNo": 9,
+        "east": {
+          "id": 78,
+          "shikona": {
+            "en": "Kazekeno",
+            "jp": "風賢央"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 4,
+            "side": "east",
+            "short": "J4e"
+          },
+          "before": {
+            "wins": 8,
+            "losses": 6,
+            "absences": 0,
+            "draws": 0,
+            "text": "8-6"
+          },
+          "after": {
+            "wins": 8,
+            "losses": 7,
+            "absences": 0,
+            "draws": 0,
+            "text": "8-7"
+          }
+        },
+        "west": {
+          "id": 34,
+          "shikona": {
+            "en": "Midorifuji",
+            "jp": "翠富士"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 7,
+            "side": "east",
+            "short": "J7e"
+          },
+          "before": {
+            "wins": 6,
+            "losses": 8,
+            "absences": 0,
+            "draws": 0,
+            "text": "6-8"
+          },
+          "after": {
+            "wins": 7,
+            "losses": 8,
+            "absences": 0,
+            "draws": 0,
+            "text": "7-8"
+          }
+        },
+        "winner": "west",
+        "technique": {
+          "kimarite": "oshidashi",
+          "kanji": "押し出し",
+          "english": "frontal push out"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.5495
+      },
+      {
+        "matchNo": 10,
+        "east": {
+          "id": 117,
+          "shikona": {
+            "en": "Nabatame",
+            "jp": "生田目"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 10,
+            "side": "east",
+            "short": "J10e"
+          },
+          "before": {
+            "wins": 8,
+            "losses": 6,
+            "absences": 0,
+            "draws": 0,
+            "text": "8-6"
+          },
+          "after": {
+            "wins": 9,
+            "losses": 6,
+            "absences": 0,
+            "draws": 0,
+            "text": "9-6"
+          }
+        },
+        "west": {
+          "id": 8853,
+          "shikona": {
+            "en": "Onokatsu",
+            "jp": "阿武剋"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 3,
+            "side": "west",
+            "short": "J3w"
+          },
+          "before": {
+            "wins": 8,
+            "losses": 6,
+            "absences": 0,
+            "draws": 0,
+            "text": "8-6"
+          },
+          "after": {
+            "wins": 8,
+            "losses": 7,
+            "absences": 0,
+            "draws": 0,
+            "text": "8-7"
+          }
+        },
+        "winner": "east",
+        "technique": {
+          "kimarite": "oshidashi",
+          "kanji": "押し出し",
+          "english": "frontal push out"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.498
+      },
+      {
+        "matchNo": 11,
+        "east": {
+          "id": 14,
+          "shikona": {
+            "en": "Tamawashi",
+            "jp": "玉鷲"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 3,
+            "side": "east",
+            "short": "J3e"
+          },
+          "before": {
+            "wins": 10,
+            "losses": 4,
+            "absences": 0,
+            "draws": 0,
+            "text": "10-4"
+          },
+          "after": {
+            "wins": 10,
+            "losses": 5,
+            "absences": 0,
+            "draws": 0,
+            "text": "10-5"
+          }
+        },
+        "west": {
+          "id": 142,
+          "shikona": {
+            "en": "Kayo",
+            "jp": "嘉陽"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 12,
+            "side": "west",
+            "short": "J12w"
+          },
+          "before": {
+            "wins": 10,
+            "losses": 4,
+            "absences": 0,
+            "draws": 0,
+            "text": "10-4"
+          },
+          "after": {
+            "wins": 11,
+            "losses": 4,
+            "absences": 0,
+            "draws": 0,
+            "text": "11-4"
+          }
+        },
+        "winner": "west",
+        "technique": {
+          "kimarite": "hikiotoshi",
+          "kanji": "引き落とし",
+          "english": "hand pull down"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.5208
+      },
+      {
+        "matchNo": 12,
+        "east": {
+          "id": 378,
+          "shikona": {
+            "en": "Daiseizan",
+            "jp": "大青山"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 2,
+            "side": "east",
+            "short": "J2e"
+          },
+          "before": {
+            "wins": 8,
+            "losses": 6,
+            "absences": 0,
+            "draws": 0,
+            "text": "8-6"
+          },
+          "after": {
+            "wins": 8,
+            "losses": 7,
+            "absences": 0,
+            "draws": 0,
+            "text": "8-7"
+          }
+        },
+        "west": {
+          "id": 54,
+          "shikona": {
+            "en": "Tohakuryu",
+            "jp": "東白龍"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 9,
+            "side": "west",
+            "short": "J9w"
+          },
+          "before": {
+            "wins": 7,
+            "losses": 7,
+            "absences": 0,
+            "draws": 0,
+            "text": "7-7"
+          },
+          "after": {
+            "wins": 8,
+            "losses": 7,
+            "absences": 0,
+            "draws": 0,
+            "text": "8-7"
+          }
+        },
+        "winner": "west",
+        "technique": {
+          "kimarite": "tsukiotoshi",
+          "kanji": "突き落とし",
+          "english": "thrust down"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.5199
+      },
+      {
+        "matchNo": 13,
+        "east": {
+          "id": 62,
+          "shikona": {
+            "en": "Enho",
+            "jp": "炎鵬"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 9,
+            "side": "east",
+            "short": "J9e"
+          },
+          "before": {
+            "wins": 7,
+            "losses": 7,
+            "absences": 0,
+            "draws": 0,
+            "text": "7-7"
+          },
+          "after": {
+            "wins": 7,
+            "losses": 8,
+            "absences": 0,
+            "draws": 0,
+            "text": "7-8"
+          }
+        },
+        "west": {
+          "id": 8855,
+          "shikona": {
+            "en": "Kyokukaiyu",
+            "jp": "旭海雄"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 1,
+            "side": "west",
+            "short": "J1w"
+          },
+          "before": {
+            "wins": 7,
+            "losses": 7,
+            "absences": 0,
+            "draws": 0,
+            "text": "7-7"
+          },
+          "after": {
+            "wins": 8,
+            "losses": 7,
+            "absences": 0,
+            "draws": 0,
+            "text": "8-7"
+          }
+        },
+        "winner": "west",
+        "technique": {
+          "kimarite": "yorikiri",
+          "kanji": "寄り切り",
+          "english": "frontal force out"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.5468
+      },
+      {
+        "matchNo": 14,
+        "east": {
+          "id": 135,
+          "shikona": {
+            "en": "Dewanoryu",
+            "jp": "出羽ノ龍"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 1,
+            "side": "east",
+            "short": "J1e"
+          },
+          "before": {
+            "wins": 9,
+            "losses": 5,
+            "absences": 0,
+            "draws": 0,
+            "text": "9-5"
+          },
+          "after": {
+            "wins": 10,
+            "losses": 5,
+            "absences": 0,
+            "draws": 0,
+            "text": "10-5"
+          }
+        },
+        "west": {
+          "id": 15,
+          "shikona": {
+            "en": "Ryuden",
+            "jp": "竜電"
+          },
+          "rank": {
+            "title": "juryo",
+            "number": 8,
+            "side": "east",
+            "short": "J8e"
+          },
+          "before": {
+            "wins": 9,
+            "losses": 5,
+            "absences": 0,
+            "draws": 0,
+            "text": "9-5"
+          },
+          "after": {
+            "wins": 9,
+            "losses": 6,
+            "absences": 0,
+            "draws": 0,
+            "text": "9-6"
+          }
+        },
+        "winner": "east",
+        "technique": {
+          "kimarite": "yorikiri",
+          "kanji": "寄り切り",
+          "english": "frontal force out"
+        },
+        "fusen": false,
+        "kinboshi": false,
+        "musubi": false,
+        "winChance": 0.5022
+      }
+    ],
+    "playoffs": [],
+    "kyujo": []
+  }
+}

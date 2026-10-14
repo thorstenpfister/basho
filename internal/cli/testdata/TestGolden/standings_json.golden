@@ -1,0 +1,1884 @@
+{
+  "schemaVersion": 1,
+  "kind": "standings",
+  "provenance": {
+    "source": "snapshot",
+    "fetchedAt": "2026-10-13T17:43:02Z",
+    "sourceUpdatedAt": null,
+    "stale": false
+  },
+  "data": {
+    "basho": "202609",
+    "name": "Aki",
+    "division": "makuuchi",
+    "day": 15,
+    "rows": [
+      {
+        "id": 8850,
+        "shikona": {
+          "en": "Onosato",
+          "jp": "大の里"
+        },
+        "rank": {
+          "title": "yokozuna",
+          "number": 1,
+          "side": "east",
+          "short": "Y1e"
+        },
+        "record": {
+          "wins": 12,
+          "losses": 3,
+          "absences": 0,
+          "draws": 0,
+          "text": "12-3"
+        },
+        "remaining": 0,
+        "band": 0,
+        "inContention": true,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 8854,
+        "shikona": {
+          "en": "Aonishiki",
+          "jp": "安青錦"
+        },
+        "rank": {
+          "title": "ozeki",
+          "number": 2,
+          "side": "east",
+          "short": "O2e"
+        },
+        "record": {
+          "wins": 11,
+          "losses": 4,
+          "absences": 0,
+          "draws": 0,
+          "text": "11-4"
+        },
+        "remaining": 0,
+        "band": 1,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 615,
+        "shikona": {
+          "en": "Fujinokawa",
+          "jp": "藤ノ川"
+        },
+        "rank": {
+          "title": "sekiwake",
+          "number": 1,
+          "side": "west",
+          "short": "S1w"
+        },
+        "record": {
+          "wins": 11,
+          "losses": 4,
+          "absences": 0,
+          "draws": 0,
+          "text": "11-4"
+        },
+        "remaining": 0,
+        "band": 1,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win"
+        ]
+      },
+      {
+        "id": 71,
+        "shikona": {
+          "en": "Churanoumi",
+          "jp": "美ノ海"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 3,
+          "side": "west",
+          "short": "M3w"
+        },
+        "record": {
+          "wins": 10,
+          "losses": 5,
+          "absences": 0,
+          "draws": 0,
+          "text": "10-5"
+        },
+        "remaining": 0,
+        "band": 2,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 2,
+        "shikona": {
+          "en": "Asanoyama",
+          "jp": "朝乃山"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 6,
+          "side": "east",
+          "short": "M6e"
+        },
+        "record": {
+          "wins": 10,
+          "losses": 5,
+          "absences": 0,
+          "draws": 0,
+          "text": "10-5"
+        },
+        "remaining": 0,
+        "band": 2,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss"
+        ]
+      },
+      {
+        "id": 28,
+        "shikona": {
+          "en": "Ura",
+          "jp": "宇良"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 9,
+          "side": "east",
+          "short": "M9e"
+        },
+        "record": {
+          "wins": 10,
+          "losses": 5,
+          "absences": 0,
+          "draws": 0,
+          "text": "10-5"
+        },
+        "remaining": 0,
+        "band": 2,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 13,
+        "shikona": {
+          "en": "Wakamotoharu",
+          "jp": "若元春"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 11,
+          "side": "east",
+          "short": "M11e"
+        },
+        "record": {
+          "wins": 10,
+          "losses": 5,
+          "absences": 0,
+          "draws": 0,
+          "text": "10-5"
+        },
+        "remaining": 0,
+        "band": 2,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 20,
+        "shikona": {
+          "en": "Kotozakura",
+          "jp": "琴櫻"
+        },
+        "rank": {
+          "title": "ozeki",
+          "number": 1,
+          "side": "west",
+          "short": "O1w"
+        },
+        "record": {
+          "wins": 9,
+          "losses": 6,
+          "absences": 0,
+          "draws": 0,
+          "text": "9-6"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 8857,
+        "shikona": {
+          "en": "Yoshinofuji",
+          "jp": "義ノ富士"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 2,
+          "side": "west",
+          "short": "M2w"
+        },
+        "record": {
+          "wins": 9,
+          "losses": 6,
+          "absences": 0,
+          "draws": 0,
+          "text": "9-6"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win"
+        ]
+      },
+      {
+        "id": 82,
+        "shikona": {
+          "en": "Fujiseiun",
+          "jp": "藤青雲"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 7,
+          "side": "east",
+          "short": "M7e"
+        },
+        "record": {
+          "wins": 9,
+          "losses": 6,
+          "absences": 0,
+          "draws": 0,
+          "text": "9-6"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 5,
+        "shikona": {
+          "en": "Takerufuji",
+          "jp": "尊富士"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 8,
+          "side": "east",
+          "short": "M8e"
+        },
+        "record": {
+          "wins": 9,
+          "losses": 6,
+          "absences": 0,
+          "draws": 0,
+          "text": "9-6"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 24,
+        "shikona": {
+          "en": "Hiradoumi",
+          "jp": "平戸海"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 8,
+          "side": "west",
+          "short": "M8w"
+        },
+        "record": {
+          "wins": 9,
+          "losses": 6,
+          "absences": 0,
+          "draws": 0,
+          "text": "9-6"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "win"
+        ]
+      },
+      {
+        "id": 50,
+        "shikona": {
+          "en": "Kinbozan",
+          "jp": "金峰山"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 10,
+          "side": "west",
+          "short": "M10w"
+        },
+        "record": {
+          "wins": 9,
+          "losses": 6,
+          "absences": 0,
+          "draws": 0,
+          "text": "9-6"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 164,
+        "shikona": {
+          "en": "Asakoryu",
+          "jp": "朝紅龍"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 13,
+          "side": "east",
+          "short": "M13e"
+        },
+        "record": {
+          "wins": 9,
+          "losses": 6,
+          "absences": 0,
+          "draws": 0,
+          "text": "9-6"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 8866,
+        "shikona": {
+          "en": "Toshinofuji",
+          "jp": "寿之富士"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 16,
+          "side": "west",
+          "short": "M16w"
+        },
+        "record": {
+          "wins": 9,
+          "losses": 6,
+          "absences": 0,
+          "draws": 0,
+          "text": "9-6"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 7,
+        "shikona": {
+          "en": "Kirishima",
+          "jp": "霧島"
+        },
+        "rank": {
+          "title": "ozeki",
+          "number": 1,
+          "side": "east",
+          "short": "O1e"
+        },
+        "record": {
+          "wins": 8,
+          "losses": 7,
+          "absences": 0,
+          "draws": 0,
+          "text": "8-7"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": true,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 74,
+        "shikona": {
+          "en": "Atamifuji",
+          "jp": "熱海富士"
+        },
+        "rank": {
+          "title": "sekiwake",
+          "number": 1,
+          "side": "east",
+          "short": "S1e"
+        },
+        "record": {
+          "wins": 8,
+          "losses": 7,
+          "absences": 0,
+          "draws": 0,
+          "text": "8-7"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss"
+        ]
+      },
+      {
+        "id": 9051,
+        "shikona": {
+          "en": "Fujiryoga",
+          "jp": "藤凌駕"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 4,
+          "side": "west",
+          "short": "M4w"
+        },
+        "record": {
+          "wins": 8,
+          "losses": 7,
+          "absences": 0,
+          "draws": 0,
+          "text": "8-7"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": true,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "fusen_win",
+          "win",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 607,
+        "shikona": {
+          "en": "Asahakuryu",
+          "jp": "朝白龍"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 12,
+          "side": "west",
+          "short": "M12w"
+        },
+        "record": {
+          "wins": 8,
+          "losses": 7,
+          "absences": 0,
+          "draws": 0,
+          "text": "8-7"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 22,
+        "shikona": {
+          "en": "Abi",
+          "jp": "阿炎"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 13,
+          "side": "west",
+          "short": "M13w"
+        },
+        "record": {
+          "wins": 8,
+          "losses": 7,
+          "absences": 0,
+          "draws": 0,
+          "text": "8-7"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": true,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 8859,
+        "shikona": {
+          "en": "Asasuiryu",
+          "jp": "朝翠龍"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 15,
+          "side": "east",
+          "short": "M15e"
+        },
+        "record": {
+          "wins": 8,
+          "losses": 7,
+          "absences": 0,
+          "draws": 0,
+          "text": "8-7"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": true,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win"
+        ]
+      },
+      {
+        "id": 83,
+        "shikona": {
+          "en": "Tokihayate",
+          "jp": "時疾風"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 15,
+          "side": "west",
+          "short": "M15w"
+        },
+        "record": {
+          "wins": 8,
+          "losses": 7,
+          "absences": 0,
+          "draws": 0,
+          "text": "8-7"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": true,
+        "makeKoshi": false,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss"
+        ]
+      },
+      {
+        "id": 44,
+        "shikona": {
+          "en": "Takayasu",
+          "jp": "高安"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 2,
+          "side": "east",
+          "short": "M2e"
+        },
+        "record": {
+          "wins": 7,
+          "losses": 8,
+          "absences": 0,
+          "draws": 0,
+          "text": "7-8"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": true,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 40,
+        "shikona": {
+          "en": "Nishikifuji",
+          "jp": "錦富士"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 7,
+          "side": "west",
+          "short": "M7w"
+        },
+        "record": {
+          "wins": 7,
+          "losses": 8,
+          "absences": 0,
+          "draws": 0,
+          "text": "7-8"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": true,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 86,
+        "shikona": {
+          "en": "Shishi",
+          "jp": "獅司"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 9,
+          "side": "west",
+          "short": "M9w"
+        },
+        "record": {
+          "wins": 7,
+          "losses": 8,
+          "absences": 0,
+          "draws": 0,
+          "text": "7-8"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": true,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 41,
+        "shikona": {
+          "en": "Oho",
+          "jp": "王鵬"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 10,
+          "side": "east",
+          "short": "M10e"
+        },
+        "record": {
+          "wins": 7,
+          "losses": 8,
+          "absences": 0,
+          "draws": 0,
+          "text": "7-8"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win"
+        ]
+      },
+      {
+        "id": 56,
+        "shikona": {
+          "en": "Gonoyama",
+          "jp": "豪ノ山"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 3,
+          "side": "east",
+          "short": "M3e"
+        },
+        "record": {
+          "wins": 6,
+          "losses": 9,
+          "absences": 0,
+          "draws": 0,
+          "text": "6-9"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win"
+        ]
+      },
+      {
+        "id": 55,
+        "shikona": {
+          "en": "Roga",
+          "jp": "狼雅"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 5,
+          "side": "east",
+          "short": "M5e"
+        },
+        "record": {
+          "wins": 6,
+          "losses": 9,
+          "absences": 0,
+          "draws": 0,
+          "text": "6-9"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "win",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 61,
+        "shikona": {
+          "en": "Oshoma",
+          "jp": "欧勝馬"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 5,
+          "side": "west",
+          "short": "M5w"
+        },
+        "record": {
+          "wins": 6,
+          "losses": 9,
+          "absences": 0,
+          "draws": 0,
+          "text": "6-9"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss"
+        ]
+      },
+      {
+        "id": 3,
+        "shikona": {
+          "en": "Hakunofuji",
+          "jp": "伯乃富士"
+        },
+        "rank": {
+          "title": "komusubi",
+          "number": 1,
+          "side": "east",
+          "short": "K1e"
+        },
+        "record": {
+          "wins": 5,
+          "losses": 10,
+          "absences": 0,
+          "draws": 0,
+          "text": "5-10"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "fusen_win",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 9,
+        "shikona": {
+          "en": "Daieisho",
+          "jp": "大栄翔"
+        },
+        "rank": {
+          "title": "komusubi",
+          "number": 1,
+          "side": "west",
+          "short": "K1w"
+        },
+        "record": {
+          "wins": 5,
+          "losses": 10,
+          "absences": 0,
+          "draws": 0,
+          "text": "5-10"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss"
+        ]
+      },
+      {
+        "id": 8,
+        "shikona": {
+          "en": "Kotoshoho",
+          "jp": "琴勝峰"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 1,
+          "side": "east",
+          "short": "M1e"
+        },
+        "record": {
+          "wins": 5,
+          "losses": 7,
+          "absences": 3,
+          "draws": 0,
+          "text": "5-7-3"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": true,
+        "results": [
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "fusen_loss",
+          "absent",
+          "absent",
+          "absent"
+        ]
+      },
+      {
+        "id": 112,
+        "shikona": {
+          "en": "Kotoeiho",
+          "jp": "琴栄峰"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 1,
+          "side": "west",
+          "short": "M1w"
+        },
+        "record": {
+          "wins": 5,
+          "losses": 10,
+          "absences": 0,
+          "draws": 0,
+          "text": "5-10"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 39,
+        "shikona": {
+          "en": "Chiyoshoma",
+          "jp": "千代翔馬"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 14,
+          "side": "west",
+          "short": "M14w"
+        },
+        "record": {
+          "wins": 5,
+          "losses": 10,
+          "absences": 0,
+          "draws": 0,
+          "text": "5-10"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win"
+        ]
+      },
+      {
+        "id": 37,
+        "shikona": {
+          "en": "Takanosho",
+          "jp": "隆の勝"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 4,
+          "side": "east",
+          "short": "M4e"
+        },
+        "record": {
+          "wins": 4,
+          "losses": 9,
+          "absences": 2,
+          "draws": 0,
+          "text": "4-9-2"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": true,
+        "results": [
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "fusen_loss",
+          "absent",
+          "absent"
+        ]
+      },
+      {
+        "id": 11,
+        "shikona": {
+          "en": "Ichiyamamoto",
+          "jp": "一山本"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 6,
+          "side": "west",
+          "short": "M6w"
+        },
+        "record": {
+          "wins": 4,
+          "losses": 11,
+          "absences": 0,
+          "draws": 0,
+          "text": "4-11"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win"
+        ]
+      },
+      {
+        "id": 21,
+        "shikona": {
+          "en": "Tobizaru",
+          "jp": "翔猿"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 14,
+          "side": "east",
+          "short": "M14e"
+        },
+        "record": {
+          "wins": 4,
+          "losses": 11,
+          "absences": 0,
+          "draws": 0,
+          "text": "4-11"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss"
+        ]
+      },
+      {
+        "id": 33,
+        "shikona": {
+          "en": "Shodai",
+          "jp": "正代"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 11,
+          "side": "west",
+          "short": "M11w"
+        },
+        "record": {
+          "wins": 3,
+          "losses": 12,
+          "absences": 0,
+          "draws": 0,
+          "text": "3-12"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "loss",
+          "loss"
+        ]
+      },
+      {
+        "id": 49,
+        "shikona": {
+          "en": "Shonannoumi",
+          "jp": "湘南乃海"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 17,
+          "side": "east",
+          "short": "M17e"
+        },
+        "record": {
+          "wins": 3,
+          "losses": 12,
+          "absences": 0,
+          "draws": 0,
+          "text": "3-12"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": false,
+        "results": [
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "win",
+          "win",
+          "loss",
+          "win",
+          "loss",
+          "loss",
+          "loss",
+          "loss",
+          "loss"
+        ]
+      },
+      {
+        "id": 19,
+        "shikona": {
+          "en": "Hoshoryu",
+          "jp": "豊昇龍"
+        },
+        "rank": {
+          "title": "yokozuna",
+          "number": 1,
+          "side": "west",
+          "short": "Y1w"
+        },
+        "record": {
+          "wins": 0,
+          "losses": 0,
+          "absences": 15,
+          "draws": 0,
+          "text": "0-0-15"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": true,
+        "results": [
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent"
+        ]
+      },
+      {
+        "id": 12,
+        "shikona": {
+          "en": "Wakatakakage",
+          "jp": "若隆景"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 12,
+          "side": "east",
+          "short": "M12e"
+        },
+        "record": {
+          "wins": 0,
+          "losses": 0,
+          "absences": 15,
+          "draws": 0,
+          "text": "0-0-15"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": true,
+        "results": [
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent"
+        ]
+      },
+      {
+        "id": 195,
+        "shikona": {
+          "en": "Wakanosho",
+          "jp": "若ノ勝"
+        },
+        "rank": {
+          "title": "maegashira",
+          "number": 16,
+          "side": "east",
+          "short": "M16e"
+        },
+        "record": {
+          "wins": 0,
+          "losses": 0,
+          "absences": 15,
+          "draws": 0,
+          "text": "0-0-15"
+        },
+        "remaining": 0,
+        "band": 3,
+        "inContention": false,
+        "kachiKoshi": false,
+        "makeKoshi": true,
+        "newToday": false,
+        "kyujo": true,
+        "results": [
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent",
+          "absent"
+        ]
+      }
+    ],
+    "yushoDecided": true,
+    "playoff": false,
+    "yusho": {
+      "id": 8850,
+      "shikona": {
+        "en": "Onosato",
+        "jp": "大の里"
+      },
+      "rank": {
+        "title": "yokozuna",
+        "number": 1,
+        "side": "east",
+        "short": "Y1e"
+      }
+    },
+    "kachiKoshi": 22,
+    "makeKoshi": 20,
+    "kyujo": 5
+  }
+}

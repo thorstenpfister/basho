@@ -170,9 +170,9 @@ func renderDay(g glyphs, d service.Day, p service.Provenance) string {
 			technique = g.none
 		}
 		rows = append(rows, []string{
-			fmt.Sprint(r.MatchNo), r.East.Rank.Short(), east, r.East.Before.String(),
+			fmt.Sprint(r.MatchNo), r.East.Rank.Short(), east, record(r.East),
 			sideGlyph(g, r.Winner == domain.East, decided, r.Fusen), technique, sideGlyph(g, r.Winner == domain.West, decided, r.Fusen),
-			r.West.Before.String(), west, r.West.Rank.Short(), tag,
+			record(r.West), west, r.West.Rank.Short(), tag,
 		})
 	}
 	for _, r := range d.Bouts {
@@ -201,6 +201,22 @@ func renderDay(g glyphs, d service.Day, p service.Provenance) string {
 	return b.String()
 }
 
+// record is a bout side's record before the bout; a visitor from a lower
+// division has none here.
+func record(s service.BoutSide) string {
+	if s.Visitor {
+		return "—"
+	}
+	return s.Before.String()
+}
+
+func taleRecord(t service.TaleSide) string {
+	if t.Visitor {
+		return "—"
+	}
+	return t.Record.String()
+}
+
 // renderTale is `basho bout`: the tale of the tape with both technique
 // profiles (SPEC §6.7, §8.5).
 func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
@@ -222,7 +238,7 @@ func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 		{orUnknown(e.Heya, e.Profile), "HEYA", orUnknown(w.Heya, w.Profile)},
 		{orUnknown(e.Shusshin, e.Profile), "FROM", orUnknown(w.Shusshin, w.Profile)},
 		{age(e), "AGE", age(w)},
-		{e.Record.String(), "RECORD", w.Record.String()},
+		{taleRecord(e), "RECORD", taleRecord(w)},
 		{last5(g, e.Last5), "LAST 5", last5(g, w.Last5)},
 		{measure(e.Career.Height, "cm", e.Career.Latest), "HEIGHT", measure(w.Career.Height, "cm", w.Career.Latest)},
 		{measure(e.Career.Weight, "kg", e.Career.Latest), "WEIGHT", measure(w.Career.Weight, "kg", w.Career.Latest)},
@@ -369,6 +385,9 @@ func signature(p derive.Profile) string {
 }
 
 func counts(top []derive.KimariteCount) string {
+	if len(top) == 0 {
+		return "—"
+	}
 	parts := make([]string, len(top))
 	for i, k := range top {
 		parts[i] = fmt.Sprintf("%s ×%d", k.Kimarite, k.Count)

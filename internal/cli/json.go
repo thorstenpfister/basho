@@ -138,8 +138,8 @@ type jsonBoutRow struct {
 
 type jsonBoutSide struct {
 	jsonWrestler
-	Before jsonRecord `json:"before"`
-	After  jsonRecord `json:"after"`
+	Before *jsonRecord `json:"before"` // null for a visitor from a lower division
+	After  *jsonRecord `json:"after"`
 }
 
 func dayJSON(d service.Day) jsonDay {
@@ -147,7 +147,12 @@ func dayJSON(d service.Day) jsonDay {
 		out := make([]jsonBoutRow, 0, len(rs))
 		for _, r := range rs {
 			bs := func(s service.BoutSide) jsonBoutSide {
-				return jsonBoutSide{jsonWrestler: wrestlerJSON(s.Wrestler), Before: recordJSON(s.Before), After: recordJSON(s.After)}
+				out := jsonBoutSide{jsonWrestler: wrestlerJSON(s.Wrestler)}
+				if !s.Visitor {
+					before, after := recordJSON(s.Before), recordJSON(s.After)
+					out.Before, out.After = &before, &after
+				}
+				return out
 			}
 			out = append(out, jsonBoutRow{
 				MatchNo: r.MatchNo, East: bs(r.East), West: bs(r.West), Winner: side(r.Winner),
@@ -212,7 +217,7 @@ type jsonTaleSide struct {
 	Now      string         `json:"now,omitempty"`      // today's shikona when it changed
 	Yusho    map[string]int `json:"yusho"`
 	Sansho   map[string]int `json:"sansho"`
-	Record   jsonRecord     `json:"record"`
+	Record   *jsonRecord    `json:"record"` // null for a visitor from a lower division
 	Last5    jsonLast       `json:"last5"`
 	Kinboshi jsonKinboshi   `json:"kinboshi"`
 	Moveset  jsonMoveset    `json:"moveset"`
@@ -336,8 +341,12 @@ func taleSideJSON(t service.TaleSide) jsonTaleSide {
 	out := jsonTaleSide{
 		jsonWrestler: wrestlerJSON(t.Wrestler), Heya: t.Heya, Shusshin: t.Shusshin, Profile: t.Profile,
 		Age: t.Career.Age, Height: t.Career.Height, Weight: t.Career.Weight, Latest: t.Career.Latest, Now: t.Career.Now,
-		Yusho: yusho, Sansho: t.Career.Sansho, Record: recordJSON(t.Record), Last5: last,
+		Yusho: yusho, Sansho: t.Career.Sansho, Last5: last,
 		Kinboshi: jsonKinboshi{Count: t.Kinboshi.Count, ThisBasho: t.Kinboshi.ThisBasho}, Moveset: mv,
+	}
+	if !t.Visitor {
+		r := recordJSON(t.Record)
+		out.Record = &r
 	}
 	if t.Rating != nil {
 		out.Rating = &jsonRating{Value: roundTo(t.Rating.Value, 2), Change: roundTo(t.Rating.Change, 2), Provisional: t.Rating.Provisional}
