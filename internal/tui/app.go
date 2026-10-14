@@ -9,6 +9,7 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/config"
@@ -23,7 +24,21 @@ type Context struct {
 	Cfg   config.Config
 	Theme theme.Theme
 	Clock clock.Clock
+	// Timers, such as clearing a status message, go through Tick; nil is
+	// tea.Tick. Tests turn timers off with NoTimers.
+	Tick func(time.Duration, func(time.Time) tea.Msg) tea.Cmd
 }
+
+// After returns a command that delivers fn's message after d.
+func (c *Context) After(d time.Duration, fn func(time.Time) tea.Msg) tea.Cmd {
+	if c.Tick != nil {
+		return c.Tick(d, fn)
+	}
+	return tea.Tick(d, fn)
+}
+
+// NoTimers is a Tick that never fires, for tests.
+func NoTimers(time.Duration, func(time.Time) tea.Msg) tea.Cmd { return nil }
 
 // Layout is the breakpoint of the terminal width (SPEC §8.1).
 type Layout int
@@ -141,6 +156,9 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) top() Screen { return m.stack[len(m.stack)-1] }
 
+// Top returns the screen on top of the stack.
+func (m Model) Top() Screen { return m.top() }
+
 // Update implements tea.Model.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -152,20 +170,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case PushMsg:
 		m.stack = append(m.stack, msg.Screen)
-		return m, msg.Screen.Init(m.ctx)
+		return m.resized(msg.Screen.Init(m.ctx))
 	case PopMsg:
-		if len(m.stack) > 1 {
-			m.stack = m.stack[:len(m.stack)-1]
-		}
-		return m, nil
+		return m.pop()
 	case ResetMsg:
 		m.stack = msg.Stack
-		return m, m.top().Init(m.ctx)
+		return m.resized(m.top().Init(m.ctx))
 	case MessageMsg:
 		m.messageID++
 		m.message = msg.Text
 		id := m.messageID
-		return m, tea.Tick(messageTTL, func(time.Time) tea.Msg { return clearMsg{id} })
+		return m, m.ctx.After(messageTTL, func(time.Time) tea.Msg { return clearMsg{id} })
 	case clearMsg:
 		if msg.id == m.messageID {
 			m.message = ""
@@ -194,13 +209,11 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case key.Matches(msg, keyQuit):
 		if b, ok := m.top().(QuitBacker); ok && b.QuitGoesBack() && len(m.stack) > 1 {
-			m.stack = m.stack[:len(m.stack)-1]
-			return m, nil
+			return m.pop()
 		}
 		return m, tea.Quit
 	case key.Matches(msg, keyBack) && len(m.stack) > 1:
-		m.stack = m.stack[:len(m.stack)-1]
-		return m, nil
+		return m.pop()
 	case key.Matches(msg, keyToday) && m.today != nil:
 		return m.Update(ResetMsg{Stack: m.today()})
 	case key.Matches(msg, keyLive):
@@ -209,6 +222,24 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.Update(MessageMsg{"Spoiler-free mode comes with Phase 11"})
 	}
 	return m.forward(msg)
+}
+
+// pop closes the top screen, keeping the last one.
+func (m Model) pop() (tea.Model, tea.Cmd) {
+	if len(m.stack) > 1 {
+		m.stack = m.stack[:len(m.stack)-1]
+	}
+	return m.resized(nil)
+}
+
+// resized tells the screen now on top the terminal size, which it may have
+// missed while below or before it existed.
+func (m Model) resized(cmd tea.Cmd) (tea.Model, tea.Cmd) {
+	if m.width == 0 {
+		return m, cmd
+	}
+	next, sizeCmd := m.forward(tea.WindowSizeMsg{Width: m.width, Height: m.height})
+	return next, tea.Batch(cmd, sizeCmd)
 }
 
 // forward hands a message to the top screen.
@@ -262,14 +293,18 @@ func (m Model) statusBar() string {
 		right = append(right, t.Gold.Render(t.Stale+" stale"))
 	}
 	if st.Prov != nil && st.Prov.Source != "" {
-		right = append(right, provenance(*st.Prov, m.ctx.Clock.Now()))
+		if LayoutOf(m.width) == Compact {
+			right = append(right, st.Prov.Source)
+		} else {
+			right = append(right, provenance(*st.Prov, m.ctx.Clock.Now()))
+		}
 	}
 	right = append(right, t.StatusKey.Render("?")+" help")
 	r := strings.Join(right, " · ")
 	// " left rule right ": four spaces around the rule.
 	gap := m.width - lipgloss.Width(left) - lipgloss.Width(r) - 4
 	if gap < 1 {
-		left = truncate(left, max(m.width-lipgloss.Width(r)-5, 0))
+		left = Truncate(left, max(m.width-lipgloss.Width(r)-5, 0))
 		gap = max(m.width-lipgloss.Width(left)-lipgloss.Width(r)-4, 1)
 	}
 	return t.StatusBar.Render(" " + left + " " + t.Rule.Render(strings.Repeat(t.Line, gap)) + " " + r + " ")
@@ -300,11 +335,15 @@ func age(d time.Duration) string {
 	}
 }
 
-func truncate(s string, w int) string {
+// Truncate shortens s to w cells, ending in "…" when it had to cut.
+func Truncate(s string, w int) string {
 	if lipgloss.Width(s) <= w {
 		return s
 	}
-	return lipgloss.NewStyle().MaxWidth(w).Render(s)
+	if w <= 1 {
+		return ansi.Truncate(s, w, "")
+	}
+	return ansi.Truncate(s, w, "…")
 }
 
 // helpView is the help overlay (SPEC §8.7): the keys of this screen and the

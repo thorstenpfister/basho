@@ -228,3 +228,57 @@ func (s *Service) DefaultDay(ctx context.Context, id domain.BashoID) (int, error
 		return min(today.DaysSince(b.Start)+1, domain.BashoDays), nil
 	}
 }
+
+// DayStatuses returns the status of each day of a division for the day bar
+// (SPEC §8.4). Snapshot tournaments count their bouts; later ones go by
+// the dates (one metadata request at most): days before today complete,
+// today in progress, the next scheduled, later ones not published.
+func (s *Service) DayStatuses(ctx context.Context, id domain.BashoID, div domain.Division) (Result[[domain.BashoDays]DayStatus], error) {
+	var out [domain.BashoDays]DayStatus
+	ts, err := s.tournaments()
+	if err != nil {
+		return Result[[domain.BashoDays]DayStatus]{}, err
+	}
+	if ts.fromSnapshot(id) {
+		x, err := s.index()
+		if err != nil {
+			return Result[[domain.BashoDays]DayStatus]{}, err
+		}
+		var byDay [domain.BashoDays][]domain.Bout
+		for _, b := range x.Tournament(id) {
+			if b.Division == div {
+				byDay[b.Day-1] = append(byDay[b.Day-1], b)
+			}
+		}
+		for i := range out {
+			out[i] = status(byDay[i])
+		}
+		return Result[[domain.BashoDays]DayStatus]{Value: out, Prov: Provenance{Source: SnapshotSource, FetchedAt: ts.Snapshot.Manifest().GeneratedAt}}, nil
+	}
+	b, p, err := s.basho(ctx, id)
+	if err != nil {
+		return Result[[domain.BashoDays]DayStatus]{}, err
+	}
+	today := s.today()
+	for i := range out {
+		date := domain.DayDate(b.Start, i+1)
+		switch c := date.Compare(today); {
+		case b.Start.IsZero():
+			out[i] = NotPublished
+		case c < 0:
+			out[i] = Complete
+		case c == 0:
+			out[i] = InProgress
+		case date.DaysSince(today) == 1:
+			out[i] = Scheduled // the next day's bouts come out the day before
+		default:
+			out[i] = NotPublished
+		}
+	}
+	if s.status(b) == Finished {
+		for i := range out {
+			out[i] = Complete
+		}
+	}
+	return Result[[domain.BashoDays]DayStatus]{Value: out, Prov: p}, nil
+}

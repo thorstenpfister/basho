@@ -32,9 +32,20 @@ func NewRoot(info buildinfo.Info, deps Deps) *cobra.Command {
 		Long: "basho shows the days and bouts of grand sumo tournaments since 1960:\n" +
 			"results, standings and a fighting-game-style preview of every bout.",
 		Args: cobra.NoArgs,
-		// Starts the TUI from Phase 7. Until then it shows the help; having a
-		// run function also makes cobra reject unknown arguments.
-		RunE: func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
+		// Having a run function also makes cobra reject unknown arguments.
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if deps.TUI == nil {
+				return cmd.Help()
+			}
+			if err := a.setup(cmd); err != nil {
+				return err
+			}
+			svc, err := a.svc()
+			if err != nil {
+				return err
+			}
+			return deps.TUI(a.cfg, svc, a.noColor)
+		},
 	}
 	SetVersion(root, info)
 	root.AddCommand(&cobra.Command{

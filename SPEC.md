@@ -897,7 +897,7 @@ A full key list grouped by screen (Bubbles `help` in full mode), plus a legend f
 | Key | Context | Action |
 |---|---|---|
 | `←`/`h`, `→`/`l` | day view, standings | previous/next day |
-| `1`–`9`, `0` (=10), `!` `@` `#` `$` `%` (=11–15) | day view | jump to day; the numbers 11–15 are also reachable as a `g` prefix: `g1` `3` |
+| `1`–`9`, `0` (=10), `!` `@` `#` `$` `%` (=11–15) | day view | jump to day; every day is also reachable as `g` and two digits: `g13`, `g05` |
 | `↑`/`k`, `↓`/`j` | lists | move |
 | `enter` | day view | open VS screen |
 | `[` / `]` | VS screen | previous/next bout |
@@ -1418,6 +1418,8 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    - Kyujo footer
    - `d` division toggle, number and `g` jumps
    - `p` win-chance column
+
+   Done: `basho` starts it on the current tournament's latest day with the picker underneath. The day bar comes from `service.DayStatuses` (snapshot tournaments count their bouts, so gap days such as 196503 day 7 can't be selected; later tournaments go by the dates, one metadata request at most). The compact layout caps names and techniques at 10 cells and drops the bout number. `enter`, `s` and `r` show a message until Phases 8 and 9.
 5. Loading, empty and error states; stale-while-revalidate redraws; `R` refresh with cooldown.
 6. Wide layout side panel (top bands of the yusho race).
 7. `teatest` golden snapshots (80×24, 120×40) and navigation flow tests.

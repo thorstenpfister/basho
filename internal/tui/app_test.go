@@ -20,7 +20,7 @@ var testNow = time.Date(2026, time.October, 14, 12, 0, 0, 0, domain.JST)
 func testContext() *Context {
 	cfg := config.Default()
 	cfg.UI.Theme = "dark"
-	return &Context{Cfg: cfg, Theme: theme.New(true, false), Clock: clock.NewFake(testNow)}
+	return &Context{Cfg: cfg, Theme: theme.New(true, false), Clock: clock.NewFake(testNow), Tick: NoTimers}
 }
 
 // fake is a screen that records what reaches it.
@@ -117,9 +117,11 @@ func TestStatusBar(t *testing.T) {
 	if w := len([]rune(bar)); w != 100 {
 		t.Errorf("status bar is %d wide", w)
 	}
-	m, cmd := send(t, m, MessageMsg{"No bouts published for day 14 yet"})
-	if !strings.Contains(stripANSI(m.statusBar()), "No bouts published") || cmd == nil {
-		t.Error("message not shown")
+	var timer time.Duration
+	m.ctx.Tick = func(d time.Duration, _ func(time.Time) tea.Msg) tea.Cmd { timer = d; return nil }
+	m, _ = send(t, m, MessageMsg{"No bouts published for day 14 yet"})
+	if !strings.Contains(stripANSI(m.statusBar()), "No bouts published") || timer != messageTTL {
+		t.Errorf("message not shown, or no %s timer (%s)", messageTTL, timer)
 	}
 	m, _ = send(t, m, clearMsg{id: m.messageID - 1}) // an older message's timer
 	if !strings.Contains(stripANSI(m.statusBar()), "No bouts") {

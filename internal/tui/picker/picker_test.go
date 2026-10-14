@@ -29,7 +29,7 @@ func testContext() *tui.Context {
 		Params:   func() (rating.File, error) { return rating.File{}, nil },
 		Clock:    c,
 	})
-	return &tui.Context{Svc: svc, Cfg: config.Default(), Theme: theme.New(true, false), Clock: c}
+	return &tui.Context{Svc: svc, Cfg: config.Default(), Theme: theme.New(true, false), Clock: c, Tick: tui.NoTimers}
 }
 
 // opened is the screen open returns, carrying the tournament.

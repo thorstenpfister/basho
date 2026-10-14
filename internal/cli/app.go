@@ -22,6 +22,9 @@ type Deps struct {
 	Open func(config.Config) (*service.Service, error)
 	Env  config.Env       // nil: os.LookupEnv
 	Now  func() time.Time // nil: time.Now
+	// TUI runs the interactive app (basho without a command); nil shows the
+	// help instead.
+	TUI func(cfg config.Config, svc *service.Service, noColor bool) error
 }
 
 // app is one invocation's state: flags, configuration and the service.

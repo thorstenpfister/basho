@@ -358,3 +358,29 @@ func TestErrorClasses(t *testing.T) {
 		}
 	}
 }
+
+func TestDayStatuses(t *testing.T) {
+	res, err := embedded().DayStatuses(t.Context(), aki2026, domain.DivMakuuchi)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, st := range res.Value {
+		if st != Complete {
+			t.Errorf("Aki day %d: %v", i+1, st)
+		}
+	}
+	gap, _ := embedded().DayStatuses(t.Context(), domain.BashoID{Year: 1965, Month: time.March}, domain.DivMakuuchi)
+	if gap.Value[6] != NotPublished || gap.Value[5] != Complete {
+		t.Errorf("196503 (no bouts on day 7 in the source): %v", gap.Value)
+	}
+	fake := &fakeRemote{start: domain.NewDate(2026, time.November, 8)}
+	s := New(Options{Remote: fake, Clock: clock.NewFake(time.Date(2026, time.November, 12, 16, 0, 0, 0, domain.JST))})
+	live, err := s.DayStatuses(t.Context(), kyushu2026, domain.DivMakuuchi)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := [domain.BashoDays]DayStatus{Complete, Complete, Complete, Complete, InProgress, Scheduled}
+	if live.Value != want || fake.calls != 1 {
+		t.Errorf("day 5 of Kyushu: %v after %d calls", live.Value, fake.calls)
+	}
+}
