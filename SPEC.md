@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.12** (2026-10-14). Implemented: Phases 0–6; the full snapshot (196001–202609) and the calibrated rating are committed, and the non-interactive CLI works offline. Later phases are still the plan.
+> Status: **v0.13** (2026-10-14). Implemented: Phases 0–7; the full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and `basho` opens the TUI with the picker and the day view. Later phases are still the plan.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1156,7 +1156,7 @@ adjacent_days = false
 - **Cache tests:** TTL per data class, stale-while-revalidate, LRU eviction, schema version change.
 - **Request-budget tests:** a counting `RoundTripper` checks the numbers in §7.3.
 - **Live scheduler tests:** fake clock covering the window, jitter range, doubling interval, stop conditions and day 15 extension.
-- **TUI tests:** `teatest` with a fixed 120×40 and 80×24 size and a fake clock. Golden snapshots of each screen; key flows (picker → day → VS → reveal → back); resizing; spoiler-free flow.
+- **TUI tests:** `teatest` with a fixed 120×40 and 80×24 size and a fake clock. Golden snapshots of each screen; key flows (picker → day → VS → reveal → back); resizing; spoiler-free flow. Screens are mostly tested through `tuitest.Driver`, which runs the model synchronously with timers off (`tui.NoTimers`); goldens are plain text.
 - **CLI tests:** golden text output and JSON schema golden files (`internal/cli/testdata/TestGolden/`, refreshed with `go test ./internal/cli -run Golden -update`). They run over the fixture snapshot, which does not change with `make snapshot`; an acceptance test checks the Phase 6 commands' facts against the embedded snapshot without remote layers.
 - **Live smoke tests** behind `//go:build live`, never part of `make check`: one request per endpoint to catch API changes.
 - Tooling: `golangci-lint`, `gofumpt`, `go test -race`, all through `make check` (D28).
@@ -1422,7 +1422,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    Done: `basho` starts it on the current tournament's latest day with the picker underneath. The day bar comes from `service.DayStatuses` (snapshot tournaments count their bouts, so gap days such as 196503 day 7 can't be selected; later tournaments go by the dates, one metadata request at most). The compact layout caps names and techniques at 10 cells and drops the bout number. `enter`, `s` and `r` show a message until Phases 8 and 9.
 5. Loading, empty and error states; stale-while-revalidate redraws; `R` refresh with cooldown. Done: a day loads through `service.CachedOnly` first (snapshot or cached copy, even expired), then, unless it came from the snapshot, through the sources in the background with `↻`; a failed refresh keeps the copy and says so. `R` revalidates with a conditional request (`service.Revalidate`; pinned, final entries are never refetched), at most every 30 s per day. Timers go through `tui.Context.Tick`, so the spinner and messages don't run in tests.
 6. Wide layout side panel (top bands of the yusho race). Done: from 130 columns, the leaders and the −1 band after the selected day, loaded cache-only once the day is in.
-7. `teatest` golden snapshots (80×24, 120×40) and navigation flow tests.
+7. `teatest` golden snapshots (80×24, 120×40) and navigation flow tests. Done (`internal/tui/screens_test.go`): plain-text goldens of the start screen, Juryo, day 13, the picker with and without a filter and the help at both sizes, over the fixture snapshot; flow tests through a real program with `teatest` (the renderer writes only changed cells after the first frame, so the flows check the final model); every day since 1960 in both divisions from the embedded snapshot without remote layers; and a resize sweep from 50×15 to 200×50 in which every screen fills the terminal exactly.
 
 **AC:** starting `basho` lands on the latest tournament day; every day since 1960 can be browsed in both divisions without network access, except tournaments newer than the snapshot; resizing never breaks the layout.
 

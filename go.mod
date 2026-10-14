@@ -16,6 +16,7 @@ require (
 	github.com/charmbracelet/fang v1.0.0
 	github.com/charmbracelet/x/ansi v0.11.9
 	github.com/charmbracelet/x/exp/golden v0.1.0
+	github.com/charmbracelet/x/exp/teatest/v2 v2.0.0-20261012121918-43427fdbad12
 	github.com/klauspost/compress v1.20.3
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.24.0

@@ -1,0 +1,24 @@
+                                                                                
+  Keys                                                                          
+  ←/h     previous day               b/esc  back                                
+  →/l     next day                   t      today                               
+  ↑/k     previous bout              L      live mode                           
+  ↓/j     next bout                  S      spoiler-free                        
+  1–0 !–% day 1–15                   ?      help                                
+  g13     go to day 13               q      quit                                
+  d       Makuuchi ⇄ Juryo           ctrl+c quit                                
+  p       win chance column                                                     
+  enter   VS screen                                                             
+  s       standings                                                             
+  r       recap                                                                 
+  R       refresh (30 s cooldown)                                               
+                                                                                
+  Legend                                                                        
+  ○ win  ● loss  □ fusen win  ■ fusen loss  – absent  · pending  ★ kinboshi     
+  Day bar: ✓ complete  ● in progress  · scheduled                               
+  KK kachi-koshi (8 wins) · MK make-koshi (8 losses and absences) · 休 kyujo    
+(absent)                                                                        
+  Ranks: Y yokozuna · O ozeki · S sekiwake · K komusubi · M maegashira · J juryo
+· Ms makushita; e/w east/west                                                   
+                                                                                
+ Aki 2026 · Makuuchi · Day 15 ─────────────────────────────── snapshot · ? help 

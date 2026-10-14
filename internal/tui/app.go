@@ -159,6 +159,9 @@ func (m Model) top() Screen { return m.stack[len(m.stack)-1] }
 // Top returns the screen on top of the stack.
 func (m Model) Top() Screen { return m.top() }
 
+// Depth returns the number of screens on the stack.
+func (m Model) Depth() int { return len(m.stack) }
+
 // Update implements tea.Model.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
