@@ -1452,6 +1452,8 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    - tab A: race, bands, collapsed tail, contention and yusho markers
    - tab B: hoshitori grid with the day column highlighted
    - `←`/`→` move the cutoff; wrestler popup
+
+   Done: `s` in the day view opens `tui/standings` after the shown day. The race has one line per score (wins, then losses and absences together, as it is sorted), wrapped when it holds more wrestlers than fit; wrestlers out of contention are dim, the leaders bold, and the tail below −2 is one line until `enter` expands it. The grid's cursor (`j`/`k`) opens the popup with each day's opponent (visitors from Makushita named from the tournament's bouts) and technique. `d` switches division here too, and the footer names the yusho, a playoff or "Yusho decided: no".
 2. Day recap overlay (`r`).
 3. `source/osada`:
    - DTOs for `torikumi.json` and `banzuke.json`

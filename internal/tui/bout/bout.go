@@ -284,7 +284,7 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 	var b strings.Builder
 	b.WriteString(" " + t.Title.Render(v.heading()) + "\n")
 	if v.err != nil && v.tale == nil {
-		b.WriteString("\n " + t.Error.Render(errorText(v.err)) + "\n")
+		b.WriteString("\n " + t.Error.Render(tui.ErrorText(v.err)) + "\n")
 		return b.String()
 	}
 	tape := v.tape(ctx, l)
@@ -455,17 +455,6 @@ func (v VS) historyView(ctx *tui.Context, width int, column bool) string {
 		lines = append(lines, tui.Truncate(line, width))
 	}
 	return strings.Join(lines, "\n")
-}
-
-func errorText(err error) string {
-	switch {
-	case service.NotFound(err):
-		return "Not available: " + err.Error()
-	case service.Unavailable(err):
-		return "Every source failed and nothing is cached."
-	default:
-		return err.Error()
-	}
 }
 
 func record(s service.BoutSide) string {

@@ -15,6 +15,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/tui"
 	"github.com/thorstenpfister/basho/internal/tui/bout"
+	"github.com/thorstenpfister/basho/internal/tui/standings"
 )
 
 // Day is the day view (SPEC §8.4): one division's bouts of one day.
@@ -331,8 +332,12 @@ func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 		if _, ok := d.Selected(); ok {
 			return d, tui.Push(bout.New(d.id, d.div, d.day, d.data.Date, d.rows(), d.cursor))
 		}
-	case key.Matches(msg, keyStandings, keyRecap):
-		return d, tui.Message("Standings and the recap come with Phase 9")
+	case key.Matches(msg, keyStandings):
+		if d.day > 0 {
+			return d, tui.Push(standings.New(d.id, d.div, d.day))
+		}
+	case key.Matches(msg, keyRecap):
+		return d, tui.Message("The recap comes with Phase 9")
 	}
 	return d, nil
 }
@@ -428,12 +433,12 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 	var b strings.Builder
 	other := domain.DivJuryo + domain.DivMakuuchi - d.div
 	title := t.Title.Render(fmt.Sprintf("%s Basho %d", d.id.Name(), d.id.Year)) + t.Dim.Render(" · "+venue(d)+" · ") + t.Bold.Render(d.div.String())
-	b.WriteString(line(title, t.Dim.Render("[d] "+other.String()), width) + "\n")
+	b.WriteString(tui.Spread(title, t.Dim.Render("[d] "+other.String()), width) + "\n")
 	b.WriteString(d.dayBar(ctx) + "\n")
 
 	switch {
 	case d.err != nil && d.data == nil:
-		b.WriteString("\n" + t.Error.Render(" "+errorText(d.err)) + "\n")
+		b.WriteString("\n" + t.Error.Render(" "+dayError(d.err)) + "\n")
 		return b.String()
 	case d.data == nil:
 		frames := spinner
@@ -449,7 +454,7 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 	}
 	data := d.data
 	date := fmt.Sprintf("Day %d · %s %s", data.Day, data.Date.Weekday().String()[:3], data.Date)
-	b.WriteString(line(t.Bold.Render(date), t.Dim.Render(fmt.Sprintf("%d bouts", len(data.Bouts))), width) + "\n")
+	b.WriteString(tui.Spread(t.Bold.Render(date), t.Dim.Render(fmt.Sprintf("%d bouts", len(data.Bouts))), width) + "\n")
 	b.WriteString(t.Rule.Render(" "+strings.Repeat(t.Line, max(width-2, 1))) + "\n")
 	if len(data.Bouts) == 0 {
 		b.WriteString(t.Dim.Render(fmt.Sprintf(" No bouts published for day %d yet.", data.Day)) + "\n")
@@ -482,22 +487,19 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 	return b.String()
 }
 
+// dayError is the error screen's text; R retries a failed load.
+func dayError(err error) string {
+	if service.Unavailable(err) {
+		return tui.ErrorText(err) + " R retries."
+	}
+	return tui.ErrorText(err)
+}
+
 func venue(d Day) string {
 	if d.data != nil && d.data.Venue != "" {
 		return d.data.Venue
 	}
 	return d.id.Venue()
-}
-
-func errorText(err error) string {
-	switch {
-	case service.NotFound(err):
-		return "Not available: " + err.Error()
-	case service.Unavailable(err):
-		return "Every source failed and nothing is cached. R retries."
-	default:
-		return err.Error()
-	}
 }
 
 // dayBar is the two lines of day numbers and status marks.
@@ -541,12 +543,6 @@ func kyujo(d Day, width int) string {
 		names[i] = fmt.Sprintf("%s (%s)", w.Shikona.En, w.Rank.Short())
 	}
 	return tui.Truncate(" Kyujo: "+strings.Join(names, ", "), width)
-}
-
-// line puts left and right at the ends of a width.
-func line(left, right string, width int) string {
-	gap := width - lipgloss.Width(left) - lipgloss.Width(right) - 2
-	return " " + left + strings.Repeat(" ", max(gap, 1)) + right
 }
 
 // Status implements tui.Screen.

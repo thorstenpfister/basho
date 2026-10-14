@@ -14,6 +14,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/tui"
+	"github.com/thorstenpfister/basho/internal/tui/standings"
 	"github.com/thorstenpfister/basho/internal/tui/theme"
 	"github.com/thorstenpfister/basho/internal/tui/tuitest"
 )
@@ -181,5 +182,21 @@ func TestWidePanel(t *testing.T) {
 		if w := len([]rune(l)); w > 140 {
 			t.Errorf("line %d is %d wide", i, w)
 		}
+	}
+}
+
+// s opens the standings after the shown day and division; esc comes back.
+func TestStandingsKey(t *testing.T) {
+	_, d := open(t, aki2026, 13, 100, 30)
+	d.Keys("d", "s")
+	if _, ok := d.M.(tui.Model).Top().(standings.View); !ok {
+		t.Fatalf("top is %T", d.M.(tui.Model).Top())
+	}
+	if v := d.View(); !strings.Contains(v, "Standings after Day 13 · Aki 2026 · Juryo") {
+		t.Errorf("standings:\n%s", v)
+	}
+	d.Keys("esc")
+	if s := screen(d); s.day != 13 || s.div != domain.DivJuryo {
+		t.Errorf("back on day %d %s", s.day, s.div)
 	}
 }

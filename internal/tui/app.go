@@ -357,6 +357,25 @@ func Truncate(s string, w int) string {
 	return ansi.Truncate(s, w, "…")
 }
 
+// Spread puts left and right at the ends of a width, a cell in from each
+// edge.
+func Spread(left, right string, width int) string {
+	gap := width - lipgloss.Width(left) - lipgloss.Width(right) - 2
+	return " " + left + strings.Repeat(" ", max(gap, 1)) + right
+}
+
+// ErrorText explains a load's error on an error screen.
+func ErrorText(err error) string {
+	switch {
+	case service.NotFound(err):
+		return "Not available: " + err.Error()
+	case service.Unavailable(err):
+		return "Every source failed and nothing is cached."
+	default:
+		return err.Error()
+	}
+}
+
 // helpView is the help overlay (SPEC §8.7): the keys of this screen and the
 // global ones, the glyph legend and the data-source notes.
 func (m Model) helpView(width, height int) string {
