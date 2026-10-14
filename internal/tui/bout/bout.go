@@ -23,8 +23,10 @@ type VS struct {
 	div   domain.Division
 	day   int
 	match int
-	row   service.BoutRow // what the day view knew: drawn until the tale is in
-	date  domain.Date     // of the day: an undecided bout today waits for its result
+	row   service.BoutRow   // what the day view knew: drawn until the tale is in
+	date  domain.Date       // of the day: an undecided bout today waits for its result
+	rows  []service.BoutRow // the day's bouts in order, for [ and ]
+	index int
 
 	tale    *service.Tale
 	prov    *service.Provenance
@@ -42,13 +44,80 @@ var (
 	keyHistory = key.NewBinding(key.WithKeys("v"), key.WithHelp("v", "head-to-head history"))
 	keyMoveset = key.NewBinding(key.WithKeys("m"), key.WithHelp("m", "moveset panel"))
 	keyWindow  = key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "moveset window"))
+	keyPrev    = key.NewBinding(key.WithKeys("["), key.WithHelp("[", "previous bout"))
+	keyNext    = key.NewBinding(key.WithKeys("]"), key.WithHelp("]", "next bout"))
 	keyBack    = key.NewBinding(key.WithKeys("q", "esc", "b"), key.WithHelp("q/esc", "back to the day")) // the root pops
 )
 
-// New returns the VS screen of a bout; row is the day view's row of it and
-// date the day's date.
-func New(id domain.BashoID, div domain.Division, day int, date domain.Date, row service.BoutRow) VS {
-	return VS{id: id, div: div, day: day, date: date, match: row.MatchNo, row: row}
+// New returns the VS screen of bout index of a day's rows (regular bouts,
+// then playoffs) dated date.
+func New(id domain.BashoID, div domain.Division, day int, date domain.Date, rows []service.BoutRow, index int) VS {
+	v := VS{id: id, div: div, rows: rows}
+	return v.show(day, date, rows, index)
+}
+
+// show switches to bout index of a day.
+func (v VS) show(day int, date domain.Date, rows []service.BoutRow, index int) VS {
+	v.day, v.date, v.rows, v.index = day, date, rows, index
+	v.row = rows[index]
+	v.match = v.row.MatchNo
+	v.tale, v.prov, v.err = nil, nil, nil
+	v.req++
+	return v
+}
+
+// dayMsg is an adjacent day's bouts, for [ and ] across days.
+type dayMsg struct {
+	dir int
+	day int
+	res service.Result[service.Day]
+	err error
+}
+
+// step moves to the previous or next bout in day order, into the adjacent
+// day at the ends (SPEC §8.8).
+func (v VS) step(ctx *tui.Context, dir int) (tui.Screen, tea.Cmd) {
+	if i := v.index + dir; i >= 0 && i < len(v.rows) {
+		v = v.show(v.day, v.date, v.rows, i)
+		return v, v.fetch(ctx, true)
+	}
+	return v, v.loadDay(ctx, dir, v.day+dir)
+}
+
+func (v VS) loadDay(ctx *tui.Context, dir, day int) tea.Cmd {
+	if day < 1 || day > domain.BashoDays {
+		edge := "first"
+		if dir > 0 {
+			edge = "last"
+		}
+		return tui.Message(fmt.Sprintf("This is the %s bout of the tournament", edge))
+	}
+	svc, id, div := ctx.Svc, v.id, v.div
+	return func() tea.Msg {
+		res, err := svc.Day(service.CachedOnly(context.Background()), id, div, day)
+		if err != nil && !service.NotFound(err) {
+			res, err = svc.Day(context.Background(), id, div, day)
+		}
+		return dayMsg{dir, day, res, err}
+	}
+}
+
+// adjacent takes the next day in the direction of travel; a day without
+// bouts (a gap in the source) is skipped.
+func (v VS) adjacent(ctx *tui.Context, msg dayMsg) (tui.Screen, tea.Cmd) {
+	rows := append(append([]service.BoutRow{}, msg.res.Value.Bouts...), msg.res.Value.Playoffs...)
+	switch {
+	case msg.err != nil && !service.NotFound(msg.err):
+		return v, tui.Message("Could not load day " + fmt.Sprint(msg.day))
+	case len(rows) == 0:
+		return v, v.loadDay(ctx, msg.dir, msg.day+msg.dir)
+	}
+	i := 0
+	if msg.dir < 0 {
+		i = len(rows) - 1
+	}
+	v = v.show(msg.day, msg.res.Value.Date, rows, i)
+	return v, v.fetch(ctx, true)
 }
 
 type taleMsg struct {
@@ -110,7 +179,13 @@ func (v VS) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 			v.moveset = !v.moveset
 		case key.Matches(msg, keyWindow) && v.moveset:
 			v.window = (v.window + 1) % 3
+		case key.Matches(msg, keyPrev):
+			return v.step(ctx, -1)
+		case key.Matches(msg, keyNext):
+			return v.step(ctx, 1)
 		}
+	case dayMsg:
+		return v.adjacent(ctx, msg)
 	}
 	return v, nil
 }
@@ -384,7 +459,9 @@ func (v VS) Status(*tui.Context) tui.Status {
 }
 
 // Keys implements tui.Screen.
-func (v VS) Keys() []key.Binding { return []key.Binding{keyHistory, keyMoveset, keyWindow, keyBack} }
+func (v VS) Keys() []key.Binding {
+	return []key.Binding{keyPrev, keyNext, keyHistory, keyMoveset, keyWindow, keyBack}
+}
 
 // resultPanel is the box under the tape (SPEC §8.5): the winner, the
 // technique in romaji, kanji and English, the records after the bout and

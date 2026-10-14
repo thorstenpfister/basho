@@ -41,9 +41,10 @@ func open(t *testing.T, id domain.BashoID, div domain.Division, day, match, widt
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, r := range append(res.Value.Bouts, res.Value.Playoffs...) {
+	rows := append(res.Value.Bouts, res.Value.Playoffs...)
+	for i, r := range rows {
 		if r.MatchNo == match {
-			return tuitest.New(tui.New(ctx, []tui.Screen{New(id, div, day, res.Value.Date, r)}, nil), width, height)
+			return tuitest.New(tui.New(ctx, []tui.Screen{New(id, div, day, res.Value.Date, rows, i)}, nil), width, height)
 		}
 	}
 	t.Fatalf("no bout %d", match)
@@ -102,7 +103,7 @@ func TestLayouts(t *testing.T) {
 func TestFromTheDayView(t *testing.T) {
 	ctx := testContext(svc())
 	res, _ := svc().Day(t.Context(), aki2026, domain.DivMakuuchi, 13)
-	d := tuitest.New(tui.New(ctx, []tui.Screen{tuiDayStub{}, New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts[0])}, nil), 100, 40)
+	d := tuitest.New(tui.New(ctx, []tui.Screen{tuiDayStub{}, New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts, 0)}, nil), 100, 40)
 	d.Keys("q")
 	if d.M.(tui.Model).Depth() != 1 {
 		t.Error("q did not go back")
@@ -112,7 +113,7 @@ func TestFromTheDayView(t *testing.T) {
 func TestProgressive(t *testing.T) {
 	ctx := testContext(svc())
 	res, _ := svc().Day(t.Context(), aki2026, domain.DivMakuuchi, 13)
-	v := New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts[18]) // before Init: nothing loaded
+	v := New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts, 18) // before Init: nothing loaded
 	out := ansi.Strip(v.View(ctx, 100, 39))
 	for _, want := range []string{"ONOSATO      VS      KIRISHIMA", "大の里", "Yokozuna 1 East     RANK     Ozeki 1 East", "11-1    RECORD    6-6", "…    HEIGHT    …", "H2H  …"} {
 		if !strings.Contains(out, want) {
@@ -154,12 +155,12 @@ func TestResultPanel(t *testing.T) {
 func TestUndecided(t *testing.T) {
 	ctx := testContext(svc())
 	row := service.BoutRow{MatchNo: 3, East: service.BoutSide{Wrestler: service.Wrestler{Shikona: domain.Name{En: "A"}}}, West: service.BoutSide{Wrestler: service.Wrestler{Shikona: domain.Name{En: "B"}}}}
-	later := New(aki2026, domain.DivMakuuchi, 13, domain.NewDate(2026, time.September, 25), row)
+	later := New(aki2026, domain.DivMakuuchi, 13, domain.NewDate(2026, time.September, 25), []service.BoutRow{row}, 0)
 	later.tale = &service.Tale{}
 	if v := ansi.Strip(later.resultPanel(ctx, measure(100))); !strings.Contains(v, "Scheduled — Day 13") {
 		t.Errorf("scheduled:\n%s", v)
 	}
-	today := New(aki2026, domain.DivMakuuchi, 13, domain.DateOf(testNow), row)
+	today := New(aki2026, domain.DivMakuuchi, 13, domain.DateOf(testNow), []service.BoutRow{row}, 0)
 	today.tale = &service.Tale{}
 	if v := ansi.Strip(today.resultPanel(ctx, measure(100))); !strings.Contains(v, "Waiting for result…") {
 		t.Errorf("waiting:\n%s", v)
@@ -218,7 +219,7 @@ func TestRatingRows(t *testing.T) {
 	ctx := testContext(svc())
 	ctx.Cfg.UI.WinChance = false
 	res, _ := svc().Day(t.Context(), aki2026, domain.DivMakuuchi, 13)
-	d := tuitest.New(tui.New(ctx, []tui.Screen{New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts[18])}, nil), 100, 40)
+	d := tuitest.New(tui.New(ctx, []tui.Screen{New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts, 18)}, nil), 100, 40)
 	if v := d.View(); strings.Contains(v, "RATING") || strings.Contains(v, "WIN CHANCE") {
 		t.Error("ui.win_chance = false shows the rating")
 	}
@@ -229,8 +230,38 @@ func TestRatingRows(t *testing.T) {
 		return f, err
 	}, Clock: clock.NewFake(testNow)})
 	ctx = testContext(hidden)
-	d = tuitest.New(tui.New(ctx, []tui.Screen{New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts[18])}, nil), 100, 40)
+	d = tuitest.New(tui.New(ctx, []tui.Screen{New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts, 18)}, nil), 100, 40)
 	if v := d.View(); strings.Contains(v, "RATING") {
 		t.Error("a hidden rating is shown")
+	}
+}
+
+func TestNavigation(t *testing.T) {
+	d := open(t, aki2026, domain.DivMakuuchi, 13, 18, 100, 40)
+	d.Keys("]")
+	if s := screen(d); s.match != 19 || s.tale == nil || s.tale.MatchNo != 19 {
+		t.Fatalf("]: bout %d", s.match)
+	}
+	d.Keys("]")
+	if s := screen(d); s.day != 14 || s.match != 1 || s.tale.Day != 14 {
+		t.Errorf("] past the musubi: day %d bout %d", s.day, s.match)
+	}
+	d.Keys("[")
+	if s := screen(d); s.day != 13 || s.match != 19 {
+		t.Errorf("[ back: day %d bout %d", s.day, s.match)
+	}
+	d = open(t, aki2026, domain.DivMakuuchi, 1, 1, 100, 40)
+	d.Keys("[")
+	if !strings.Contains(d.View(), "first bout of the tournament") {
+		t.Error("[ at the first bout")
+	}
+	// 196503 has no bouts on day 7: ] from day 6's last bout goes to day 8.
+	gap := domain.BashoID{Year: 1965, Month: time.March}
+	res, _ := svc().Day(t.Context(), gap, domain.DivMakuuchi, 6)
+	last := res.Value.Bouts[len(res.Value.Bouts)-1].MatchNo
+	d = open(t, gap, domain.DivMakuuchi, 6, last, 100, 40)
+	d.Keys("]")
+	if s := screen(d); s.day != 8 || s.match != 1 {
+		t.Errorf("over the gap: day %d bout %d", s.day, s.match)
 	}
 }

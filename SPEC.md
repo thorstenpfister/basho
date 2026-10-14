@@ -1440,7 +1440,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 4. Result panel: winner, technique (romaji, kanji, English), records after the bout, KINBOSHI and FUSEN stamps, undecided and waiting states. Done: an undecided bout reads "Waiting for result…" on its own day and "Scheduled — Day N" otherwise; while the tale loads, the panel uses the day view's row.
 5. Technique rows: fighter type under the name, mirrored STYLE stacked bar, SIGNATURE row, "not enough data" state. `m` opens the moveset overlay, `w` cycles its window, and it shows the matchup line. Done; the compact layout keeps the STYLE bar at 10 cells (its "without bars" means height and weight). The overlay replaces the tape and keeps the result panel; `w` acts only while it is open.
 6. RATING and WIN CHANCE rows, hidden if V9 failed. Done; also hidden by `ui.win_chance = false` (D26). A wrestler without a rated bout yet is marked `new`.
-7. `[`/`]` navigation including crossing day boundaries.
+7. `[`/`]` navigation including crossing day boundaries. Done: days without bouts are skipped, and the first and last bout of the tournament say so. The day view underneath stays where it was.
 8. Harmonica slide-in and reveal flash; switched off by config, compact layout, or when the output isn't a terminal.
 9. Golden snapshots for: a regular bout, a kinboshi bout, a fusen bout, an undecided bout, an old-era bout without kanji, a newly promoted wrestler.
 
