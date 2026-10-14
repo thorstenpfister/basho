@@ -348,7 +348,9 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 	if e.Shikona.Jp != "" || w.Shikona.Jp != "" {
 		lines = append(lines, row(e.Shikona.Jp, "", w.Shikona.Jp))
 	}
-	lines = append(lines, row(t.Dim.Render(e.Moveset().Type.String()), "", t.Dim.Render(w.Moveset().Type.String())))
+	if et, wt := e.Moveset().Type.String(), w.Moveset().Type.String(); et != "" || wt != "" {
+		lines = append(lines, row(t.Dim.Render(et), "", t.Dim.Render(wt)))
+	}
 	lines = append(lines, " "+t.Rule.Render(strings.Repeat(t.Line, l.width-2)))
 	lines = append(lines,
 		row(e.Rank.String(), "RANK", w.Rank.String()),

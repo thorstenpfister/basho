@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.13** (2026-10-14). Implemented: Phases 0–7; the full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and `basho` opens the TUI with the picker and the day view. Later phases are still the plan.
+> Status: **v0.14** (2026-10-14). Implemented: Phases 0–8; the full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and the TUI has the picker, the day view and the VS screen. Later phases are still the plan.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1442,7 +1442,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 6. RATING and WIN CHANCE rows, hidden if V9 failed. Done; also hidden by `ui.win_chance = false` (D26). A wrestler without a rated bout yet is marked `new`.
 7. `[`/`]` navigation including crossing day boundaries. Done: days without bouts are skipped, and the first and last bout of the tournament say so. The day view underneath stays where it was.
 8. Harmonica slide-in and reveal flash; switched off by config, compact layout, or when the output isn't a terminal. Done: a critically damped spring (ω 26 at 60 fps) settles in under 20 frames; frames run on `Context.After`, and `tui.Context.Animate` combines `ui.animations`, the compact layout and `Context.TTY` (stdout is a terminal). The flash answers `bout.RevealMsg`, which spoiler-free mode sends (Phase 11).
-9. Golden snapshots for: a regular bout, a kinboshi bout, a fusen bout, an undecided bout, an old-era bout without kanji, a newly promoted wrestler.
+9. Golden snapshots for: a regular bout, a kinboshi bout, a fusen bout, an undecided bout, an old-era bout without kanji, a newly promoted wrestler. Done over the fixture snapshot (plus the compact and wide variants of the regular bout; the undecided bout comes from a fake remote); the acceptance tests render every Makuuchi bout of 202609 at 90 and 130 columns from the embedded snapshot and prove with a failing remote that a snapshot bout, stepped through with `[`/`]`, makes no requests. Height and weight carry a dim `*` outside the current tournament, explained in the help legend.
 
 **AC:** every Makuuchi bout of 202609 renders without layout problems at 90 and 130 columns; opening a VS screen for a snapshot tournament makes no requests.
 

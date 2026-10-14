@@ -370,6 +370,7 @@ func (m Model) helpView(width, height int) string {
 		fmt.Sprintf("Day bar: %s complete  %s in progress  %s scheduled", g.Complete, g.InProgress, g.Scheduled),
 		"KK kachi-koshi (8 wins) · MK make-koshi (8 losses and absences) · " + g.Kyujo + " kyujo (absent)",
 		"Ranks: Y yokozuna · O ozeki · S sekiwake · K komusubi · M maegashira · J juryo · Ms makushita; e/w east/west",
+		"Height and weight are the latest known; * marks them on tournaments other than the current one",
 	}, "\n")
 	notes := strings.Join([]string{
 		"Data: sumo-api.com (history, profiles; run by a volunteer) and osada.us (live; its policy",

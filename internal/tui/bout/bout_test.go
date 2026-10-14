@@ -321,3 +321,5 @@ func TestAnimation(t *testing.T) {
 		t.Error("flash with animations off")
 	}
 }
+
+func displayWidth(s string) int { return ansi.StringWidth(s) }
