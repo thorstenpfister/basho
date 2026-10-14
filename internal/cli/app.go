@@ -29,6 +29,8 @@ type Deps struct {
 	// TUI runs the interactive app (basho without a command); nil shows the
 	// help instead.
 	TUI func(cfg config.Config, svc *service.Service, noColor bool, st *spoiler.State) error
+	// Sleep waits between `basho watch` polls; nil: a timer.
+	Sleep func(ctx context.Context, d time.Duration) error
 }
 
 // app is one invocation's state: flags, configuration and the service.

@@ -144,22 +144,26 @@ type jsonBoutSide struct {
 	After  *jsonRecord `json:"after"`
 }
 
+func boutRowJSON(r service.BoutRow) *jsonBoutRow {
+	bs := func(s service.BoutSide) jsonBoutSide {
+		out := jsonBoutSide{jsonWrestler: wrestlerJSON(s.Wrestler)}
+		if !s.Visitor {
+			before, after := recordJSON(s.Before), recordJSON(s.After)
+			out.Before, out.After = &before, &after
+		}
+		return out
+	}
+	return &jsonBoutRow{
+		MatchNo: r.MatchNo, East: bs(r.East), West: bs(r.West), Winner: side(r.Winner),
+		Technique: techniqueJSON(r.Kimarite), Fusen: r.Fusen, Kinboshi: r.Kinboshi, Musubi: r.Musubi, WinChance: round(r.WinChance), Hidden: r.Hidden,
+	}
+}
+
 func dayJSON(d service.Day) jsonDay {
 	rows := func(rs []service.BoutRow) []jsonBoutRow {
 		out := make([]jsonBoutRow, 0, len(rs))
 		for _, r := range rs {
-			bs := func(s service.BoutSide) jsonBoutSide {
-				out := jsonBoutSide{jsonWrestler: wrestlerJSON(s.Wrestler)}
-				if !s.Visitor {
-					before, after := recordJSON(s.Before), recordJSON(s.After)
-					out.Before, out.After = &before, &after
-				}
-				return out
-			}
-			out = append(out, jsonBoutRow{
-				MatchNo: r.MatchNo, East: bs(r.East), West: bs(r.West), Winner: side(r.Winner),
-				Technique: techniqueJSON(r.Kimarite), Fusen: r.Fusen, Kinboshi: r.Kinboshi, Musubi: r.Musubi, WinChance: round(r.WinChance), Hidden: r.Hidden,
-			})
+			out = append(out, *boutRowJSON(r))
 		}
 		return out
 	}

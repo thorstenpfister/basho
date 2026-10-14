@@ -204,7 +204,7 @@ func (a *app) commands() []*cobra.Command {
 			return a.emit(cmd, "credits", p, func() string { return credits }, func() any { return map[string]string{"text": credits} })
 		},
 	}
-	return []*cobra.Command{list, info, day, bout, standings, ratings, creditsCmd}
+	return []*cobra.Command{list, info, day, bout, standings, a.watchCommand(), ratings, creditsCmd}
 }
 
 // dayArg is the day given, or the default (SPEC §11).

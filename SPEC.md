@@ -1545,6 +1545,12 @@ AC status: met on the simulated day above. The check on a real day happens durin
 
    Done: both are global flags; `spoilers.mode = "hide"` also hides in the CLI. `--reveal-to` sets the horizon exactly, earlier or later, for the command's tournament (`-t`, otherwise the current one) and saves it. Text output draws hidden bouts as `?` and the tale as "Result hidden (spoiler-free)". JSON adds `"hidden": true` to bouts and tales, with `winner`, `technique` and `result` null. The CLI tests now keep the state file in a temporary directory.
 5. `basho watch` line stream (text and NDJSON), reusing the live scheduler.
+
+   Done:
+   - **Running:** `basho watch [--division makuuchi|juryo]` runs `live.Scheduler` and `LivePoll` in the terminal. It waits for the window when started early, and exits 3 with the next tournament on a day without one.
+   - **Output:** the first poll prints the bouts already decided, Juryo first, as they fought; every later poll prints the newly decided ones. The run ends with "Day complete" or "The live window has closed". Poll failures go to stderr.
+   - **`--json`:** one event per line: `{"event":"bout","time":…,"basho":"202609","day":13,"division":"makuuchi","bout":{…the day's bout object…}}`, then `complete` or `window_closed`.
+   - **Spoilers:** `watch` ignores spoiler-free mode; watching along is revealing.
 6. Tests: no spoiler leaks through any view (snapshot tests with a horizon in the middle of a day), and the horizon persists between runs.
 
 **AC:** in spoiler-free mode, a tester can step through day 13 bout by bout with `]` + `space`, and nothing on any screen reveals a later result, including ratings.
