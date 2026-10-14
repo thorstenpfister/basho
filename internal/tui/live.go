@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -235,7 +236,10 @@ func (m Model) liveStatus() string {
 	case live.Backoff:
 		what := "the sources are unreachable"
 		if p := m.live.last; st.Fallback != "" && p != nil && p.Prov.Failed != "" {
-			what = fmt.Sprintf("%s unreachable, using %s", p.Prov.Failed, st.Fallback)
+			what = fmt.Sprintf("%s unreachable, using %s", p.Prov.Failed, strings.TrimPrefix(st.Fallback, "cache:"))
+			if strings.Contains(st.Fallback, p.Prov.Failed) {
+				what = p.Prov.Failed + " unreachable, showing the cached copy"
+			}
 		}
 		return t.Red.Render(t.Live+" LIVE") + " · " + t.Gold.Render(t.Stale+" "+what) + " · retry " + countdown(st.Next)
 	case live.Done:

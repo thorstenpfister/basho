@@ -1505,6 +1505,8 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    - **Budget detail:** a poll marks its context with `resolver.Live`. osada's `torikumi.json` is revalidated once per tick (sumo-api's bout lists instead, when osada fails); osada's `banzuke.json` keeps a 30-minute TTL and is never revalidated; sumo-api's metadata and banzuke come from the cache, even expired, with osada's results laid over them. A cache miss in a cache-only read is not a source failure.
    - **Completeness:** day 15 is only complete when no playoff is still to come: a shared lead nobody can change without listed playoff bouts keeps it open.
 3. Conditional GET for osada (the 304 path), with the sumo-api fallback each tick.
+
+   Done: tested end to end over HTTP servers with ETags through the production cache stack. After the first poll, each poll is exactly one request, a 304 for `torikumi.json`, and no sumo-api requests. The first poll fetches whatever was never cached (osada's two files, sumo-api's metadata and banzuke) and then does not revalidate again. Each live poll revalidates once per source: the bout list's osada read, and sumo-api's bout lists only when osada fails. A source that can answer only from an expired copy counts as failed (`resolver.ErrStale`), so the next source is asked on the same tick and live mode backs off. When everything fails, the status bar says "osada unreachable, showing the cached copy".
 4. Use the Kyushu 2026 recordings and the V1 result to adjust the default interval and source priorities.
 5. Scheduler and request-budget tests (≤ 90 requests per day, mostly 304).
 

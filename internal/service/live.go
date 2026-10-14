@@ -54,8 +54,9 @@ func (p LivePoll) Err() error {
 // any day that is not in the snapshot.
 func (s *Service) LivePoll(ctx context.Context, id domain.BashoID, day int) (LivePoll, error) {
 	out := LivePoll{Basho: id, Day: day, Days: map[domain.Division]Result[Day]{}}
-	for i, div := range []domain.Division{domain.DivMakuuchi, domain.DivJuryo} {
-		res, err := s.Day(resolver.Live(ctx, i == 0), id, div, day) // the first call revalidates
+	ctx = resolver.Live(ctx)
+	for _, div := range []domain.Division{domain.DivMakuuchi, domain.DivJuryo} {
+		res, err := s.Day(ctx, id, div, day)
 		if err != nil {
 			return out, err
 		}
@@ -92,7 +93,7 @@ func (s *Service) dayComplete(ctx context.Context, id domain.BashoID, div domain
 	if day < domain.BashoDays || len(d.Playoffs) > 0 {
 		return true, nil
 	}
-	st, err := s.Standings(resolver.Live(ctx, false), id, div, day) // the poll just filled the cache
+	st, err := s.Standings(ctx, id, div, day) // the poll just filled the cache
 	if err != nil {
 		return false, err
 	}

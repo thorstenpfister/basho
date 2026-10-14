@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/thorstenpfister/basho/internal/cache"
@@ -178,11 +179,11 @@ func (r *Resolver) Banzuke(ctx context.Context, id domain.BashoID, div domain.Di
 // sumo-api.
 func (r *Resolver) Torikumi(ctx context.Context, id domain.BashoID, div domain.Division, day int) ([]domain.Bout, error) {
 	sumo := step[[]domain.Bout]{name: SumoAPI, fn: func(ctx context.Context) ([]domain.Bout, error) {
-		return r.Historical.Torikumi(polled(ctx), id, div, day)
+		return r.Historical.Torikumi(polled(ctx, SumoAPI), id, div, day)
 	}}
 	osada := func(merge bool) step[[]domain.Bout] {
 		return step[[]domain.Bout]{name: Osada, fn: func(ctx context.Context) ([]domain.Bout, error) {
-			cur, err := r.osada(polled(ctx), id)
+			cur, err := r.osadaPolled(ctx, id)
 			if err != nil {
 				return nil, err
 			}
@@ -221,7 +222,31 @@ func (r *Resolver) Torikumi(ctx context.Context, id domain.BashoID, div domain.D
 }
 
 // osada returns osada.us's tournament when it is id.
+//
+// In a live poll it answers from the cache, even expired: only the bout
+// list's read, osadaPolled, revalidates.
 func (r *Resolver) osada(ctx context.Context, id domain.BashoID) (source.Current, error) {
+	if live(ctx) == nil {
+		return r.current(ctx, id)
+	}
+	cur, err := r.current(cache.CachedOnly(ctx), id)
+	if errors.Is(err, cache.ErrOffline) { // never fetched: fetched now, so the poll need not revalidate
+		live(ctx).osada.Store(false)
+		return r.current(ctx, id)
+	}
+	trackOf(ctx).clearStale(Osada) // expired on purpose
+	return cur, err
+}
+
+// osadaPolled is the bout list's read: revalidated once per live poll.
+func (r *Resolver) osadaPolled(ctx context.Context, id domain.BashoID) (source.Current, error) {
+	if live(ctx) == nil {
+		return r.current(ctx, id)
+	}
+	return r.current(polled(ctx, Osada), id)
+}
+
+func (r *Resolver) current(ctx context.Context, id domain.BashoID) (source.Current, error) {
 	if r.Current == nil {
 		return source.Current{}, fmt.Errorf("osada.us is disabled: %w", source.ErrNotFound)
 	}
@@ -242,6 +267,10 @@ func osadaBasho(cur source.Current) (domain.Basho, error) {
 	return domain.Basho{ID: cur.Basho, Start: cur.Start, End: domain.DayDate(cur.Start, domain.BashoDays)}, nil
 }
 
+// ErrStale is a source that could answer only from an expired cache copy:
+// the source itself failed and the cache stood in.
+var ErrStale = errors.New("unreachable, only a cached copy")
+
 // step is one source to try for a request.
 type step[T any] struct {
 	name    string
@@ -251,35 +280,58 @@ type step[T any] struct {
 
 type liveKey struct{}
 
-// Live marks ctx as a live poll (SPEC §10.2): the bout list is what the
-// poll is for, so osada's (or, failing that, sumo-api's) is revalidated when
-// revalidate is set, once per tick; sumo-api's metadata and banzuke come
-// from the cache, even expired, with osada's results laid over them. A poll
-// thus costs one conditional GET to osada.
-func Live(ctx context.Context, revalidate bool) context.Context {
-	return context.WithValue(ctx, liveKey{}, revalidate)
+// tick is one live poll: each source is revalidated once in it.
+type tick struct{ osada, sumo atomic.Bool }
+
+// Live marks ctx as one live poll (SPEC §10.2). The bout list is what the
+// poll is for: the first osada request of the poll revalidates (osada.us's
+// banzuke never does), and so does the first sumo-api bout list, should
+// osada fail. sumo-api's metadata and banzuke come from the cache, even
+// expired, with osada's results laid over them. A poll thus costs one
+// conditional GET to osada.
+func Live(ctx context.Context) context.Context {
+	t := &tick{}
+	t.osada.Store(true)
+	t.sumo.Store(true)
+	return context.WithValue(ctx, liveKey{}, t)
 }
 
-func live(ctx context.Context) (on, revalidate bool) {
-	revalidate, on = ctx.Value(liveKey{}).(bool)
-	return on, revalidate
+func live(ctx context.Context) *tick {
+	t, _ := ctx.Value(liveKey{}).(*tick)
+	return t
 }
 
-// polled is the context of a live poll's bout list: revalidated.
-func polled(ctx context.Context) context.Context {
-	if on, revalidate := live(ctx); on && revalidate {
+// polled is the context of a live poll's request to a source: revalidated
+// the first time in the poll.
+func polled(ctx context.Context, name string) context.Context {
+	t := live(ctx)
+	if t == nil {
+		return ctx
+	}
+	flag := &t.sumo
+	if name == Osada {
+		flag = &t.osada
+	}
+	if flag.CompareAndSwap(true, false) {
 		return cache.Revalidate(ctx)
 	}
 	return ctx
 }
 
-// settled makes a sumo-api step of a live poll answer from the cache.
+// settled makes a sumo-api step of a live poll answer from the cache, even
+// expired; only what was never fetched is fetched.
 func settled[T any](ctx context.Context, s step[T]) step[T] {
-	if on, _ := live(ctx); !on {
+	if live(ctx) == nil {
 		return s
 	}
 	fn := s.fn
-	s.fn = func(ctx context.Context) (T, error) { return fn(cache.CachedOnly(ctx)) }
+	s.fn = func(ctx context.Context) (T, error) {
+		v, err := fn(cache.CachedOnly(ctx))
+		if errors.Is(err, cache.ErrOffline) { // never fetched: once for real
+			return fn(ctx)
+		}
+		return v, err
+	}
 	s.staleOK = true
 	return s
 }
@@ -306,6 +358,7 @@ func try[T any](ctx context.Context, steps ...step[T]) (T, error) {
 				if staleTrack == nil {
 					stale, staleTrack = v, t
 				}
+				parent.fail(s.name, ErrStale)
 				continue
 			}
 			parent.absorb(t)
