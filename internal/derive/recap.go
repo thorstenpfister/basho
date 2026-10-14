@@ -61,7 +61,7 @@ func DayRecap(s Standings, div domain.Division, bouts []domain.Bout, c AsOf, fre
 // IsUpset reports a win by technique over a wrestler at least upsetGap rank
 // levels higher.
 func IsUpset(b *domain.Bout) bool {
-	winner, loser, ok := sides(b)
+	winner, loser, ok := b.Result()
 	return ok && b.Kimarite.Category() != domain.NoTechnique && RankLevel(winner.Rank)-RankLevel(loser.Rank) >= upsetGap
 }
 

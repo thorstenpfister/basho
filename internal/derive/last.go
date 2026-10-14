@@ -42,7 +42,7 @@ func LastResults(id domain.RikishiID, career []*domain.Bout, c AsOf, n int) Last
 
 // resultOf returns b from id's side, if it is decided.
 func resultOf(id domain.RikishiID, b *domain.Bout) (Result, bool) {
-	winner, loser, ok := sides(b)
+	winner, loser, ok := b.Result()
 	if !ok {
 		return Result{}, false
 	}

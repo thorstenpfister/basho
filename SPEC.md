@@ -1454,7 +1454,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    - `←`/`→` move the cutoff; wrestler popup
 
    Done: `s` in the day view opens `tui/standings` after the shown day. The race has one line per score (wins, then losses and absences together, as it is sorted), wrapped when it holds more wrestlers than fit; wrestlers out of contention are dim, the leaders bold, and the tail below −2 is one line until `enter` expands it. The grid's cursor (`j`/`k`) opens the popup with each day's opponent (visitors from Makushita named from the tournament's bouts) and technique. `d` switches division here too, and the footer names the yusho, a playoff or "Yusho decided: no".
-2. Day recap overlay (`r`).
+2. Day recap overlay (`r`). Done: a box over the day view under the day bar, loaded from the cache (the day is cached by then). It takes every key while open: `r`, `esc`, `q`, `b` and `enter` close it, and `←`/`→` move the day with the recap following. Early days name six leaders and "and N more". The technique of the day says how often it decided a bout in earlier tournaments.
 3. `source/osada`:
    - DTOs for `torikumi.json` and `banzuke.json`
    - Japanese rank parser (kanji numerals, `枚目`, `張出`)

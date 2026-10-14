@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/thorstenpfister/basho/data"
 	"github.com/thorstenpfister/basho/internal/clock"
@@ -198,5 +199,58 @@ func TestStandingsKey(t *testing.T) {
 	d.Keys("esc")
 	if s := screen(d); s.day != 13 || s.div != domain.DivJuryo {
 		t.Errorf("back on day %d %s", s.day, s.div)
+	}
+}
+
+func TestRecap(t *testing.T) {
+	_, d := open(t, aki2026, 13, 100, 30)
+	d.Keys("r")
+	v := d.View()
+	for _, want := range []string{
+		"Day 13 recap · Makuuchi",
+		"Leaders     Onosato (Y1e) 11-2",
+		"Make-koshi  Kotoshoho (M1e), Roga (M5e)",
+		"Upsets      Asanoyama (M6e) over Atamifuji (S1e) · yorikiri",
+		"katasukashi 肩透かし (under-shoulder swing down) by Ura",
+	} {
+		if !strings.Contains(v, want) {
+			t.Errorf("no %q:\n%s", want, v)
+		}
+	}
+	d.Keys("right") // the recap follows the day
+	if v := d.View(); !strings.Contains(v, "Day 14 recap") || !strings.Contains(v, "Kotozakura (O1w) over") {
+		t.Errorf("day 14:\n%s", v)
+	}
+	for _, k := range []string{"esc", "q", "r"} {
+		d.Keys(k)
+		if s := screen(d); s.recapOpen || d.M.(tui.Model).Depth() != 1 {
+			t.Errorf("%s: open %v, depth %d", k, s.recapOpen, d.M.(tui.Model).Depth())
+		}
+		d.Keys("r")
+	}
+}
+
+// Early days have many leaders; the recap names a few and fits a small
+// terminal.
+func TestRecapCompact(t *testing.T) {
+	_, d := open(t, aki2026, 1, 70, 24)
+	d.Keys("r")
+	v := d.View()
+	if !strings.Contains(v, "and 13 more") || !strings.Contains(v, "r/esc close") {
+		t.Errorf("compact recap:\n%s", v)
+	}
+	for i, l := range strings.Split(v, "\n") {
+		if w := ansi.StringWidth(l); w > 70 {
+			t.Errorf("line %d is %d wide", i, w)
+		}
+	}
+}
+
+func TestRecapKinboshi(t *testing.T) {
+	// 196001 day 1: the fixture's kinboshi (the VS screen's golden).
+	_, d := open(t, domain.BashoID{Year: 1960, Month: time.January}, 1, 100, 30)
+	d.Keys("r")
+	if v := d.View(); !strings.Contains(v, "Kinboshi    "+theme.Unicode.Kinboshi) {
+		t.Errorf("no kinboshi:\n%s", v)
 	}
 }

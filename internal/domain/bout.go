@@ -94,6 +94,17 @@ type Bout struct {
 	IsPlayoff  bool
 }
 
+// Result returns a decided bout's winner and loser.
+func (b Bout) Result() (winner, loser BoutSide, ok bool) {
+	switch b.Winner {
+	case East:
+		return b.East, b.West, true
+	case West:
+		return b.West, b.East, true
+	}
+	return BoutSide{}, BoutSide{}, false
+}
+
 // Prize is an award of a tournament: a yusho or a special prize (sansho).
 type Prize struct {
 	Type      string // e.g. "Kanto-sho"

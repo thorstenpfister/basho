@@ -12,7 +12,7 @@ type Kinboshi struct {
 // Maegashira beating a Yokozuna in a regular Makuuchi bout, by technique (not
 // by default, nor a draw the source gives a winner).
 func IsKinboshi(b *domain.Bout) (domain.RikishiID, bool) {
-	winner, loser, ok := sides(b)
+	winner, loser, ok := b.Result()
 	if !ok || b.Division != domain.DivMakuuchi || b.IsPlayoff || b.Kimarite.Category() == domain.NoTechnique {
 		return 0, false
 	}
@@ -40,22 +40,11 @@ func KinboshiOf(id domain.RikishiID, career []*domain.Bout, c AsOf) Kinboshi {
 func Scalps(id domain.RikishiID, career []*domain.Bout, c AsOf) int {
 	n := 0
 	for _, b := range before(career, c) {
-		winner, loser, ok := sides(b)
+		winner, loser, ok := b.Result()
 		if ok && b.Basho == c.Basho && winner.RikishiID == id && !b.IsPlayoff && b.Kimarite.Category() != domain.NoTechnique &&
 			(loser.Rank.Title == domain.Yokozuna || loser.Rank.Title == domain.Ozeki) {
 			n++
 		}
 	}
 	return n
-}
-
-// sides returns a decided bout's winner and loser.
-func sides(b *domain.Bout) (winner, loser domain.BoutSide, ok bool) {
-	switch b.Winner {
-	case domain.East:
-		return b.East, b.West, true
-	case domain.West:
-		return b.West, b.East, true
-	}
-	return domain.BoutSide{}, domain.BoutSide{}, false
 }

@@ -37,6 +37,11 @@ type Day struct {
 	race    *service.Standings // the wide layout's side panel
 	raceFor refreshKey         // the day race belongs to
 
+	recapOpen bool           // r: the recap overlay
+	recap     *service.Recap // nil with recapErr
+	recapErr  error          // the recap failed
+	recapFor  refreshKey     // the day recap and recapErr belong to
+
 	spinning  bool
 	frame     int
 	refreshed map[refreshKey]time.Time // when R last refreshed a day
@@ -60,6 +65,8 @@ var (
 	keyStandings = key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "standings"))
 	keyRecap     = key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "recap"))
 	keyRefresh   = key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "refresh (30 s cooldown)"))
+
+	keyRecapClose = key.NewBinding(key.WithKeys("r", "esc", "q", "b", "enter"))
 )
 
 // shifted maps the shifted digits to days 11–15 (SPEC §8.8).
@@ -194,6 +201,13 @@ func (d Day) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 		if msg.err == nil && msg.key == (refreshKey{d.id, d.div, d.day}) {
 			d.race, d.raceFor = &msg.res.Value, msg.key
 		}
+	case recapMsg:
+		if msg.key == (refreshKey{d.id, d.div, d.day}) {
+			d.recap, d.recapErr, d.recapFor = nil, msg.err, msg.key
+			if msg.err == nil {
+				d.recap = &msg.res.Value
+			}
+		}
 	case statusesMsg:
 		if msg.id == d.id && msg.div == d.div && msg.err == nil {
 			d.statuses, d.haveStatuses = msg.res.Value, true
@@ -242,7 +256,7 @@ func (d Day) answer(ctx *tui.Context, msg dayMsg) (tui.Screen, tea.Cmd) {
 	d.data, d.prov = &msg.res.Value, &msg.res.Prov
 	d.cursor = min(d.cursor, max(len(d.rows())-1, 0))
 	d.scroll()
-	race := d.loadRace(ctx)
+	race := tea.Batch(d.loadRace(ctx), d.loadRecap(ctx))
 	if msg.phase == cachedPhase && msg.res.Prov.Source != service.SnapshotSource {
 		return d, tea.Batch(d.fetch(ctx, freshPhase), race) // revalidate in the background: ↻
 	}
@@ -293,6 +307,9 @@ func (d Day) refresh(ctx *tui.Context) (tui.Screen, tea.Cmd) {
 
 func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 	s := msg.String()
+	if d.recapOpen {
+		return d.recapKey(ctx, msg)
+	}
 	if d.pending != "" || s == "g" {
 		return d.gPrefix(ctx, s)
 	}
@@ -337,10 +354,31 @@ func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 			return d, tui.Push(standings.New(d.id, d.div, d.day))
 		}
 	case key.Matches(msg, keyRecap):
-		return d, tui.Message("The recap comes with Phase 9")
+		if d.day > 0 {
+			d.recapOpen = true
+			return d, d.loadRecap(ctx)
+		}
 	}
 	return d, nil
 }
+
+// recapKey handles the keys while the recap is open: it takes every key
+// (CapturesKeys), closes on r, esc, q, b and enter, and follows ←/→.
+func (d Day) recapKey(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
+	switch {
+	case key.Matches(msg, keyRecapClose):
+		d.recapOpen = false
+	case key.Matches(msg, keyPrev):
+		return d.step(ctx, -1)
+	case key.Matches(msg, keyNext):
+		return d.step(ctx, 1)
+	}
+	return d, nil
+}
+
+// CapturesKeys implements tui.KeyCapturer: esc and q close the recap
+// instead of leaving the day view.
+func (d Day) CapturesKeys() bool { return d.recapOpen }
 
 // gPrefix collects the two digits of g13.
 func (d Day) gPrefix(ctx *tui.Context, s string) (tui.Screen, tea.Cmd) {
@@ -450,6 +488,10 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 			label = fmt.Sprintf(" Loading day %d…", d.day)
 		}
 		b.WriteString("\n " + t.Accent.Render(frames[d.frame%len(frames)]) + t.Dim.Render(label) + "\n")
+		return b.String()
+	}
+	if d.recapOpen {
+		b.WriteString(d.recapView(ctx, width, height-3))
 		return b.String()
 	}
 	data := d.data

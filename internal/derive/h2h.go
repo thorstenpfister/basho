@@ -44,7 +44,7 @@ func HeadToHeadOf(a, b domain.RikishiID, careerA []*domain.Bout, c AsOf, n int) 
 	career := before(careerA, c)
 	for i := len(career) - 1; i >= 0; i-- {
 		bt := career[i]
-		winner, _, ok := sides(bt)
+		winner, _, ok := bt.Result()
 		if !ok || bt.East.RikishiID != b && bt.West.RikishiID != b {
 			continue
 		}
