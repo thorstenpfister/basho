@@ -120,3 +120,44 @@ func boolCompare(a, b bool) int {
 		return -1
 	}
 }
+
+// Earlier returns whichever cutoff comes first in the order of play: a
+// cutoff further limited by a spoiler horizon (SPEC §9).
+func Earlier(a, b AsOf) AsOf {
+	if a.point().compare(b.point()) <= 0 {
+		return a
+	}
+	return b
+}
+
+// After reports whether c lies after o in the order of play.
+func (c AsOf) After(o AsOf) bool { return c.point().compare(o.point()) > 0 }
+
+// point places a cutoff on one scale: the tournament, the day, then within
+// the day its start, a bout (before or just after it) or its end.
+type point struct {
+	basho     domain.BashoID
+	day       int
+	phase     int // 0: start of the day, 1: at a bout, 2: end of the day
+	bout      domain.Bout
+	inclusive bool
+}
+
+func (c AsOf) point() point {
+	p := point{basho: c.Basho, day: c.Day}
+	switch {
+	case c.MatchNo > 0:
+		p.phase, p.inclusive = 1, c.Inclusive
+		p.bout = domain.Bout{Basho: c.Basho, Day: c.Day, Division: c.Division, MatchNo: c.MatchNo, IsPlayoff: c.Playoff}
+	case c.Inclusive:
+		p.phase = 2
+	}
+	return p
+}
+
+func (p point) compare(o point) int {
+	if n := cmp.Or(p.basho.Compare(o.basho), cmp.Compare(p.day, o.day), cmp.Compare(p.phase, o.phase)); n != 0 || p.phase != 1 {
+		return n
+	}
+	return cmp.Or(ComparePlay(p.bout, o.bout), boolCompare(p.inclusive, o.inclusive))
+}

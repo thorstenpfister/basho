@@ -1521,6 +1521,8 @@ AC status: met on the simulated day above. The check on a real day happens durin
 ### Phase 11: Spoiler-free mode and `basho watch`
 
 1. `spoiler` package: horizon per tournament and division, saved to the state file, reveal operations, a counter of hidden new results.
+
+   Done, with one change: **one horizon per tournament**, a point in the order of play, rather than one per division. Derived numbers (ratings, last 5, head-to-head, career) run in that one order across both divisions; with two horizons they would either leak the other division's results or stop at the earlier horizon. Juryo fights first each day, so revealing a Makuuchi bout also reveals that day's Juryo, as watching the broadcast does; revealing a Juryo bout keeps that day's Makuuchi hidden. `spoiler.State` loads and saves `state.json` (`{"v":1,"horizons":{"202609":{"day":13,"division":"Makuuchi","match":5}}}`). `Reveal` and `RevealTo` only move the horizon forward; `Set` moves it anywhere (`--reveal-to`). A tournament never revealed starts before Day 1. `derive.Earlier` and `AsOf.After` compare cutoffs.
 2. Apply the horizon everywhere:
    - derived cutoffs in the service, including ratings and win chance
    - `?` results in the day view

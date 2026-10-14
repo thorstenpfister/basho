@@ -120,3 +120,28 @@ func TestComparePlay(t *testing.T) {
 		}
 	}
 }
+
+func TestEarlier(t *testing.T) {
+	aki := domain.BashoID{Year: 2026, Month: 9}
+	j5 := domain.Bout{Basho: aki, Day: 13, Division: domain.DivJuryo, MatchNo: 5}
+	m5 := domain.Bout{Basho: aki, Day: 13, Division: domain.DivMakuuchi, MatchNo: 5}
+	m6 := m5
+	m6.MatchNo = 6
+	ordered := []AsOf{
+		BeforeDay(aki, 1), AfterDay(aki, 12), BeforeDay(aki, 13),
+		BeforeBout(j5), ThroughBout(j5), BeforeBout(m5), ThroughBout(m5), BeforeBout(m6),
+		AfterDay(aki, 13), EndOf(aki), BeforeDay(aki.Next(), 1), NoCutoff,
+	}
+	for i := range ordered {
+		for j := range ordered {
+			want := ordered[min(i, j)]
+			// Equal points (end of day 12, start of day 13) may come back either way.
+			if got := Earlier(ordered[i], ordered[j]); got != want && got.point().compare(want.point()) != 0 {
+				t.Errorf("Earlier(%d, %d) = %+v; want %+v", i, j, got, want)
+			}
+			if after := ordered[i].After(ordered[j]); after != (i > j) && ordered[i].point().compare(ordered[j].point()) != 0 {
+				t.Errorf("%d after %d: %v", i, j, after)
+			}
+		}
+	}
+}
