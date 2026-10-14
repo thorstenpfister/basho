@@ -1085,7 +1085,8 @@ Output rules:
 ## 12. Configuration
 
 - File: `$XDG_CONFIG_HOME/basho/config.toml`, otherwise `~/.config/basho/config.toml`. This location was chosen deliberately on macOS (instead of `~/Library/Application Support`) so it fits a dotfiles repository.
-- Precedence: flags > environment (`BASHO_*`, for example `BASHO_SOURCE=osada`) > file > defaults.
+- Precedence: flags > environment (`BASHO_*`, for example `BASHO_SOURCE=osada`) > file > defaults. Every file setting has a variable named `BASHO_<SECTION>_<KEY>` (`BASHO_LIVE_INTERVAL=5m`, lists comma separated); the session switches `--source`, `--offline` and `--debug` are `BASHO_SOURCE`, `BASHO_OFFLINE` and `BASHO_DEBUG` and never come from the file.
+- Unknown settings and invalid values are errors. Intervals can only be stricter than the built-in limits (live 2 min, sumo-api 1 s, osada 20 s; §7.1). A missing file is fine unless `--config` names it.
 - `basho config path|show` prints the effective config (phase 12).
 
 ```toml
@@ -1113,6 +1114,8 @@ window_end    = "18:45"       # JST (day 15: +30m)
 priority_history = ["sumoapi"]
 priority_current = ["osada", "sumoapi"]
 osada_enabled    = true
+sumoapi_interval = "1s"       # time between requests; at least 1s
+osada_interval   = "20s"      # at least 20s
 
 [cache]
 dir           = ""            # default XDG cache
@@ -1394,7 +1397,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 
 1. `service` façade: `CurrentBasho`, `Basho`, `Day(basho, division, day)`, `Bout(basho, division, day, matchNo)` (the full tale-of-the-tape model, including moveset and rating), `Standings(basho, division, day)`, `Recap`, `Ratings`. Each returns `Result[T]` with provenance. Done as `CurrentBasho`, `Info`, `List`, `DefaultDay`, `Day`, `Bout`, `Standings`, `Recap` and `RatingTable`. `Info` names Makuuchi and Juryo winners always and lower-division winners only when the wrestler index knows them (it holds sekitori).
 2. Background refresh of the active-wrestler index when the snapshot's index is older than 7 days, plus the `idmap` skeleton (filled in Phase 9). Done: `service.RefreshWrestlers` fetches `/rikishis` without `intai` (the ~600 active wrestlers, one page) once the snapshot is more than 7 days old and overlays their current profiles; `StartBackground` runs it for long sessions (the TUI), while one-shot CLI commands don't wait for it. `idmap.Map` maps JSA IDs from the index.
-3. Config loading (file, environment, flags, defaults) and validation, including minimum intervals and maximum rates.
+3. Config loading (file, environment, flags, defaults) and validation, including minimum intervals and maximum rates. Done (`internal/config`, BurntSushi/toml); the per-host intervals are the `sources.*_interval` settings (§12).
 4. Commands: `list`, `info`, `day`, `bout`, `standings` (`--grid`), `ratings`, `credits`, with text renderers (Lip Gloss tables in a terminal, plain when piped).
 5. The `--json` envelope, `docs/json.md` and exit codes.
 6. Golden tests for text and JSON.
