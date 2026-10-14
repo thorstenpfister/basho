@@ -493,9 +493,9 @@ Record = the banzuke results before the cutoff (`RecordAt` with `BeforeBout`; th
 
 ### 6.2 Last 5 results
 
-The wrestler's last 5 bouts **before** the cutoff, taken from the cached career matches, **crossing tournament boundaries** (on day 2 this shows 1 result from this tournament and 4 from the previous one, separated by a thin divider `│`). Absences are skipped. Fusen is shown as □/■.
+The wrestler's last 5 decided bouts **before** the cutoff, taken from their career in the bout index, **crossing tournament boundaries** (on day 2 this shows 1 result from this tournament and 4 from the previous one, separated by a thin divider `│`). Absences are skipped. Fusen is shown as □/■. With fewer than 5 sekitori bouts the result is marked new (§5.8).
 
-Before the matches have loaded, use only this tournament's banzuke record and show an "…" placeholder for the rest.
+The bout index is in memory from the snapshot and extended with later tournaments, so no placeholder is needed while matches load.
 
 ### 6.3 Kinboshi
 
