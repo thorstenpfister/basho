@@ -113,7 +113,7 @@ func UpdateSnapshot(ctx context.Context, src SnapshotSource, cfg SnapshotConfig,
 		m.Files = map[string]string{}
 	}
 	for i, id := range plan.Tournaments {
-		t, err := fetchTournament(ctx, src, id, cfg.Today, cfg.Partial)
+		t, err := fetchTournament(ctx, src, id, cfg.Today, cfg.Partial, log)
 		switch {
 		case errors.Is(err, errNotFinal), errors.Is(err, source.ErrNotYetAvailable):
 			_, _ = fmt.Fprintf(log, "%s: skipped (%v)\n", id, err)
@@ -135,13 +135,14 @@ func UpdateSnapshot(ctx context.Context, src SnapshotSource, cfg SnapshotConfig,
 		}
 		m.Basho = append(m.Basho, id)
 		slices.SortFunc(m.Basho, domain.BashoID.Compare)
+		m.IndexThrough = domain.BashoID{} // stale until rewritten, even for a tournament older than the newest
 		m.GeneratedAt = time.Now().UTC().Truncate(time.Second)
 		if err := writeManifest(cfg.Dir, m); err != nil {
 			return plan, err
 		}
 		_, _ = fmt.Fprintf(log, "%s: %d bouts, %d bytes (%d/%d)\n", id, len(t.Bouts), len(data), i+1, len(plan.Tournaments))
 	}
-	if m.IndexThrough == m.Newest() { // also catches a run interrupted before the index
+	if m.IndexThrough == m.Newest() { // also catches a run interrupted before the index or filling a gap
 		return plan, nil
 	}
 	return plan, updateIndex(ctx, src, cfg.Dir, &m, log)
@@ -150,8 +151,10 @@ func UpdateSnapshot(ctx context.Context, src SnapshotSource, cfg SnapshotConfig,
 var errNotFinal = errors.New("not final yet")
 
 // fetchTournament reads one tournament and checks that it is final: end date
-// + 2 days passed and a yusho winner present (SPEC §7.2).
-func fetchTournament(ctx context.Context, src SnapshotSource, id domain.BashoID, today domain.Date, partial bool) (snapshot.Tournament, error) {
+// + 2 days passed and a yusho winner present (SPEC §7.2). Being final, an
+// empty bout list is a gap in the source, not a day still to come, and is
+// logged; so are records repaired by fillFromBouts.
+func fetchTournament(ctx context.Context, src SnapshotSource, id domain.BashoID, today domain.Date, partial bool, log io.Writer) (snapshot.Tournament, error) {
 	b, err := src.Basho(ctx, id)
 	if err != nil {
 		return snapshot.Tournament{}, err
@@ -172,14 +175,68 @@ func fetchTournament(ctx context.Context, src SnapshotSource, id domain.BashoID,
 		}
 		for day := 1; day <= domain.BashoDays; day++ {
 			bouts, err := src.Torikumi(ctx, id, div, day)
-			if err != nil && !unrecorded(err) {
+			switch {
+			case unrecorded(err):
+			case errors.Is(err, source.ErrNotYetAvailable):
+				_, _ = fmt.Fprintf(log, "%s: %s day %d: no bouts in the source\n", id, div, day)
+			case err != nil:
 				return snapshot.Tournament{}, err
 			}
 			t.Bouts = append(t.Bouts, bouts...)
 		}
 	}
 	snapshot.SortBouts(t.Bouts)
+	for _, f := range fillFromBouts(t) {
+		_, _ = fmt.Fprintf(log, "%s: %s\n", id, f)
+	}
 	return t, nil
+}
+
+// fillFromBouts gives a record's pending day the result of that day's
+// decided bout, as sumo-api sometimes misses one in a finished tournament
+// (202507 Juryo day 15). A record naming another opponent is left for verify
+// to report. It changes t's banzuke and describes each repair.
+func fillFromBouts(t snapshot.Tournament) []string {
+	records := recordsByID(t)
+	var filled []string
+	fill := func(b domain.Bout, me, them domain.BoutSide, won bool) {
+		e, ok := records[me.RikishiID]
+		if !ok {
+			return
+		}
+		if r := e.Results[b.Day-1]; r.Outcome != domain.Pending || r.OpponentID != 0 && r.OpponentID != them.RikishiID {
+			return
+		}
+		o := domain.Loss
+		switch {
+		case won && b.Kimarite == "fusen":
+			o = domain.FusenWin
+		case won:
+			o = domain.Win
+		case b.Kimarite == "fusen":
+			o = domain.FusenLoss
+		}
+		e.Results[b.Day-1] = domain.DayResult{Outcome: o, OpponentID: them.RikishiID, Kimarite: b.Kimarite}
+		filled = append(filled, fmt.Sprintf("day %d: %s's pending record filled from the bout: %s", b.Day, e.Shikona.En, o))
+	}
+	for _, b := range t.Bouts {
+		if !b.IsPlayoff && b.Winner != 0 {
+			fill(b, b.East, b.West, b.Winner == domain.East)
+			fill(b, b.West, b.East, b.Winner == domain.West)
+		}
+	}
+	return filled
+}
+
+// recordsByID points at t's banzuke entries, so changes go into t.
+func recordsByID(t snapshot.Tournament) map[domain.RikishiID]*domain.BanzukeEntry {
+	records := map[domain.RikishiID]*domain.BanzukeEntry{}
+	for _, entries := range t.Banzuke {
+		for i := range entries {
+			records[entries[i].RikishiID] = &entries[i]
+		}
+	}
+	return records
 }
 
 // encodeChecked encodes t and makes sure decoding gives it back, so a format

@@ -130,12 +130,7 @@ func verifyTournament(t snapshot.Tournament) []string {
 	var problems []string
 	report := func(format string, args ...any) { problems = append(problems, fmt.Sprintf(format, args...)) }
 
-	records := map[domain.RikishiID]*domain.BanzukeEntry{}
-	for _, entries := range t.Banzuke {
-		for i := range entries {
-			records[entries[i].RikishiID] = &entries[i]
-		}
-	}
+	records := recordsByID(t)
 	check := func(b domain.Bout, me, them domain.BoutSide, won bool) {
 		e, ok := records[me.RikishiID]
 		if !ok {

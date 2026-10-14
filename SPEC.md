@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.8** (2026-10-13). Implemented: Phases 0–2, Phase 3 steps 1–6 (step 7, the full snapshot build, is run by the owner). Later phases are still the plan.
+> Status: **v0.9** (2026-10-14). Implemented: Phases 0–3; the full snapshot (196001–202609) is committed. Later phases are still the plan.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -192,10 +192,11 @@ Finished tournaments never change. Instead of every user fetching them, a separa
   - Each fact is stored once: a bout side is only the wrestler's id when their shikona and rank match the banzuke (visitors from Makushita are written out), and a banzuke record is one outcome letter per day, with opponent and kimarite taken from that day's bout unless they differ. Decoding restores the data exactly.
   - Every file carries the schema version (`"v"`), and encoding is deterministic (bouts sorted by day, division, playoff, match number), so a rebuild leaves git unchanged.
   - sumo-api writes a placeholder opponent (7402) on absent days; the adapter maps it to none.
-- **Size estimate:** about 400 tournaments × about 525 bouts ≈ 210,000 bouts, which should be 4–6 MB compressed (to be measured, V8). If it exceeds 15 MB, it ships as a separate release asset instead of being embedded.
+  - **Gaps in the source.** In a tournament that is final, an empty bout list is a gap, not a day still to come: the builder logs it and writes the tournament without that day, whose records stay pending (196503 day 7, 196505 day 6 and 197811 day 5, both divisions). A record day that is pending while that day's bout is decided, against the same opponent, takes the bout's result, and the builder logs it (202507 Juryo day 15, Nishikigi and Fujiseiun). Pending otherwise means no bout that day.
+- **Size:** measured on the first full build (V8): 399 tournaments, 195,099 bouts, 2.50 MB for the tournament files plus 37 KB for the 997-wrestler index. Embedding stays well under the 15 MB limit, above which it would ship as a separate release asset.
 - **Building it:**
-  - **First full build:** about 400 tournaments × about 34 requests (1 basho, 2 banzuke, 30 torikumi) ≈ 13,200 requests, about 4 hours at 1 request per second. This runs once, not on a tournament day (D24).
-  - **Updates:** the tool reads the manifest and only fetches tournaments that are finished (rule in §7.2) and not yet included. That is about 34 requests per new tournament, plus 1 for the active-wrestler index.
+  - **First full build:** about 400 tournaments × about 34 requests (1 basho, 2 banzuke, 30 torikumi) ≈ 13,200 requests at 1 request per second; it took about 3.5 hours on 2026-10-13. This runs once, not on a tournament day (D24).
+  - **Updates:** the tool reads the manifest and only fetches tournaments that are finished (rule in §7.2) and not yet included. That is about 34 requests per new tournament, plus the wrestler index, which is rewritten whenever a tournament is added, including one older than the newest.
   - **Resumable:** requests go through the normal `httpx` client (§7.1) and a work cache (`.cache/basho-data/`, ignored by git), so an interrupted run continues without fetching anything twice.
   - **Verification:** `basho-data snapshot verify` checks that each wrestler's bouts match their banzuke record and totals, that every bout appears for both wrestlers, that the schema is valid and that the checksums match. The builder runs the bout-against-record checks on the fetched data before encoding (where every check is meaningful) and logs oddities without stopping. Accepted oddities in the source data go in `data/snapshot/known-issues.txt`, one exact problem line each with a `#` reason; `verify` subtracts them and flags entries that no longer occur.
 - **Update flow:** `make snapshot` (update and verify), commit `data: snapshot through 202611`, then tag a patch release. There is no fixed schedule: the app works with a snapshot of any age, because it fetches whatever came later (§5.8).
@@ -1277,7 +1278,7 @@ Only once you have decided to make the repository public (D9, D22).
 - ~~**V5**~~ **Answered (Phase 1):** sumo-api sends no `ETag` or `Last-Modified`; its responses can only be cached by time (§7.2). osada sends ETags, weak ones (`W/"…"`) when gzip is negotiated, and answers both forms with 304.
 - ~~**V6**~~ **Answered (Phase 1):** decided playoff bouts appear in `resultDays` with `isPlayoff: true`, a kimarite and a winner (202609 Juryo: bouts 15 and 16). The `未定` seen earlier was in `scheduleDays`.
 - ~~**V7**~~ **Answered (Phase 1):** in the banzuke fixtures every entry's rank string matches the list it is on. The "Ozeki 2 East" seen earlier came from a match record, not the banzuke; the rank string is authoritative anyway.
-- **V8** Actual snapshot size (compressed) and time to build the bout index at startup.
+- **V8** Actual snapshot size (compressed) and time to build the bout index at startup. Answered: 2.50 MB for 399 tournaments (§4.3); opening the snapshot and building the whole bout index takes about 50 ms on an Apple M5.
 - ~~**V10**~~ **Answered (Phase 1):** `rankValue` = title × 100 + number (Yokozuna 1 → 101, Juryo 3 → 603); the side is not encoded, East and West share the value. Old-era haridashi wrestlers appear as ordinary numbered ranks (196001 has "Yokozuna 2 East"), so the English format is the same throughout. Side note for §6.8: Juryo had 18 ranks per side in 1960, not 14, so the rank bands must not assume J14 is the lowest.
 - ~~**V11**~~ **Answered (Phase 1):** sumo-api.com's `/kimarite` lists 90 values, all spelled as in Appendix B. Four were missing and are added: `dashinage` and `yobikaeshi` (historical), `hikiwake` and `itamiwake` (old-era draws). `kakezori`, `shumokuzori` and `sototasukizori` are official but never occur in sumo-api's data.
 - **V9** Whether Elo beats the "higher rank wins" baseline on log loss for 2015 onwards. This decides whether the win chance is shown at all.
@@ -1355,7 +1356,7 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 4. `internal/snapshot` loader with `go:embed`, and the layer order snapshot → cache → network in the service plumbing (§5.8).
 5. Bout index (by wrestler and by tournament), built lazily and extendable with later tournaments.
 6. Fixture snapshot (3 tournaments) for tests; equivalence tests between the snapshot path and the adapter path.
-7. Run the full build once (about 4 hours, not on a tournament day), measure V8, commit `data/snapshot/`.
+7. Run the full build once (about 4 hours, not on a tournament day), measure V8, commit `data/snapshot/`. Done 2026-10-13/14; the build found the source gaps now handled in §4.3.
 
 **AC:** with network access blocked, any tournament from 196001 to the snapshot's newest one loads in under 100 ms; `verify` passes on the committed snapshot; a second `snapshot update` without new tournaments makes no requests, apart from one metadata request for a tournament past its estimated end that is not final yet (cached for an hour).
 
@@ -1686,9 +1687,9 @@ Owned by `internal/snapshot` (`manifest.go`, `tournament.go`, `rikishi.go`). Eve
 - Bouts are sorted by day, division, playoff (`"p": true`) last, then match number. `win`: 1 east, 2 west, omitted while undecided. A side that is only `{"id"}` has the banzuke's romaji name and rank and no kanji or kana (what sumo-api's bout lists carry); anything else, such as a Makushita visitor in a Juryo bout, is written out (`en`, `jp`, `kana`, `r`).
 - Ranks are the long form (`"Maegashira 17 East"`), divisions and outcomes their names (`domain` text marshalling).
 - `rikishi.json.zst`: `{"v":1,"rikishi":[{"id","nsk","sumodb","en","jp","kana","heya","shusshin","birth","debut","cm","kg","retired"}]}`, sorted by id, only wrestlers who appear in the snapshot.
-- `manifest.json` (indented, plain JSON): `{"schema":1,"generator":"<basho-data version>","generatedAt":"…","source":"sumo-api.com","basho":["196001",…],"indexThrough":"<newest tournament the index covers>","files":{"basho/196001.json.zst":"<sha256>",…}}`.
+- `manifest.json` (indented, plain JSON): `{"schema":1,"generator":"<basho-data version>","generatedAt":"…","source":"sumo-api.com","basho":["196001",…],"indexThrough":"<newest tournament when the index was written; cleared when a tournament is added>","files":{"basho/196001.json.zst":"<sha256>",…}}`.
 - `known-issues.txt` (optional, not in the manifest): accepted source oddities for `verify`, one exact problem line each after a `#` reason.
-- Measured: Aki 2026, 507 bouts, 6,976 bytes; the full snapshot is expected around 3 MB (V8).
+- Measured: Aki 2026, 507 bouts, 6,976 bytes; the full snapshot is 2.50 MB (V8).
 
 ---
 

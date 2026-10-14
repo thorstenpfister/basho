@@ -2,6 +2,7 @@ package datatool
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -20,6 +21,10 @@ import (
 type fakeSource struct {
 	calls   int
 	unfinal map[domain.BashoID]bool // no yusho yet
+
+	// Gaps like sumo-api's: no bouts and pending records on emptyDay; pending
+	// records but a decided bout on blankDay.
+	emptyDay, blankDay int
 }
 
 func (f *fakeSource) Basho(_ context.Context, id domain.BashoID) (domain.Basho, error) {
@@ -48,12 +53,21 @@ func (f *fakeSource) Banzuke(_ context.Context, _ domain.BashoID, div domain.Div
 	for d := range domain.BashoDays {
 		ea.Results[d] = domain.DayResult{Outcome: domain.Win, OpponentID: b, Kimarite: "yorikiri"}
 		eb.Results[d] = domain.DayResult{Outcome: domain.Loss, OpponentID: a, Kimarite: "yorikiri"}
+		switch d + 1 {
+		case f.emptyDay:
+			ea.Results[d], eb.Results[d] = domain.DayResult{}, domain.DayResult{}
+		case f.blankDay:
+			ea.Results[d], eb.Results[d] = domain.DayResult{OpponentID: b}, domain.DayResult{OpponentID: a}
+		}
 	}
 	return []domain.BanzukeEntry{ea, eb}, nil
 }
 
 func (f *fakeSource) Torikumi(ctx context.Context, id domain.BashoID, div domain.Division, day int) ([]domain.Bout, error) {
 	entries, _ := f.Banzuke(ctx, id, div) // counts this call
+	if day == f.emptyDay {
+		return nil, fmt.Errorf("torikumi day %d: %w", day, source.ErrNotYetAvailable)
+	}
 	side := func(e domain.BanzukeEntry) domain.BoutSide {
 		return domain.BoutSide{RikishiID: e.RikishiID, Shikona: e.Shikona, Rank: e.Rank}
 	}
@@ -164,6 +178,53 @@ func TestUpdateSnapshot(t *testing.T) {
 	}
 	if m, _ := snapshot.ReadManifest(os.DirFS(dir)); m.Newest() != b(2026, time.September) {
 		t.Errorf("newest = %v", m.Newest())
+	}
+	// A tournament older than the newest, like one skipped before, rewrites
+	// the index too.
+	src.calls = 0
+	if _, err := UpdateSnapshot(t.Context(), src, SnapshotConfig{Dir: dir, From: b(2026, time.March), Today: today}, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	if want := requestsPerTournament + indexRequests; src.calls != want {
+		t.Errorf("filling a gap: %d calls, want %d", src.calls, want)
+	}
+}
+
+func TestFetchTournamentSourceGaps(t *testing.T) {
+	src := &fakeSource{emptyDay: 7, blankDay: 15}
+	var log strings.Builder
+	tour, err := fetchTournament(t.Context(), src, b(2026, time.July), today, false, &log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := verifyTournament(tour); len(p) != 0 {
+		t.Errorf("after the repair: %v", p)
+	}
+	mak := tour.Banzuke[domain.DivMakuuchi]
+	if r := mak[0].Results[14]; r != (domain.DayResult{Outcome: domain.Win, OpponentID: 12, Kimarite: "yorikiri"}) {
+		t.Errorf("day 15 filled as %+v", r)
+	}
+	if mak[1].Results[14].Outcome != domain.Loss || mak[0].Results[6].Outcome != domain.Pending {
+		t.Errorf("B's day 15 %v, A's day 7 %v", mak[1].Results[14].Outcome, mak[0].Results[6].Outcome)
+	}
+	if n := len(tour.Bouts); n != 2*(domain.BashoDays-1) {
+		t.Errorf("%d bouts, want 28", n)
+	}
+	for _, want := range []string{
+		"202607: Makuuchi day 7: no bouts in the source",
+		"202607: Juryo day 7: no bouts in the source",
+		"202607: day 15: A's pending record filled from the bout: win",
+		"202607: day 15: B's pending record filled from the bout: loss",
+	} {
+		if !strings.Contains(log.String(), want) {
+			t.Errorf("log lacks %q:\n%s", want, log.String())
+		}
+	}
+
+	// A pending day naming another opponent is not filled: verify reports it.
+	tour.Banzuke[domain.DivJuryo][0].Results[14] = domain.DayResult{OpponentID: 99}
+	if f := fillFromBouts(tour); len(f) != 0 {
+		t.Errorf("filled %v", f)
 	}
 }
 
