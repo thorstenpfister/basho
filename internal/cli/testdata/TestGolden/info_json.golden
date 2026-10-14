@@ -27,6 +27,13 @@
           "number": 1,
           "side": "east",
           "short": "Y1e"
+        },
+        "record": {
+          "wins": 12,
+          "losses": 3,
+          "absences": 0,
+          "draws": 0,
+          "text": "12-3"
         }
       },
       {
@@ -41,6 +48,13 @@
           "number": 6,
           "side": "east",
           "short": "J6e"
+        },
+        "record": {
+          "wins": 11,
+          "losses": 4,
+          "absences": 0,
+          "draws": 0,
+          "text": "11-4"
         }
       }
     ],
@@ -57,6 +71,13 @@
           "number": 1,
           "side": "west",
           "short": "S1w"
+        },
+        "record": {
+          "wins": 11,
+          "losses": 4,
+          "absences": 0,
+          "draws": 0,
+          "text": "11-4"
         }
       },
       {
@@ -71,6 +92,13 @@
           "number": 3,
           "side": "west",
           "short": "M3w"
+        },
+        "record": {
+          "wins": 10,
+          "losses": 5,
+          "absences": 0,
+          "draws": 0,
+          "text": "10-5"
         }
       }
     ]

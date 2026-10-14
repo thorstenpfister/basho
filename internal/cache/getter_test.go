@@ -120,6 +120,27 @@ func TestGetterOffline(t *testing.T) {
 	})
 }
 
+func TestGetterCachedOnly(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		up := &source{resp: &httpx.Response{Status: 200, Body: []byte("v1")}}
+		g := &Getter{Cache: open(t, 0), Next: up, Policy: hourly}
+		if _, err := g.Get(t.Context(), url, httpx.Validators{}); err != nil {
+			t.Fatal(err)
+		}
+		time.Sleep(2 * time.Hour) // expired
+		only := CachedOnly(t.Context())
+		if r, err := g.Get(only, url, httpx.Validators{}); err != nil || !r.Stale || up.calls != 1 {
+			t.Errorf("cached only, expired: %v, %v after %d requests", r, err, up.calls)
+		}
+		if _, err := g.Get(only, url+"/other", httpx.Validators{}); !errors.Is(err, ErrOffline) || up.calls != 1 {
+			t.Errorf("cached only, not cached: %v after %d requests", err, up.calls)
+		}
+		if _, err := g.Get(t.Context(), url, httpx.Validators{}); err != nil || up.calls != 2 {
+			t.Error("the flag outlived its context")
+		}
+	})
+}
+
 func TestGetterPinnedIsFreshForever(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		up := &source{resp: &httpx.Response{Status: 200, Body: []byte("final")}}

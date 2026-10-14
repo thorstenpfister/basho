@@ -50,11 +50,11 @@ Every data command takes `--json` and prints one JSON document to stdout (SPEC Â
 
 ### `list`
 
-An array, newest first: `{"basho", "name", "venue", "status", "yusho": Wrestler | null, "inSnapshot"}`. `status` is `upcoming`, `in_progress`, `finished` or `cancelled`; `yusho` is the Makuuchi winner when known.
+An array, newest first: `{"basho", "name", "venue", "status", "yusho": Winner | null, "inSnapshot"}`. `status` is `upcoming`, `in_progress`, `finished` or `cancelled`; `yusho` is the Makuuchi winner when known.
 
 ### `info`
 
-`{"basho", "name", "venue", "status", "start", "end", "yusho": [Winner], "prizes": [Winner]}`. `start` and `end` are `null` for a cancelled tournament. A Winner is a Wrestler with `division` (yusho) or `prize` (`Kanto-sho`, `Shukun-sho`, `Gino-sho`). Lower divisions' winners appear only when the wrestler index names them.
+`{"basho", "name", "venue", "status", "start", "end", "yusho": [Winner], "prizes": [Winner]}`. `start` and `end` are `null` for a cancelled tournament. A Winner is a Wrestler with `division` (yusho) or `prize` (`Kanto-sho`, `Shukun-sho`, `Gino-sho`) and the final `record` (`null` for a lower division's winner). Lower divisions' winners appear only when the wrestler index names them.
 
 ### `day`
 

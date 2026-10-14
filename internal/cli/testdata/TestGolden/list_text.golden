@@ -1,8 +1,8 @@
-ID      Tournament   Venue                        Yusho      Status
-202609  Aki 2026     Ryogoku Kokugikan            Onosato    finished
-202607  Nagoya 2026  IG Arena                     Aonishiki  finished
-202605  Natsu 2026   Ryogoku Kokugikan                       upcoming
-202603  Haru 2026    Osaka Prefectural Gymnasium             upcoming
-202601  Hatsu 2026   Ryogoku Kokugikan                       upcoming
+ID      Tournament   Venue                        Yusho             Status
+202609  Aki 2026     Ryogoku Kokugikan            Onosato (12-3)    finished
+202607  Nagoya 2026  IG Arena                     Aonishiki (12-3)  finished
+202605  Natsu 2026   Ryogoku Kokugikan                              finished
+202603  Haru 2026    Osaka Prefectural Gymnasium                    finished
+202601  Hatsu 2026   Ryogoku Kokugikan                              finished
 
 source: snapshot (2026-10-13)

@@ -190,3 +190,25 @@ func TestBackground(t *testing.T) {
 		t.Error("a white background kept the dark theme")
 	}
 }
+
+// capturing is a fake with a focused input.
+type capturing struct{ fake }
+
+func (c *capturing) CapturesKeys() bool { return true }
+
+func (c *capturing) Update(ctx *Context, msg tea.Msg) (Screen, tea.Cmd) {
+	_, cmd := c.fake.Update(ctx, msg)
+	return c, cmd
+}
+
+func TestKeyCapture(t *testing.T) {
+	c := &capturing{fake{name: "filter"}}
+	m := New(testContext(), []Screen{c}, func() []Screen { return []Screen{&fake{name: "today"}} })
+	m, cmd := send(t, m, tea.WindowSizeMsg{Width: 100, Height: 30}, press("t"), press("q"), press("?"))
+	if quits(cmd) || m.help || len(c.got) != 3 || m.top() != Screen(c) {
+		t.Errorf("captured keys: %v, help %v", c.got, m.help)
+	}
+	if _, cmd := send(t, m, press("ctrl+c")); !quits(cmd) {
+		t.Error("ctrl+c must stay global")
+	}
+}

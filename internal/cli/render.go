@@ -502,8 +502,11 @@ func renderList(es []service.ListEntry, p service.Provenance) string {
 	rows := make([][]string, 0, len(es))
 	for _, e := range es {
 		yusho := ""
-		if e.Yusho != nil {
-			yusho = e.Yusho.Shikona.En
+		if y := e.Yusho; y != nil {
+			yusho = y.Shikona.En
+			if y.Record != nil {
+				yusho += " (" + y.Record.String() + ")"
+			}
 		}
 		rows = append(rows, []string{e.Basho.String(), fmt.Sprintf("%s %d", e.Name, e.Basho.Year), e.Venue, yusho, statusText(e.Status)})
 	}
@@ -524,20 +527,27 @@ func renderInfo(in service.Info, p service.Provenance) string {
 		b.WriteString("\nYusho\n")
 		var rows [][]string
 		for _, y := range in.Yusho {
-			rows = append(rows, []string{y.Division.String(), name(y.Wrestler)})
+			rows = append(rows, []string{y.Division.String(), name(y.Wrestler), recordText(y.Record)})
 		}
-		b.WriteString(table([]string{"", ""}, rows) + "\n")
+		b.WriteString(table([]string{"", "", ""}, rows) + "\n")
 	}
 	if len(in.Prizes) > 0 {
 		b.WriteString("\nSpecial prizes\n")
 		var rows [][]string
 		for _, pr := range in.Prizes {
-			rows = append(rows, []string{pr.Prize, name(pr.Wrestler)})
+			rows = append(rows, []string{pr.Prize, name(pr.Wrestler), recordText(pr.Record)})
 		}
-		b.WriteString(table([]string{"", ""}, rows) + "\n")
+		b.WriteString(table([]string{"", "", ""}, rows) + "\n")
 	}
 	b.WriteString("\n" + provenance(p) + "\n")
 	return b.String()
+}
+
+func recordText(r *derive.Record) string {
+	if r == nil {
+		return ""
+	}
+	return r.String()
 }
 
 func name(w service.Wrestler) string {

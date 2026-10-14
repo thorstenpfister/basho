@@ -14,6 +14,7 @@
       "venue": "Ryogoku Kokugikan",
       "status": "finished",
       "yusho": {
+        "division": "makuuchi",
         "id": 8850,
         "shikona": {
           "en": "Onosato",
@@ -24,6 +25,13 @@
           "number": 1,
           "side": "east",
           "short": "Y1e"
+        },
+        "record": {
+          "wins": 12,
+          "losses": 3,
+          "absences": 0,
+          "draws": 0,
+          "text": "12-3"
         }
       },
       "inSnapshot": true
@@ -34,6 +42,7 @@
       "venue": "IG Arena",
       "status": "finished",
       "yusho": {
+        "division": "makuuchi",
         "id": 8854,
         "shikona": {
           "en": "Aonishiki",
@@ -44,6 +53,13 @@
           "number": 2,
           "side": "west",
           "short": "S2w"
+        },
+        "record": {
+          "wins": 12,
+          "losses": 3,
+          "absences": 0,
+          "draws": 0,
+          "text": "12-3"
         }
       },
       "inSnapshot": true
@@ -52,7 +68,7 @@
       "basho": "202605",
       "name": "Natsu",
       "venue": "Ryogoku Kokugikan",
-      "status": "upcoming",
+      "status": "finished",
       "yusho": null,
       "inSnapshot": false
     },
@@ -60,7 +76,7 @@
       "basho": "202603",
       "name": "Haru",
       "venue": "Osaka Prefectural Gymnasium",
-      "status": "upcoming",
+      "status": "finished",
       "yusho": null,
       "inSnapshot": false
     },
@@ -68,7 +84,7 @@
       "basho": "202601",
       "name": "Hatsu",
       "venue": "Ryogoku Kokugikan",
-      "status": "upcoming",
+      "status": "finished",
       "yusho": null,
       "inSnapshot": false
     }

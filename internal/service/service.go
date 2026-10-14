@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thorstenpfister/basho/internal/cache"
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/idmap"
@@ -315,3 +316,8 @@ func (s *Service) CurrentBasho() domain.BashoID {
 	id, _ := domain.ParseTournament("current", s.today())
 	return id
 }
+
+// CachedOnly marks ctx so that the service answers from the snapshot and the
+// disk cache only, never the network: browsing such as the picker (SPEC
+// §8.3). Uncached data then fails as Unavailable.
+func CachedOnly(ctx context.Context) context.Context { return cache.CachedOnly(ctx) }

@@ -5,6 +5,7 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
 )
 
@@ -37,9 +38,10 @@ type Info struct {
 
 // Winner is a yusho or special prize and who won it.
 type Winner struct {
-	Division domain.Division `json:",omitzero"`
-	Prize    string          `json:",omitzero"` // e.g. "Kanto-sho"
+	Division domain.Division // for a yusho
+	Prize    string          // for a special prize, e.g. "Kanto-sho"
 	Wrestler
+	Record *derive.Record // final record; nil outside the snapshot's divisions
 }
 
 // Info returns tournament id's metadata.
@@ -51,7 +53,7 @@ func (s *Service) Info(ctx context.Context, id domain.BashoID) (Result[Info], er
 	if err != nil {
 		return Result[Info]{}, err
 	}
-	names := map[domain.RikishiID]Wrestler{}
+	names := map[domain.RikishiID]Winner{}
 	for _, div := range []domain.Division{domain.DivJuryo, domain.DivMakuuchi} {
 		entries, p2, err := s.banzuke(ctx, id, div)
 		if err != nil {
@@ -59,31 +61,50 @@ func (s *Service) Info(ctx context.Context, id domain.BashoID) (Result[Info], er
 		}
 		p = merge(p, p2)
 		for _, e := range entries {
-			names[e.RikishiID] = Wrestler{RikishiID: e.RikishiID, Shikona: e.Shikona, Rank: e.Rank}
+			r := derive.RecordAt(e, derive.NewDayBouts(id, nil), derive.EndOf(id))
+			names[e.RikishiID] = Winner{Wrestler: Wrestler{RikishiID: e.RikishiID, Shikona: e.Shikona, Rank: e.Rank}, Record: &r}
 		}
 	}
 	profiles, err := s.wrestlers()
 	if err != nil {
 		return Result[Info]{}, err
 	}
-	name := func(id domain.RikishiID) Wrestler {
+	name := func(id domain.RikishiID) Winner {
 		if w, ok := names[id]; ok {
 			return w
 		}
-		return Wrestler{RikishiID: id, Shikona: profiles[id].Name} // a lower division's winner
+		return Winner{Wrestler: Wrestler{RikishiID: id, Shikona: profiles[id].Name}} // a lower division's winner
 	}
 	out := Info{Basho: b, Name: id.Name(), Venue: venue(b), Status: s.status(b)}
 	for _, div := range slices.Sorted(maps.Keys(b.Yusho)) {
 		// The snapshot names sekitori only (SPEC §5.8): a lower division's
 		// winner is listed when known.
 		if w := name(b.Yusho[div]); w.Shikona.En != "" || div == domain.DivMakuuchi || div == domain.DivJuryo {
-			out.Yusho = append(out.Yusho, Winner{Division: div, Wrestler: w})
+			w.Division = div
+			out.Yusho = append(out.Yusho, w)
 		}
 	}
 	for _, pr := range b.Prizes {
-		out.Prizes = append(out.Prizes, Winner{Prize: pr.Type, Wrestler: name(pr.RikishiID)})
+		w := name(pr.RikishiID)
+		w.Prize = pr.Type
+		out.Prizes = append(out.Prizes, w)
 	}
 	return Result[Info]{Value: out, Prov: p}, nil
+}
+
+// CalendarStatus is a tournament's status by the estimated dates alone, until
+// its data says better.
+func CalendarStatus(id domain.BashoID, today domain.Date) BashoStatus {
+	switch {
+	case id.Held() == domain.NotHeld:
+		return Cancelled
+	case today.DaysSince(id.EstimatedEnd()) >= domain.FinalMargin:
+		return Finished
+	case today.Compare(id.EstimatedStart()) >= 0:
+		return InProgressBasho
+	default:
+		return Upcoming
+	}
 }
 
 func (s *Service) status(b domain.Basho) BashoStatus {
@@ -106,7 +127,7 @@ type ListEntry struct {
 	Name       string
 	Venue      string
 	Status     BashoStatus
-	Yusho      *Wrestler // the Makuuchi winner, when known
+	Yusho      *Winner // the Makuuchi winner, when known
 	InSnapshot bool
 }
 
@@ -125,7 +146,7 @@ func (s *Service) List(ctx context.Context, from, to int) (Result[[]ListEntry], 
 		if to != 0 && id.Year > to || from != 0 && id.Year < from {
 			continue
 		}
-		e := ListEntry{Basho: id, Name: id.Name(), Venue: id.Venue(), InSnapshot: ts.fromSnapshot(id)}
+		e := ListEntry{Basho: id, Name: id.Name(), Venue: id.Venue(), InSnapshot: ts.fromSnapshot(id), Status: CalendarStatus(id, s.today())}
 		if id.Held() == domain.NotHeld {
 			e.Status = Cancelled
 			out = append(out, e)
@@ -137,7 +158,7 @@ func (s *Service) List(ctx context.Context, from, to int) (Result[[]ListEntry], 
 				e.Venue, e.Status = info.Value.Venue, info.Value.Status
 				for _, y := range info.Value.Yusho {
 					if y.Division == domain.DivMakuuchi {
-						e.Yusho = &y.Wrestler
+						e.Yusho = &y
 					}
 				}
 			}

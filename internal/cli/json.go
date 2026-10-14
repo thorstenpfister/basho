@@ -453,6 +453,16 @@ type jsonWinner struct {
 	Division string `json:"division,omitempty"`
 	Prize    string `json:"prize,omitempty"`
 	jsonWrestler
+	Record *jsonRecord `json:"record"` // final record; null for a lower division's winner
+}
+
+func winnerJSON(w service.Winner) jsonWinner {
+	out := jsonWinner{Division: lower(w.Division.String()), Prize: w.Prize, jsonWrestler: wrestlerJSON(w.Wrestler)}
+	if w.Record != nil {
+		r := recordJSON(*w.Record)
+		out.Record = &r
+	}
+	return out
 }
 
 func infoJSON(in service.Info) jsonInfo {
@@ -461,10 +471,10 @@ func infoJSON(in service.Info) jsonInfo {
 		out.Start, out.End = &in.Basho.Start, &in.Basho.End
 	}
 	for _, y := range in.Yusho {
-		out.Yusho = append(out.Yusho, jsonWinner{Division: lower(y.Division.String()), jsonWrestler: wrestlerJSON(y.Wrestler)})
+		out.Yusho = append(out.Yusho, winnerJSON(y))
 	}
 	for _, p := range in.Prizes {
-		out.Prizes = append(out.Prizes, jsonWinner{Prize: p.Prize, jsonWrestler: wrestlerJSON(p.Wrestler)})
+		out.Prizes = append(out.Prizes, winnerJSON(p))
 	}
 	return out
 }
@@ -474,7 +484,7 @@ type jsonListEntry struct {
 	Name       string         `json:"name"`
 	Venue      string         `json:"venue"`
 	Status     string         `json:"status"`
-	Yusho      *jsonWrestler  `json:"yusho"`
+	Yusho      *jsonWinner    `json:"yusho"`
 	InSnapshot bool           `json:"inSnapshot"`
 }
 
@@ -483,7 +493,7 @@ func listJSON(es []service.ListEntry) []jsonListEntry {
 	for _, e := range es {
 		j := jsonListEntry{Basho: e.Basho, Name: e.Name, Venue: e.Venue, Status: e.Status.String(), InSnapshot: e.InSnapshot}
 		if e.Yusho != nil {
-			w := wrestlerJSON(*e.Yusho)
+			w := winnerJSON(*e.Yusho)
 			j.Yusho = &w
 		}
 		out = append(out, j)

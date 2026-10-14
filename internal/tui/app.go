@@ -75,6 +75,10 @@ type Status struct {
 // (the VS screen, SPEC §8.8).
 type QuitBacker interface{ QuitGoesBack() bool }
 
+// KeyCapturer is a screen that takes every key while it reports true, such
+// as a focused filter input; only ctrl+c stays global.
+type KeyCapturer interface{ CapturesKeys() bool }
+
 // Messages screens send to the root.
 type (
 	// PushMsg opens a screen on top.
@@ -174,6 +178,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if c, ok := m.top().(KeyCapturer); ok && c.CapturesKeys() && !key.Matches(msg, keyForce) {
+		return m.forward(msg)
+	}
 	switch {
 	case key.Matches(msg, keyForce):
 		return m, tea.Quit
@@ -265,7 +272,7 @@ func (m Model) statusBar() string {
 		left = truncate(left, max(m.width-lipgloss.Width(r)-5, 0))
 		gap = max(m.width-lipgloss.Width(left)-lipgloss.Width(r)-4, 1)
 	}
-	return t.StatusBar.Render(" " + left + " " + t.Rule.Render(strings.Repeat(t.Glyphs.Rule, gap)) + " " + r + " ")
+	return t.StatusBar.Render(" " + left + " " + t.Rule.Render(strings.Repeat(t.Line, gap)) + " " + r + " ")
 }
 
 // provenance is the status bar's source part: `source · updated <time> (<age>)`.

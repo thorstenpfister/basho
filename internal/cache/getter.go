@@ -18,6 +18,20 @@ var ErrOffline = errors.New("offline and not cached")
 // yusho winner is present. The source adapters provide it (SPEC §7.2).
 type Policy func(url string, status int, body []byte, now time.Time) (ttl time.Duration, pinned bool)
 
+type cachedOnlyKey struct{}
+
+// CachedOnly marks ctx so that requests are answered from the cache only,
+// like Offline, for one call: browsing that must never trigger requests
+// (the TUI's picker, SPEC §8.3).
+func CachedOnly(ctx context.Context) context.Context {
+	return context.WithValue(ctx, cachedOnlyKey{}, true)
+}
+
+func cachedOnly(ctx context.Context) bool {
+	v, _ := ctx.Value(cachedOnlyKey{}).(bool)
+	return v
+}
+
 // Getter is an httpx.Getter that answers from the cache while fresh,
 // revalidates stale entries with conditional requests, and falls back to a
 // stale entry when the source fails (SPEC §7.2).
@@ -46,7 +60,7 @@ func (g *Getter) Get(ctx context.Context, url string, v httpx.Validators) (*http
 			return fromEntry(entry, false), nil
 		}
 	}
-	if g.Offline {
+	if g.Offline || cachedOnly(ctx) {
 		if cached {
 			return fromEntry(entry, true), nil
 		}
