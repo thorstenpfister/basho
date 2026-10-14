@@ -115,9 +115,10 @@ func TestTableAndKeys(t *testing.T) {
 		t.Errorf("no win chance column:\n%s", v)
 	}
 	d.Keys("enter")
-	if !strings.Contains(d.View(), "Phase 8") {
-		t.Error("enter placeholder")
+	if !strings.Contains(d.View(), "MUSUBI-NO-ICHIBAN") {
+		t.Errorf("enter did not open the VS screen:\n%s", d.View())
 	}
+	d.Keys("esc")
 	d.Keys("d")
 	if s := screen(d); s.div != domain.DivJuryo || len(s.data.Bouts) != 14 || s.cursor != 0 {
 		t.Errorf("d: %v with %d bouts", s.div, len(s.data.Bouts))

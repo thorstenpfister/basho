@@ -14,6 +14,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/tui"
+	"github.com/thorstenpfister/basho/internal/tui/bout"
 )
 
 // Day is the day view (SPEC §8.4): one division's bouts of one day.
@@ -327,7 +328,9 @@ func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 	case key.Matches(msg, keyRefresh):
 		return d.refresh(ctx)
 	case key.Matches(msg, keyVS):
-		return d, tui.Message("The VS screen comes with Phase 8")
+		if sel, ok := d.Selected(); ok {
+			return d, tui.Push(bout.New(d.id, d.div, d.day, sel))
+		}
 	case key.Matches(msg, keyStandings, keyRecap):
 		return d, tui.Message("Standings and the recap come with Phase 9")
 	}

@@ -329,7 +329,7 @@ func taleSideJSON(t service.TaleSide) jsonTaleSide {
 	for _, r := range t.Last5.Results {
 		last.Results = append(last.Results, jsonResult{Basho: r.Basho, Day: r.Day, Opponent: r.Opponent, Won: r.Won, Fusen: r.Fusen, Kimarite: string(r.Kimarite)})
 	}
-	m := t.Moveset
+	m := t.Moveset()
 	mv := jsonMoveset{
 		Window: m.Window.String(), Tournaments: m.Tournaments, Wins: m.Wins, Losses: m.Losses,
 		WinShare: shares(m.WinShare), LossShare: shares(m.LossShare), TopWins: countsJSON(m.TopWins), TopLosses: countsJSON(m.TopLosses),
@@ -357,7 +357,7 @@ func taleSideJSON(t service.TaleSide) jsonTaleSide {
 func taleJSON(t service.Tale) jsonTale {
 	h := t.HeadToHead
 	hh := jsonHeadToHead{EastWins: h.A.Wins, WestWins: h.B.Wins, EastTop: countsJSON(h.A.Top), WestTop: countsJSON(h.B.Top), Meetings: []jsonMeeting{}}
-	for _, m := range h.Meetings {
+	for _, m := range h.Meetings[:min(3, len(h.Meetings))] {
 		hh.Meetings = append(hh.Meetings, jsonMeeting{
 			Basho: m.Basho, Day: m.Day, Winner: m.Winner, Kimarite: string(m.Kimarite),
 			EastRank: rankJSON(m.RankA), WestRank: rankJSON(m.RankB), Playoff: m.Playoff,
@@ -368,7 +368,7 @@ func taleJSON(t service.Tale) jsonTale {
 		Musubi: t.Musubi, Playoff: t.Playoff, East: taleSideJSON(t.East), West: taleSideJSON(t.West),
 		HeadToHead: hh, WinChance: round(t.WinChance),
 	}
-	if m := t.Matchup; m != nil {
+	if m := t.Matchup(); m != nil {
 		att := "west"
 		if m.AttackerIsA {
 			att = "east"

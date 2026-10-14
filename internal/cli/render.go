@@ -233,7 +233,7 @@ func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 	rows := [][]string{
 		{bold.Render(strings.ToUpper(e.Shikona.En)), "VS", bold.Render(strings.ToUpper(w.Shikona.En))},
 		{e.Shikona.Jp, "", w.Shikona.Jp},
-		{dim.Render(fighter(e.Moveset)), "", dim.Render(fighter(w.Moveset))},
+		{dim.Render(fighter(e.Moveset())), "", dim.Render(fighter(w.Moveset()))},
 		{e.Rank.String(), "RANK", w.Rank.String()},
 		{orUnknown(e.Heya, e.Profile), "HEYA", orUnknown(w.Heya, w.Profile)},
 		{orUnknown(e.Shusshin, e.Profile), "FROM", orUnknown(w.Shusshin, w.Profile)},
@@ -244,7 +244,7 @@ func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 		{measure(e.Career.Weight, "kg", e.Career.Latest), "WEIGHT", measure(w.Career.Weight, "kg", w.Career.Latest)},
 		{stars(g, e.Kinboshi), "KINBOSHI", stars(g, w.Kinboshi)},
 		{fmt.Sprint(e.Career.Yusho[domain.DivMakuuchi]), "YUSHO", fmt.Sprint(w.Career.Yusho[domain.DivMakuuchi])},
-		{signature(e.Moveset), "SIGNATURE", signature(w.Moveset)},
+		{signature(e.Moveset()), "SIGNATURE", signature(w.Moveset())},
 	}
 	if e.Rating != nil && w.Rating != nil && t.WinChance != nil {
 		rows = append(rows,
@@ -264,7 +264,7 @@ func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 	if len(h.Meetings) > 0 {
 		b.WriteString("\nLast meetings: ")
 		var ms []string
-		for _, m := range h.Meetings {
+		for _, m := range h.Meetings[:min(3, len(h.Meetings))] {
 			who := e.Shikona.En
 			if m.Winner == w.RikishiID {
 				who = w.Shikona.En
@@ -296,9 +296,9 @@ func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 		}
 	}
 
-	b.WriteString("\n" + title.Render("MOVESET · "+e.Moveset.Window.String()) + "\n")
+	b.WriteString("\n" + title.Render("MOVESET · "+e.Moveset().Window.String()) + "\n")
 	b.WriteString(moveset(e) + "\n" + moveset(w))
-	if m := t.Matchup; m != nil {
+	if m := t.Matchup(); m != nil {
 		att, def := e.Shikona.En, w.Shikona.En
 		if !m.AttackerIsA {
 			att, def = def, att
@@ -405,7 +405,7 @@ func now(name string) string {
 var categories = []domain.KimariteCategory{domain.Push, domain.Belt, domain.Throw, domain.Pull, domain.Other}
 
 func moveset(t service.TaleSide) string {
-	p := t.Moveset
+	p := t.Moveset()
 	var b strings.Builder
 	fmt.Fprintf(&b, "  %s  %d W · %d L  %s\n", bold.Render(t.Shikona.En), p.Wins, p.Losses, dim.Render(fighter(p)))
 	if p.Wins+p.Losses == 0 {

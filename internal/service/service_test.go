@@ -70,7 +70,7 @@ func TestBout(t *testing.T) {
 	if !e.Profile || e.Heya == "" || e.Career.Age == 0 || e.Career.Height == 0 || e.Career.Yusho[domain.DivMakuuchi] == 0 {
 		t.Errorf("Onosato's profile %+v", e)
 	}
-	if len(e.Last5.Results) != 5 || e.Moveset.Wins == 0 || e.Rating == nil || b.WinChance == nil {
+	if len(e.Last5.Results) != 5 || e.Moveset().Wins == 0 || e.Rating == nil || b.WinChance == nil {
 		t.Errorf("Onosato's form %+v", e)
 	}
 	// Nothing before the result may count the bout itself.
