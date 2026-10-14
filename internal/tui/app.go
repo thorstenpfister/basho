@@ -27,6 +27,14 @@ type Context struct {
 	// Timers, such as clearing a status message, go through Tick; nil is
 	// tea.Tick. Tests turn timers off with NoTimers.
 	Tick func(time.Duration, func(time.Time) tea.Msg) tea.Cmd
+	// TTY reports that the output is a terminal; animations run only then.
+	TTY bool
+}
+
+// Animate reports whether animations run at this width: ui.animations on,
+// a terminal, and not the compact layout (SPEC §8.5).
+func (c *Context) Animate(width int) bool {
+	return c.Cfg.UI.Animations && c.TTY && LayoutOf(width) != Compact
 }
 
 // After returns a command that delivers fn's message after d.

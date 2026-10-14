@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/thorstenpfister/basho/data"
@@ -263,5 +264,60 @@ func TestNavigation(t *testing.T) {
 	d.Keys("]")
 	if s := screen(d); s.day != 8 || s.match != 1 {
 		t.Errorf("over the gap: day %d bout %d", s.day, s.match)
+	}
+}
+
+func TestAnimation(t *testing.T) {
+	ctx := testContext(svc())
+	ctx.TTY = true
+	res, _ := svc().Day(t.Context(), aki2026, domain.DivMakuuchi, 13)
+	start := func(ctx *tui.Context, width int) VS {
+		s, _ := New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts, 18).Update(ctx, tea.WindowSizeMsg{Width: width, Height: 40})
+		return s.(VS)
+	}
+	v := start(ctx, 100)
+	if !v.sliding || v.slide != 0 {
+		t.Fatalf("no slide-in: %v %v", v.sliding, v.slide)
+	}
+	first := lineWith(ansi.Strip(v.View(ctx, 100, 39)), "VS")
+	if strings.Index(first, "ONOSATO") > 5 {
+		t.Errorf("the east name does not start at the edge: %q", first)
+	}
+	frames := 0
+	for ; v.sliding && frames < 120; frames++ {
+		s, _ := v.Update(ctx, frameMsg{})
+		v = s.(VS)
+	}
+	if v.sliding || v.slide != 1 || frames > 20 { // ~250 ms at 60 fps
+		t.Errorf("slide after %d frames: %v %v", frames, v.sliding, v.slide)
+	}
+	if got := lineWith(ansi.Strip(v.View(ctx, 100, 39)), "VS"); !strings.Contains(got, "ONOSATO      VS      KIRISHIMA") {
+		t.Errorf("names not in place: %q", got)
+	}
+
+	// Off: compact layout, ui.animations, no terminal.
+	if start(ctx, 70).sliding {
+		t.Error("slides in the compact layout")
+	}
+	off := testContext(svc())
+	off.TTY = true
+	off.Cfg.UI.Animations = false
+	if start(off, 100).sliding {
+		t.Error("slides with ui.animations off")
+	}
+	if start(testContext(svc()), 100).sliding {
+		t.Error("slides without a terminal")
+	}
+
+	s, _ := v.Update(ctx, RevealMsg{})
+	if !s.(VS).flash {
+		t.Error("no reveal flash")
+	}
+	s, _ = s.Update(ctx, flashDoneMsg{})
+	if s.(VS).flash {
+		t.Error("flash did not end")
+	}
+	if s, _ := start(off, 100).Update(off, RevealMsg{}); s.(VS).flash {
+		t.Error("flash with animations off")
 	}
 }

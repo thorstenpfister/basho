@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/harmonica"
 
 	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
@@ -33,6 +35,10 @@ type VS struct {
 	err     error
 	loading bool
 	req     int
+
+	slide, slideVel float64 // the names' slide-in: 0 at the edges, 1 in place
+	sliding         bool
+	flash           bool // the result panel's reveal flash
 
 	history       bool          // v: the last 10 meetings
 	moveset       bool          // m: the moveset overlay
@@ -132,6 +138,40 @@ func (v VS) Init(ctx *tui.Context) tea.Cmd {
 	return v.fetch(ctx, true)
 }
 
+// Animation (SPEC §8.5): the names slide in on a spring of about 250 ms and
+// VS brightens; a reveal flashes the result panel for 150 ms.
+type (
+	frameMsg struct{}
+	// RevealMsg flashes the result panel: the result was just revealed
+	// (spoiler-free mode, Phase 11).
+	RevealMsg    struct{}
+	flashDoneMsg struct{}
+)
+
+const (
+	flashTime = 150 * time.Millisecond
+	fps       = 60
+)
+
+// spring is critically damped: it settles to 1% in about 6.6/ω, so ω 26
+// gives the ~250 ms slide of SPEC §8.5.
+var spring = harmonica.NewSpring(harmonica.FPS(fps), 26, 1)
+
+func frame(ctx *tui.Context) tea.Cmd {
+	return ctx.After(time.Second/fps, func(time.Time) tea.Msg { return frameMsg{} })
+}
+
+// startSlide begins the slide-in, or places the names at once when
+// animations are off.
+func (v VS) startSlide(ctx *tui.Context) (VS, tea.Cmd) {
+	if !ctx.Animate(v.width) {
+		v.slide, v.sliding = 1, false
+		return v, nil
+	}
+	v.slide, v.slideVel, v.sliding = 0, 0, true
+	return v, frame(ctx)
+}
+
 // fetch loads the tale: the cache's copy first, like the day view.
 func (v VS) fetch(ctx *tui.Context, cached bool) tea.Cmd {
 	svc, id, div, day, match, req := ctx.Svc, v.id, v.div, v.day, v.match, v.req
@@ -149,7 +189,29 @@ func (v VS) fetch(ctx *tui.Context, cached bool) tea.Cmd {
 func (v VS) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		first := v.width == 0
 		v.width, v.height = msg.Width, msg.Height-1
+		if first {
+			return v.startSlide(ctx)
+		}
+	case frameMsg:
+		if !v.sliding {
+			return v, nil
+		}
+		v.slide, v.slideVel = spring.Update(v.slide, v.slideVel, 1)
+		if math.Abs(1-v.slide) < 0.02 && math.Abs(v.slideVel) < 0.1 { // within a cell of place
+			v.slide, v.sliding = 1, false
+			return v, nil
+		}
+		return v, frame(ctx)
+	case RevealMsg:
+		if !ctx.Animate(v.width) {
+			return v, nil
+		}
+		v.flash = true
+		return v, ctx.After(flashTime, func(time.Time) tea.Msg { return flashDoneMsg{} })
+	case flashDoneMsg:
+		v.flash = false
 	case taleMsg:
 		if msg.req != v.req {
 			return v, nil
@@ -265,9 +327,7 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 	}
 	var lines []string
 	east, west := v.row.East, v.row.West
-	lines = append(lines,
-		row(t.Bold.Render(strings.ToUpper(east.Shikona.En)), "VS", t.Bold.Render(strings.ToUpper(west.Shikona.En))),
-	)
+	lines = append(lines, v.names(ctx, l, east, west))
 	if v.tale == nil {
 		// Progressive loading (SPEC §8.5): what the day view knew at once,
 		// placeholders for the rest.
@@ -505,8 +565,12 @@ func (v VS) resultPanel(ctx *tui.Context, l layout) string {
 	for i, s := range lines {
 		body[i] = lipgloss.PlaceHorizontal(inner, lipgloss.Center, s)
 	}
+	style := lipgloss.NewStyle()
+	if v.flash {
+		style = style.Reverse(true)
+	}
 	return lipgloss.NewStyle().MarginLeft(1).Border(lipgloss.RoundedBorder()).BorderForeground(t.Colors.Subtle).
-		Render(strings.Join(body, "\n"))
+		Render(style.Render(strings.Join(body, "\n")))
 }
 
 // result is the decided bout from the tale, or from the day's row while the
@@ -656,4 +720,24 @@ func (v VS) rating(ctx *tui.Context, l layout, row func(string, string, string) 
 		row(value(e), "RATING", value(w)),
 		row(left, "WIN CHANCE", right),
 	}
+}
+
+// names is the top row: the names slide in from the edges while the slide
+// runs, and VS goes from dim to bright.
+func (v VS) names(ctx *tui.Context, l layout, east, west service.BoutSide) string {
+	t := ctx.Theme
+	e, w := strings.ToUpper(east.Shikona.En), strings.ToUpper(west.Shikona.En)
+	shift := 0
+	if v.sliding {
+		shift = int((1 - math.Min(math.Max(v.slide, 0), 1)) * float64(max(l.side-lipgloss.Width(e), 0)))
+	}
+	vs := t.Bold.Render("VS")
+	if v.sliding && v.slide < 0.6 {
+		vs = t.Dim.Render("VS")
+	}
+	left := t.Bold.Render(e) + strings.Repeat(" ", shift)
+	right := strings.Repeat(" ", shift) + t.Bold.Render(w)
+	return " " + lipgloss.PlaceHorizontal(l.side, lipgloss.Right, left) +
+		lipgloss.PlaceHorizontal(l.middle, lipgloss.Center, vs) +
+		lipgloss.PlaceHorizontal(l.side, lipgloss.Left, right)
 }

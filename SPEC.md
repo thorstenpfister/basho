@@ -1441,7 +1441,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 5. Technique rows: fighter type under the name, mirrored STYLE stacked bar, SIGNATURE row, "not enough data" state. `m` opens the moveset overlay, `w` cycles its window, and it shows the matchup line. Done; the compact layout keeps the STYLE bar at 10 cells (its "without bars" means height and weight). The overlay replaces the tape and keeps the result panel; `w` acts only while it is open.
 6. RATING and WIN CHANCE rows, hidden if V9 failed. Done; also hidden by `ui.win_chance = false` (D26). A wrestler without a rated bout yet is marked `new`.
 7. `[`/`]` navigation including crossing day boundaries. Done: days without bouts are skipped, and the first and last bout of the tournament say so. The day view underneath stays where it was.
-8. Harmonica slide-in and reveal flash; switched off by config, compact layout, or when the output isn't a terminal.
+8. Harmonica slide-in and reveal flash; switched off by config, compact layout, or when the output isn't a terminal. Done: a critically damped spring (ω 26 at 60 fps) settles in under 20 frames; frames run on `Context.After`, and `tui.Context.Animate` combines `ui.animations`, the compact layout and `Context.TTY` (stdout is a terminal). The flash answers `bout.RevealMsg`, which spoiler-free mode sends (Phase 11).
 9. Golden snapshots for: a regular bout, a kinboshi bout, a fusen bout, an undecided bout, an old-era bout without kanji, a newly promoted wrestler.
 
 **AC:** every Makuuchi bout of 202609 renders without layout problems at 90 and 130 columns; opening a VS screen for a snapshot tournament makes no requests.
