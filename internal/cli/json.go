@@ -134,7 +134,8 @@ type jsonBoutRow struct {
 	Fusen     bool           `json:"fusen"`
 	Kinboshi  bool           `json:"kinboshi"`
 	Musubi    bool           `json:"musubi"`
-	WinChance *float64       `json:"winChance"` // the east side's chance before the bout; null when the rating is hidden
+	WinChance *float64       `json:"winChance"`        // the east side's chance before the bout; null when the rating is hidden
+	Hidden    bool           `json:"hidden,omitempty"` // after the spoiler horizon: no result given
 }
 
 type jsonBoutSide struct {
@@ -157,7 +158,7 @@ func dayJSON(d service.Day) jsonDay {
 			}
 			out = append(out, jsonBoutRow{
 				MatchNo: r.MatchNo, East: bs(r.East), West: bs(r.West), Winner: side(r.Winner),
-				Technique: techniqueJSON(r.Kimarite), Fusen: r.Fusen, Kinboshi: r.Kinboshi, Musubi: r.Musubi, WinChance: round(r.WinChance),
+				Technique: techniqueJSON(r.Kimarite), Fusen: r.Fusen, Kinboshi: r.Kinboshi, Musubi: r.Musubi, WinChance: round(r.WinChance), Hidden: r.Hidden,
 			})
 		}
 		return out
@@ -203,7 +204,8 @@ type jsonTale struct {
 	HeadToHead jsonHeadToHead  `json:"headToHead"`
 	Matchup    *jsonMatchup    `json:"matchup"`
 	WinChance  *float64        `json:"winChance"`
-	Result     *jsonTaleResult `json:"result"` // null while undecided
+	Result     *jsonTaleResult `json:"result"`           // null while undecided or hidden
+	Hidden     bool            `json:"hidden,omitempty"` // after the spoiler horizon
 }
 
 type jsonTaleSide struct {
@@ -367,7 +369,7 @@ func taleJSON(t service.Tale) jsonTale {
 	out := jsonTale{
 		Basho: t.Basho, Name: t.Name, Division: lower(t.Division.String()), Day: t.Day, MatchNo: t.MatchNo, Of: t.Of,
 		Musubi: t.Musubi, Playoff: t.Playoff, East: taleSideJSON(t.East), West: taleSideJSON(t.West),
-		HeadToHead: hh, WinChance: round(t.WinChance),
+		HeadToHead: hh, WinChance: round(t.WinChance), Hidden: t.Hidden,
 	}
 	if m := t.Matchup(); m != nil {
 		att := "west"

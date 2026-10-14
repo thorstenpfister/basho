@@ -58,7 +58,7 @@ func (a *app) commands() []*cobra.Command {
 	list := &cobra.Command{
 		Use: "list", Short: "Tournaments, newest first", Args: usageArgs(cobra.NoArgs),
 		RunE: a.data(func(cmd *cobra.Command, svc *service.Service, _ []string) error {
-			res, err := svc.List(cmd.Context(), from, to)
+			res, err := svc.List(a.dataCtx(cmd), from, to)
 			if err != nil {
 				return err
 			}
@@ -79,7 +79,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			res, err := svc.Info(cmd.Context(), id)
+			res, err := svc.Info(a.dataCtx(cmd), id)
 			if err != nil {
 				return err
 			}
@@ -102,7 +102,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			res, err := svc.Day(cmd.Context(), id, div, n)
+			res, err := svc.Day(a.dataCtx(cmd), id, div, n)
 			if err != nil {
 				return err
 			}
@@ -131,7 +131,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			res, err := svc.Bout(cmd.Context(), id, div, n, match)
+			res, err := svc.Bout(a.dataCtx(cmd), id, div, n, match)
 			if err != nil {
 				return err
 			}
@@ -162,7 +162,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			res, err := svc.Standings(cmd.Context(), id, div, n)
+			res, err := svc.Standings(a.dataCtx(cmd), id, div, n)
 			if err != nil {
 				return err
 			}
@@ -187,7 +187,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			res, err := svc.RatingTable(cmd.Context(), id, top)
+			res, err := svc.RatingTable(a.dataCtx(cmd), id, top)
 			if err != nil {
 				return err
 			}
@@ -212,7 +212,7 @@ func (a *app) dayArg(cmd *cobra.Command, svc *service.Service, args []string, id
 	if len(args) == 1 {
 		return number("day", args[0])
 	}
-	return svc.DefaultDay(cmd.Context(), id)
+	return svc.DefaultDay(a.dataCtx(cmd), id)
 }
 
 func number(what, s string) (int, error) {

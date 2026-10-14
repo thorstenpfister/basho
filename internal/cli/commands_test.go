@@ -23,7 +23,7 @@ var testNow = time.Date(2026, time.October, 14, 12, 0, 0, 0, domain.JST)
 // with a fixed clock and no config file.
 func fixtureDeps(t *testing.T) Deps {
 	t.Helper()
-	cfgHome := t.TempDir()
+	cfgHome, stateHome := t.TempDir(), t.TempDir()
 	return Deps{
 		Open: func(cfg config.Config) (*service.Service, error) {
 			return service.New(service.Options{
@@ -35,8 +35,11 @@ func fixtureDeps(t *testing.T) Deps {
 			}), nil
 		},
 		Env: func(k string) (string, bool) {
-			if k == "XDG_CONFIG_HOME" {
+			switch k {
+			case "XDG_CONFIG_HOME":
 				return cfgHome, true
+			case "XDG_STATE_HOME":
+				return stateHome, true
 			}
 			return "", false
 		},

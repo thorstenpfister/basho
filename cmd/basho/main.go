@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"os"
-	"path/filepath"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/colorprofile"
@@ -36,15 +35,7 @@ func main() {
 
 // runTUI starts the interactive app on the current tournament's latest day,
 // with the picker underneath (SPEC §8.3).
-func runTUI(cfg config.Config, svc *service.Service, noColor bool) error {
-	dir, err := config.StateDir(os.LookupEnv)
-	if err != nil {
-		return err
-	}
-	st, err := spoiler.Load(filepath.Join(dir, spoiler.FileName))
-	if err != nil {
-		return err
-	}
+func runTUI(cfg config.Config, svc *service.Service, noColor bool, st *spoiler.State) error {
 	ctx := &tui.Context{
 		Svc: svc, Cfg: cfg, Theme: theme.New(cfg.UI.Theme != "light", cfg.UI.ASCII), Clock: clock.Real{},
 		TTY:      term.IsTerminal(os.Stdout.Fd()),

@@ -169,12 +169,16 @@ func renderDay(g glyphs, d service.Day, p service.Provenance) string {
 			tag = strings.TrimSpace(tag + " " + gold.Render(g.star+" kinboshi"))
 		}
 		technique := string(r.Kimarite.Kimarite)
-		if !decided {
+		eg, wg := sideGlyph(g, r.Winner == domain.East, decided, r.Fusen), sideGlyph(g, r.Winner == domain.West, decided, r.Fusen)
+		switch {
+		case r.Hidden:
+			technique, eg, wg = "?", "?", "?"
+		case !decided:
 			technique = g.none
 		}
 		rows = append(rows, []string{
 			fmt.Sprint(r.MatchNo), r.East.Rank.Short(), east, record(r.East),
-			sideGlyph(g, r.Winner == domain.East, decided, r.Fusen), technique, sideGlyph(g, r.Winner == domain.West, decided, r.Fusen),
+			eg, technique, wg,
 			record(r.West), west, r.West.Rank.Short(), tag,
 		})
 	}
@@ -278,7 +282,9 @@ func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 	}
 
 	b.WriteString("\n")
-	if r := t.Result; r == nil {
+	if r := t.Result; t.Hidden {
+		b.WriteString("Result hidden (spoiler-free)\n")
+	} else if r == nil {
 		fmt.Fprintf(&b, "Scheduled — Day %d\n", t.Day)
 	} else {
 		winner := e.Shikona.Romaji()

@@ -1048,6 +1048,8 @@ Global flags:
 | `--config PATH` | Alternative config file |
 | `--debug` | Debug log |
 | `--offline` | Snapshot and cache only, never touch the network |
+| `--no-spoilers` | Spoiler-free: stop at the stored reveal horizon (also `spoilers.mode = "hide"`) |
+| `--reveal-to DAY[:BOUT]` | Set the tournament's horizon (`13`, `13:19`, `j13:5` for Juryo, `0`); implies `--no-spoilers` |
 | `--no-snapshot` | Hidden, for development: ignore the embedded snapshot |
 
 Output rules:
@@ -1540,6 +1542,8 @@ AC status: met on the simulated day above. The check on a real day happens durin
    - **Live mode:** in spoiler-free mode it never feeds the day view the poll's answer. The day view reloads behind the horizon from the cache, without `NEW` badges, and the status bar adds "3 new results hidden".
    - **Fix:** screens below the top used to lose the answers to their own commands, because the root delivers to the top. This also affected Phase 10's live updates. The root now addresses those answers back to the screen that asked.
 4. CLI `--no-spoilers` and `--reveal-to`.
+
+   Done: both are global flags; `spoilers.mode = "hide"` also hides in the CLI. `--reveal-to` sets the horizon exactly, earlier or later, for the command's tournament (`-t`, otherwise the current one) and saves it. Text output draws hidden bouts as `?` and the tale as "Result hidden (spoiler-free)". JSON adds `"hidden": true` to bouts and tales, with `winner`, `technique` and `result` null. The CLI tests now keep the state file in a temporary directory.
 5. `basho watch` line stream (text and NDJSON), reusing the live scheduler.
 6. Tests: no spoiler leaks through any view (snapshot tests with a horizon in the middle of a day), and the horizon persists between runs.
 

@@ -44,7 +44,10 @@ func NewRoot(info buildinfo.Info, deps Deps) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return deps.TUI(a.cfg, svc, a.noColor)
+			if err := a.applyReveal(a.current()); err != nil {
+				return err
+			}
+			return deps.TUI(a.cfg, svc, a.noColor, a.spoilers)
 		},
 	}
 	SetVersion(root, info)
