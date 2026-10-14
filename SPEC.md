@@ -486,9 +486,10 @@ All inputs come from the bout index (§5.8). Every computation takes an **as-of 
 
 ### 6.1 Record going into a bout
 
-Record = wins and losses from `Results[0 : day-1]`, plus same-day bouts before this one (only playoffs can cause a second bout on the same day).
+Record = the banzuke results before the cutoff (`RecordAt` with `BeforeBout`; the record after the bout uses `ThroughBout`). Going into a playoff, that includes the day's regular bout; playoffs themselves never count, as in the official record.
 - Fusen wins/losses count as wins/losses.
-- Absences are counted separately and shown as `W-L-A` only when A > 0, for example `5-7-3`.
+- Absences are counted separately and shown as `W-L-A` only when A > 0, for example `5-7-3`. Draws (old era) are shown as `7-7 1d`; sumo-api records most `hikiwake` with a winner, so they rarely occur.
+- Kachi-koshi is 8 wins; make-koshi is 8 losses and absences together.
 
 ### 6.2 Last 5 results
 
