@@ -258,7 +258,7 @@ testdata/                     recorded API fixtures (see §13)
 
 Dependency rules:
 - `domain` and `derive` import nothing internal.
-- `tui` and `cli` only talk to `service`.
+- `tui` and `cli` only talk to `service` for data. They may use `domain` and `derive` types, which the service's views carry (`derive` does no I/O).
 - Only `source/*` and `httpx` touch the network.
 - `cmd/basho` never imports `datatool`.
 
@@ -1053,7 +1053,10 @@ Global flags:
 Output rules:
 
 - **When the output is a terminal (TTY):** Lip Gloss tables in the same style as the TUI.
-- **When piped:** no colour, same layout.
+- **When piped:** no colour, same layout. `--no-color` forces this in a terminal.
+- Every data command ends with a dim provenance line (`source: snapshot (2026-10-14)`, `· stale` when an expired cache entry stood in).
+- `--ascii` (or `ui.ascii`) swaps the symbols: ○ ● □ ■ – · ★ ▲ ▼ │ 結び 休 become o x O X - . * + - | musubi kyujo.
+- `basho bout` prints the tale of the tape as mirrored columns, the last meetings, the result, then both technique profiles and the matchup line (§6.7). `basho standings` prints every row grouped by band (the TUI collapses the rest).
 - **`--json`:** a stable envelope:
 
   ```json
@@ -1398,7 +1401,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 1. `service` façade: `CurrentBasho`, `Basho`, `Day(basho, division, day)`, `Bout(basho, division, day, matchNo)` (the full tale-of-the-tape model, including moveset and rating), `Standings(basho, division, day)`, `Recap`, `Ratings`. Each returns `Result[T]` with provenance. Done as `CurrentBasho`, `Info`, `List`, `DefaultDay`, `Day`, `Bout`, `Standings`, `Recap` and `RatingTable`. `Info` names Makuuchi and Juryo winners always and lower-division winners only when the wrestler index knows them (it holds sekitori).
 2. Background refresh of the active-wrestler index when the snapshot's index is older than 7 days, plus the `idmap` skeleton (filled in Phase 9). Done: `service.RefreshWrestlers` fetches `/rikishis` without `intai` (the ~600 active wrestlers, one page) once the snapshot is more than 7 days old and overlays their current profiles; `StartBackground` runs it for long sessions (the TUI), while one-shot CLI commands don't wait for it. `idmap.Map` maps JSA IDs from the index.
 3. Config loading (file, environment, flags, defaults) and validation, including minimum intervals and maximum rates. Done (`internal/config`, BurntSushi/toml); the per-host intervals are the `sources.*_interval` settings (§12).
-4. Commands: `list`, `info`, `day`, `bout`, `standings` (`--grid`), `ratings`, `credits`, with text renderers (Lip Gloss tables in a terminal, plain when piped).
+4. Commands: `list`, `info`, `day`, `bout`, `standings` (`--grid`), `ratings`, `credits`, with text renderers (Lip Gloss tables in a terminal, plain when piped). Done; `service.Open` wires the production layers from the configuration (snapshot, sumo-api over the disk cache and `httpx`, debug log). `--source osada` is refused until Phase 9.
 5. The `--json` envelope, `docs/json.md` and exit codes.
 6. Golden tests for text and JSON.
 

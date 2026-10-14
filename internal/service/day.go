@@ -155,6 +155,7 @@ func (s *Service) boutRow(b domain.Bout, entries map[domain.RikishiID]domain.Ban
 	side := func(bs domain.BoutSide) BoutSide {
 		out := BoutSide{Wrestler: Wrestler{RikishiID: bs.RikishiID, Shikona: bs.Shikona, Rank: bs.Rank}}
 		if e, ok := entries[bs.RikishiID]; ok { // a Makushita visitor has no record here
+			out.Shikona = e.Shikona // with kanji, which bout sides may lack
 			out.Before = derive.RecordAt(e, days, derive.BeforeBout(b))
 			out.After = derive.RecordAt(e, days, derive.ThroughBout(b))
 		}

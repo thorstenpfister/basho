@@ -39,8 +39,10 @@ var networkPkgs = []string{"net", "net/http"}
 // uiAllowed is everything the TUI and CLI may import besides their own
 // subtrees: data is reached only through internal/service. The live scheduler
 // is wired into the TUI (SPEC §10.2); portraits are rendered there (§8.9).
+// internal/derive is pure computation without I/O, and the service's views
+// carry its types (records, profiles, standings).
 var uiAllowed = []string{
-	"internal/service", "internal/domain", "internal/clock", "internal/config",
+	"internal/service", "internal/domain", "internal/derive", "internal/clock", "internal/config",
 	"internal/spoiler", "internal/live", "internal/portrait", "internal/buildinfo",
 }
 

@@ -8,16 +8,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/thorstenpfister/basho/internal/buildinfo"
-	"github.com/thorstenpfister/basho/internal/service"
 )
 
-// Execute runs root through fang and returns the process exit code. fang
-// prints errors itself.
+// Execute runs root through fang and returns the process exit code (SPEC
+// §11). fang prints errors itself.
 func Execute(root *cobra.Command) int {
-	if err := fang.Execute(context.Background(), root, fang.WithoutVersion()); err != nil {
-		return 1
-	}
-	return 0
+	return exitCode(fang.Execute(context.Background(), root, fang.WithoutVersion()))
 }
 
 // SetVersion makes --version print the same text as `version`. fang's own
@@ -27,8 +23,9 @@ func SetVersion(root *cobra.Command, info buildinfo.Info) {
 	root.SetVersionTemplate(versionText(root.Name(), info))
 }
 
-// NewRoot returns the basho root command with all subcommands, over svc.
-func NewRoot(info buildinfo.Info, svc *service.Service) *cobra.Command {
+// NewRoot returns the basho root command with all subcommands.
+func NewRoot(info buildinfo.Info, deps Deps) *cobra.Command {
+	a := newApp(deps)
 	root := &cobra.Command{
 		Use:   "basho",
 		Short: "Browse grand sumo tournaments in the terminal",
@@ -48,7 +45,10 @@ func NewRoot(info buildinfo.Info, svc *service.Service) *cobra.Command {
 			_, err := io.WriteString(cmd.OutOrStdout(), versionText(cmd.Root().Name(), info))
 			return err
 		},
-	}, newRatingsCmd(svc))
+	})
+	root.AddCommand(a.commands()...)
+	a.flags(root)
+	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error { return usage(err) })
 	return root
 }
 

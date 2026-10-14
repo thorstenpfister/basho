@@ -108,6 +108,7 @@ func (s *Service) Bout(ctx context.Context, id domain.BashoID, div domain.Divisi
 		}
 		if e, ok := entries[bs.RikishiID]; ok {
 			t.Record = derive.RecordAt(e, d.days, c)
+			t.Shikona = e.Shikona // bout sides may carry romaji only (SPEC Appendix D)
 		}
 		if r.Shown() {
 			rt := r.At(bs.RikishiID, bs.Rank, c)
