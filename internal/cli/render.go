@@ -75,6 +75,9 @@ func provenance(p service.Provenance) string {
 	if !p.FetchedAt.IsZero() {
 		s += " (" + p.FetchedAt.Format("2006-01-02") + ")"
 	}
+	if p.Forced {
+		s += " · forced"
+	}
 	if p.Stale {
 		s += " · stale: the source could not be reached"
 	}
@@ -584,10 +587,10 @@ const credits = `basho uses data from:
   sumo-api.com  History, profiles and statistics since 1960. basho keeps to
                 its request for responsible use: at most one request per
                 second, and finished tournaments ship inside basho.
-  osada.us      Live results of the current tournament (from Phase 9),
-                scraped from the Japan Sumo Association's official pages and
-                run by one person on a best-effort basis. Its usage policy
-                allows search and AI input, not AI training; basho shows the
+  osada.us      Live results of the current tournament, scraped from the
+                Japan Sumo Association's official pages and run by one
+                person on a best-effort basis. Its usage policy allows
+                search and AI input, not AI training; basho shows the
                 source and time of its data.
 
 The embedded snapshot of finished tournaments is built from sumo-api.com.

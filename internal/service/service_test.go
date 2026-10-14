@@ -265,7 +265,7 @@ func TestProvenance(t *testing.T) {
 		{"stale", httpx.Response{Status: 200, Cached: true, Stale: true, FetchedAt: old}, Provenance{Source: "cache:sumo-api", FetchedAt: old, Stale: true}},
 	} {
 		g := Recording(fakeGetter{tt.resp}, func() time.Time { return testNow })
-		p, err := fromRemote(t.Context(), "sumo-api", testNow, func(ctx context.Context) error {
+		p, _, err := tracked(t.Context(), "sumo-api", testNow, func(ctx context.Context) error {
 			_, err := g.Get(ctx, "u", httpx.Validators{})
 			return err
 		})
@@ -280,6 +280,18 @@ func TestProvenance(t *testing.T) {
 	}
 	if got := merge(Provenance{}, snap); got != snap {
 		t.Errorf("merge with nothing %+v", got)
+	}
+	// Two sources as lively are both named; forcing spreads.
+	for _, tt := range []struct{ a, b, want string }{
+		{"sumo-api", "osada", "sumo-api + osada"},
+		{"osada + sumo-api", "sumo-api", "osada + sumo-api"},
+		{"cache:sumo-api", "cache:osada", "cache:sumo-api + osada"},
+		{"cache:osada", "sumo-api", "sumo-api"},
+	} {
+		got := merge(Provenance{Source: tt.a, Forced: true}, Provenance{Source: tt.b})
+		if got.Source != tt.want || !got.Forced {
+			t.Errorf("merge %q, %q: %+v", tt.a, tt.b, got)
+		}
 	}
 }
 

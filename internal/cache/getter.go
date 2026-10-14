@@ -27,7 +27,10 @@ func CachedOnly(ctx context.Context) context.Context {
 	return context.WithValue(ctx, cachedOnlyKey{}, true)
 }
 
-func cachedOnly(ctx context.Context) bool {
+func cachedOnly(ctx context.Context) bool { return IsCachedOnly(ctx) }
+
+// IsCachedOnly reports whether ctx is marked by CachedOnly.
+func IsCachedOnly(ctx context.Context) bool {
 	v, _ := ctx.Value(cachedOnlyKey{}).(bool)
 	return v
 }

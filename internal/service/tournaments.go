@@ -8,8 +8,8 @@ import (
 )
 
 // TournamentSource is a data layer behind the snapshot: in production the
-// sumo-api adapter over the disk cache, which in turn sits over the network.
-// The resolver's interfaces (SPEC §5.3, Phase 9) will replace it.
+// resolver over sumo-api and osada.us, each over the disk cache, which in
+// turn sits over the network.
 type TournamentSource interface {
 	Basho(ctx context.Context, id domain.BashoID) (domain.Basho, error)
 	Banzuke(ctx context.Context, id domain.BashoID, div domain.Division) ([]domain.BanzukeEntry, error)

@@ -2,11 +2,12 @@ package service
 
 import (
 	"context"
+	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/thorstenpfister/basho/internal/httpx"
+	"github.com/thorstenpfister/basho/internal/source/resolver"
 )
 
 // Result is every use case's answer: the value and where it came from
@@ -18,18 +19,19 @@ type Result[T any] struct {
 
 // Provenance says where data came from and how fresh it is.
 type Provenance struct {
-	Source          string     // "snapshot", "sumo-api", "cache:sumo-api"
+	Source          string     // "snapshot", "sumo-api", "cache:osada", "osada + sumo-api"
 	FetchedAt       time.Time  // the snapshot's build time, or the oldest response used
-	SourceUpdatedAt *time.Time // e.g. osada's resultUpdatedAt (Phase 9)
+	SourceUpdatedAt *time.Time // osada's resultUpdatedAt
 	Stale           bool       // served from an expired cache entry because the source failed
+	Forced          bool       // --source chose the source (SPEC §5.4 rule 3)
 }
 
 // SnapshotSource is the provenance label of embedded data.
 const SnapshotSource = "snapshot"
 
 // merge combines the provenance of two parts of one answer: the liveliest
-// source names it (network, then cache, then snapshot), staleness spreads,
-// and the older fetch time counts.
+// source names it (network, then cache, then snapshot), or both when they
+// are as lively; staleness spreads, and the older fetch time counts.
 func merge(a, b Provenance) Provenance {
 	switch {
 	case a.Source == "":
@@ -38,8 +40,11 @@ func merge(a, b Provenance) Provenance {
 		return a
 	}
 	out := a
-	if liveliness(b.Source) > liveliness(a.Source) {
+	switch la, lb := liveliness(a.Source), liveliness(b.Source); {
+	case lb > la:
 		out.Source = b.Source
+	case lb == la:
+		out.Source = union(a.Source, b.Source)
 	}
 	if b.FetchedAt.Before(out.FetchedAt) {
 		out.FetchedAt = b.FetchedAt
@@ -48,7 +53,30 @@ func merge(a, b Provenance) Provenance {
 		out.SourceUpdatedAt = b.SourceUpdatedAt
 	}
 	out.Stale = a.Stale || b.Stale
+	out.Forced = a.Forced || b.Forced
 	return out
+}
+
+// union joins two labels of the same liveliness: "sumo-api" and "osada"
+// give "sumo-api + osada", "cache:sumo-api" and "cache:osada" give
+// "cache:sumo-api + osada".
+func union(a, b string) string {
+	prefix, a, _ := cutCache(a)
+	_, b, _ = cutCache(b)
+	names := strings.Split(a, " + ")
+	for _, n := range strings.Split(b, " + ") {
+		if !slices.Contains(names, n) {
+			names = append(names, n)
+		}
+	}
+	return prefix + strings.Join(names, " + ")
+}
+
+func cutCache(s string) (prefix, rest string, ok bool) {
+	if rest, ok := strings.CutPrefix(s, "cache:"); ok {
+		return "cache:", rest, true
+	}
+	return "", s, false
 }
 
 func liveliness(source string) int {
@@ -62,62 +90,33 @@ func liveliness(source string) int {
 	}
 }
 
-// recorder collects the responses of one remote call.
-type recorder struct {
-	mu     sync.Mutex
-	n      int
-	cached int
-	stale  bool
-	oldest time.Time
-}
-
-type recorderKey struct{}
-
-// Recording wraps the getter under a source adapter so that the service
-// learns, per call, whether the answer came from the cache, how old it is
-// and whether it is stale.
+// Recording wraps the getter under a source adapter used without the
+// resolver, so that the service learns, per call, whether the answer came
+// from the cache, how old it is and whether it is stale.
 func Recording(g httpx.Getter, now func() time.Time) httpx.Getter {
-	return recordingGetter{next: g, now: now}
+	return resolver.Record(g, "", now)
 }
 
-type recordingGetter struct {
-	next httpx.Getter
-	now  func() time.Time
-}
-
-func (g recordingGetter) Get(ctx context.Context, url string, v httpx.Validators) (*httpx.Response, error) {
-	resp, err := g.next.Get(ctx, url, v)
-	if rec, ok := ctx.Value(recorderKey{}).(*recorder); ok && err == nil {
-		at := resp.FetchedAt
-		if at.IsZero() {
-			at = g.now()
-		}
-		rec.mu.Lock()
-		rec.n++
-		if resp.Cached {
-			rec.cached++
-		}
-		rec.stale = rec.stale || resp.Stale
-		if rec.oldest.IsZero() || at.Before(rec.oldest) {
-			rec.oldest = at
-		}
-		rec.mu.Unlock()
+// tracked runs fn against the remote layers and returns its provenance,
+// naming the sources the resolver says answered (name without the
+// resolver), and the call's record for the per-bout sources.
+func tracked(ctx context.Context, name string, now time.Time, fn func(context.Context) error) (Provenance, *resolver.Track, error) {
+	ctx, t := resolver.Tracking(ctx)
+	err := fn(ctx)
+	label, answered := name, t.Answered()
+	if len(answered) > 0 {
+		label = strings.Join(answered, " + ")
 	}
-	return resp, err
-}
-
-// fromRemote runs fn against a remote source and returns its provenance.
-func fromRemote(ctx context.Context, name string, now time.Time, fn func(context.Context) error) (Provenance, error) {
-	rec := &recorder{}
-	err := fn(context.WithValue(ctx, recorderKey{}, rec))
-	rec.mu.Lock()
-	defer rec.mu.Unlock()
-	p := Provenance{Source: name, FetchedAt: now, Stale: rec.stale}
-	if rec.n > 0 {
-		p.FetchedAt = rec.oldest
-		if rec.cached == rec.n {
-			p.Source = "cache:" + name
+	n, cached, stale, oldest := t.Responses(answered...)
+	p := Provenance{Source: label, FetchedAt: now, Stale: stale, Forced: t.Forced()}
+	if n > 0 {
+		p.FetchedAt = oldest
+		if cached == n {
+			p.Source = "cache:" + label
 		}
 	}
-	return p, err
+	if at := t.UpdatedAt(); !at.IsZero() {
+		p.SourceUpdatedAt = &at
+	}
+	return p, t, err
 }

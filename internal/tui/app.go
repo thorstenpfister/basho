@@ -330,7 +330,11 @@ func provenance(p service.Provenance, now time.Time) string {
 	if p.SourceUpdatedAt != nil {
 		at = *p.SourceUpdatedAt
 	}
-	return fmt.Sprintf("%s · updated %s (%s)", p.Source, at.In(domain.JST).Format("15:04 JST"), age(now.Sub(at)))
+	src := p.Source
+	if p.Forced {
+		src += " (forced)"
+	}
+	return fmt.Sprintf("%s · updated %s (%s)", src, at.In(domain.JST).Format("15:04 JST"), age(now.Sub(at)))
 }
 
 func age(d time.Duration) string {

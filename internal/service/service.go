@@ -16,6 +16,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/rating"
 	"github.com/thorstenpfister/basho/internal/snapshot"
 	"github.com/thorstenpfister/basho/internal/source"
+	"github.com/thorstenpfister/basho/internal/source/resolver"
 )
 
 // ErrNoSnapshot is returned by snapshot-only operations without a snapshot.
@@ -229,17 +230,24 @@ func (s *Service) tournaments() (Tournaments, error) {
 // layer runs a read against the snapshot when it holds id, otherwise against
 // the remote layers, and returns where the answer came from.
 func (s *Service) layer(ctx context.Context, id domain.BashoID, read func(context.Context, Tournaments) error) (Provenance, error) {
+	p, _, err := s.layerTracked(ctx, id, read)
+	return p, err
+}
+
+// layerTracked is layer that also returns the resolver's record of a remote
+// call; nil for the snapshot.
+func (s *Service) layerTracked(ctx context.Context, id domain.BashoID, read func(context.Context, Tournaments) error) (Provenance, *resolver.Track, error) {
 	ts, err := s.tournaments()
 	if err != nil {
-		return Provenance{}, err
+		return Provenance{}, nil, err
 	}
 	if ts.fromSnapshot(id) {
-		return Provenance{Source: SnapshotSource, FetchedAt: ts.Snapshot.Manifest().GeneratedAt}, read(ctx, ts)
+		return Provenance{Source: SnapshotSource, FetchedAt: ts.Snapshot.Manifest().GeneratedAt}, nil, read(ctx, ts)
 	}
 	if ts.Remote == nil {
-		return Provenance{}, fmt.Errorf("tournament %s: not in the snapshot and no remote source: %w", id, source.ErrNotYetAvailable)
+		return Provenance{}, nil, fmt.Errorf("tournament %s: not in the snapshot and no remote source: %w", id, source.ErrNotYetAvailable)
 	}
-	return fromRemote(ctx, s.opts.RemoteName, s.opts.Clock.Now(), func(ctx context.Context) error { return read(ctx, ts) })
+	return tracked(ctx, s.opts.RemoteName, s.opts.Clock.Now(), func(ctx context.Context) error { return read(ctx, ts) })
 }
 
 func (s *Service) basho(ctx context.Context, id domain.BashoID) (domain.Basho, Provenance, error) {
@@ -260,18 +268,26 @@ func (s *Service) banzuke(ctx context.Context, id domain.BashoID, div domain.Div
 	return e, p, err
 }
 
-// torikumi returns a division's bouts of one day. Days of tournaments after
+// torikumi returns a division's bouts of one day, and each bout's source by
+// match number when the resolver merged sources. Days of tournaments after
 // the snapshot also go into the bout index and the ratings.
-func (s *Service) torikumi(ctx context.Context, b domain.Basho, div domain.Division, day int) ([]domain.Bout, Provenance, error) {
+func (s *Service) torikumi(ctx context.Context, b domain.Basho, div domain.Division, day int) ([]domain.Bout, Provenance, map[int]string, error) {
 	var bouts []domain.Bout
-	p, err := s.layer(ctx, b.ID, func(ctx context.Context, ts Tournaments) (err error) {
+	p, t, err := s.layerTracked(ctx, b.ID, func(ctx context.Context, ts Tournaments) (err error) {
 		bouts, err = ts.Torikumi(ctx, b.ID, div, day)
 		return err
 	})
-	if err == nil && p.Source != SnapshotSource {
+	if err != nil {
+		return nil, p, nil, err
+	}
+	var sources map[int]string
+	if t != nil {
+		sources = t.BoutSources()
+	}
+	if p.Source != SnapshotSource {
 		err = s.addLater(b, div, day, bouts)
 	}
-	return bouts, p, err
+	return bouts, p, sources, err
 }
 
 // addLater puts a remote day into the bout index and the ratings.

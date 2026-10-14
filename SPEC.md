@@ -1471,6 +1471,13 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 
    Done: `idmap.Map.Resolve` maps a JSA ID to the sumo-api wrestler with the index's romaji, and osada's kanji and kana. An unknown ID refetches the active wrestlers once an hour at most (revalidated past the 7-day cache, failures count too) and overlays them on the profiles. A wrestler still unknown gets a temporary identity: ID minus the JSA ID, and a name transliterated by `idmap.Romaji` with `Name.Approx` set. Screens and the CLI print names with `Name.Romaji()`, which puts `≈` in front; JSON carries `"approx": true`. Collapsing `ou` also hits morpheme boundaries (しょうなんのうみ → Shonannomi), which the `≈` admits.
 5. `resolver`: the policy table (§5.4), "behind" detection, merge rules, per-bout source tracking, `--source` override, stale cache as last resort.
+
+   Done: `resolver.Resolver` answers the service's Basho/Banzuke/Torikumi in sumo-api's place; `service.Open` puts it over both adapters, each over its own cache policy (osada: the live interval in the window, 30 min outside, never pinned).
+   - **Current** means from 14 days before the estimated day 1 (the banzuke is out) until the results are final; only then is osada asked, and only when it serves that tournament.
+   - **Fallback** (rule 1) on upstream errors, 429, a paused host, nothing cached in cache-only mode, and also on not-found / not-yet-available, which is how a source that is behind shows. Unmappable data does not fall back.
+   - **Behind without a request:** the bout list from osada is compared with sumo-api's copy only when that is in the cache (cache-only), so live polling stays at one osada request (§7.3).
+   - **Stale** (rule 4): a source that answers only from an expired cache copy gives way to the next one; when that fails too, the stale answer is served.
+   - **Provenance:** a `resolver.Track` on the context records which sources answered and their responses; the status bar names them all ("osada + sumo-api"), marks `(forced)` under `--source`, and shows osada's `resultUpdatedAt`. `BoutRow.Source` names a bout's source when a day merged both.
 6. Contract tests: both adapters produce equivalent domain output for the current-tournament fixtures.
 
 **AC:**

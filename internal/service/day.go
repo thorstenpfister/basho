@@ -57,6 +57,7 @@ type BoutRow struct {
 	Kinboshi   bool
 	Musubi     bool     // the day's last regular bout (結び)
 	WinChance  *float64 // the east side's chance before the bout; nil when the rating is hidden
+	Source     string   // the bout's source when the day merged sources (SPEC §5.4); empty otherwise
 }
 
 // BoutSide is one wrestler of a bout row: the record before and after it.
@@ -85,6 +86,7 @@ type dayData struct {
 	bouts   []domain.Bout // this day's, this division
 	days    derive.DayBouts
 	prov    Provenance
+	sources map[int]string // each bout's source when the resolver merged sources
 }
 
 func checkDay(day int) error {
@@ -106,11 +108,11 @@ func (s *Service) loadDay(ctx context.Context, id domain.BashoID, div domain.Div
 	if err != nil {
 		return dayData{}, err
 	}
-	bouts, p3, err := s.torikumi(ctx, b, div, day)
+	bouts, p3, sources, err := s.torikumi(ctx, b, div, day)
 	if err != nil {
 		return dayData{}, err
 	}
-	return dayData{basho: b, entries: entries, bouts: bouts, days: derive.NewDayBouts(id, bouts), prov: merge(merge(p1, p2), p3)}, nil
+	return dayData{basho: b, entries: entries, bouts: bouts, days: derive.NewDayBouts(id, bouts), prov: merge(merge(p1, p2), p3), sources: sources}, nil
 }
 
 // Day returns a division's bouts of one day, with records as of before each
@@ -137,6 +139,7 @@ func (s *Service) Day(ctx context.Context, id domain.BashoID, div domain.Divisio
 	}
 	for _, b := range d.bouts {
 		row := s.boutRow(b, entries, d.days, r)
+		row.Source = d.sources[b.MatchNo]
 		row.Musubi = !b.IsPlayoff && b.MatchNo == lastRegular && div == domain.DivMakuuchi
 		if b.IsPlayoff {
 			out.Playoffs = append(out.Playoffs, row)
