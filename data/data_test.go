@@ -11,3 +11,13 @@ func TestSnapshotOpens(t *testing.T) {
 		t.Errorf("Rikishi: %v", err)
 	}
 }
+
+func TestRatingParams(t *testing.T) {
+	f, err := RatingParams()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Params.K <= 0 || f.Split.Through.IsZero() {
+		t.Errorf("params %+v", f)
+	}
+}

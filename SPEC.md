@@ -1245,7 +1245,7 @@ Only once you have decided to make the repository public (D9, D22).
 - "Streak" markers (🔥 5 wins in a row).
 - Theme packs (for example "arcade" with a block-font `VS` and a matching portrait palette).
 - Signing and notarization (D25).
-- A better rating model (Glicko-2, or a blend with rank and head-to-head) if plain Elo shows weaknesses.
+- A better rating model (Glicko-2, or a blend with rank and head-to-head) if plain Elo shows weaknesses. Plain Elo is overconfident for lopsided bouts (V9); a calibrated scale on the rating difference (a fitted divisor instead of 400) would be the cheapest fix.
 - Full-resolution portraits via the Kitty graphics protocol in terminals that support it, if Bubble Tea gains a clean way to mix it with text rendering.
 
 ---
@@ -1283,7 +1283,7 @@ Only once you have decided to make the repository public (D9, D22).
 - **V8** Actual snapshot size (compressed) and time to build the bout index at startup. Answered: 2.50 MB for 399 tournaments (§4.3); opening the snapshot and building the whole bout index takes about 50 ms on an Apple M5.
 - ~~**V10**~~ **Answered (Phase 1):** `rankValue` = title × 100 + number (Yokozuna 1 → 101, Juryo 3 → 603); the side is not encoded, East and West share the value. Old-era haridashi wrestlers appear as ordinary numbered ranks (196001 has "Yokozuna 2 East"), so the English format is the same throughout. Side note for §6.8: Juryo had 18 ranks per side in 1960, not 14, so the rank bands must not assume J14 is the lowest.
 - ~~**V11**~~ **Answered (Phase 1):** sumo-api.com's `/kimarite` lists 90 values, all spelled as in Appendix B. Four were missing and are added: `dashinage` and `yobikaeshi` (historical), `hikiwake` and `itamiwake` (old-era draws). `kakezori`, `shumokuzori` and `sototasukizori` are official but never occur in sumo-api's data.
-- **V9** Whether Elo beats the "higher rank wins" baseline on log loss for 2015 onwards. This decides whether the win chance is shown at all.
+- **V9** Whether Elo beats the "higher rank wins" baseline on log loss for 2015 onwards. This decides whether the win chance is shown at all. **Answered: yes, shown.** On 34,759 bouts from 2015 to 202609, Elo (`K` 10, `K_new` 24 for the first 45 bouts, `r` 0.3, warm-up scale 0.5) has log loss 0.6772, Brier 0.2422 and 56.2% accuracy, against 0.6860 / 0.2465 / 54.0% for the rank baseline and 0.6931 / 0.2500 / 50% for a coin. The margin is modest, as expected for a sport where most bouts are close. The model is somewhat overconfident at the extremes (predicted 74% wins 69%, 93% wins 85%; lowering `K` does not fix it), noted under §15. Report: `docs/rating.md`.
 
 ---
 
@@ -1383,7 +1383,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 
 1. `rating` package: Elo update, rank-band starting ratings with the fixed table for the warm-up period, `K_new`/`K`, adjustment after absences, as-of queries, continuing through live results.
 2. `basho-data rating calibrate`: grid search, train/test split, log loss, Brier score, accuracy, calibration table, both baselines; writes `data/rating/params.json`.
-3. **Decide V9** and record the metrics in this spec. If Elo doesn't beat the rank baseline, the win-chance UI stays switched off and a revised model goes on the list.
+3. **Decide V9** and record the metrics in this spec. If Elo doesn't beat the rank baseline, the win-chance UI stays switched off and a revised model goes on the list. Done: shown (§16, V9).
 4. Plausibility check: the top-rated wrestlers of all time compared with published Elo lists (Ozeki Analytics) and common sense.
 5. Service output: rating, change since the tournament start, win chance; `basho ratings` command.
 6. Tests from §13 (maths, rules, metric regression).
