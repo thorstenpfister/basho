@@ -24,6 +24,8 @@ type Provenance struct {
 	SourceUpdatedAt *time.Time // osada's resultUpdatedAt
 	Stale           bool       // served from an expired cache entry because the source failed
 	Forced          bool       // --source chose the source (SPEC §5.4 rule 3)
+	Failed          string     // a source that failed before another answered, e.g. "osada"
+	FailedErr       string     // its error
 }
 
 // SnapshotSource is the provenance label of embedded data.
@@ -54,6 +56,9 @@ func merge(a, b Provenance) Provenance {
 	}
 	out.Stale = a.Stale || b.Stale
 	out.Forced = a.Forced || b.Forced
+	if out.Failed == "" {
+		out.Failed, out.FailedErr = b.Failed, b.FailedErr
+	}
 	return out
 }
 
@@ -117,6 +122,9 @@ func tracked(ctx context.Context, name string, now time.Time, fn func(context.Co
 	}
 	if at := t.UpdatedAt(); !at.IsZero() {
 		p.SourceUpdatedAt = &at
+	}
+	if f := t.Failed(); len(f) > 0 && err == nil {
+		p.Failed, p.FailedErr = f[0].Source, f[0].Err.Error()
 	}
 	return p, t, err
 }

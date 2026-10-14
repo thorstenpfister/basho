@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/thorstenpfister/basho/internal/cache"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/httpx"
 	"github.com/thorstenpfister/basho/internal/source"
@@ -55,7 +56,8 @@ type bodies struct {
 
 func (c *Client) bodies(ctx context.Context) (bodies, error) {
 	var b bodies
-	if err := c.getJSON(ctx, BanzukePath, &b.banzuke); err != nil {
+	// The banzuke changes once a day; a refresh is for the bouts.
+	if err := c.getJSON(cache.WithoutRevalidate(ctx), BanzukePath, &b.banzuke); err != nil {
 		return b, err
 	}
 	return b, c.getJSON(ctx, TorikumiPath, &b.torikumi)

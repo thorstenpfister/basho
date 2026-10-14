@@ -20,6 +20,13 @@ type Track struct {
 	updatedAt time.Time             // the source's own update stamp (osada's resultUpdatedAt)
 	forced    bool                  // --source turned the resolver off
 	bouts     map[int]string        // Torikumi: each bout's source by match number
+	failed    []Failure             // sources that failed before the answer
+}
+
+// Failure is a source that failed during a call, before another answered.
+type Failure struct {
+	Source string
+	Err    error
 }
 
 type responses struct {
@@ -132,6 +139,16 @@ func (t *Track) stale(name string) bool {
 	return r != nil && r.stale
 }
 
+// clearStale forgets that a source's responses were stale: a live poll
+// takes sumo-api's expired banzuke on purpose.
+func (t *Track) clearStale(name string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if r := t.responses[name]; r != nil {
+		r.stale = false
+	}
+}
+
 // Answered returns the sources whose data is in the answer, in the order
 // they were used; empty when nothing went through the resolver.
 func (t *Track) Answered() []string {
@@ -176,6 +193,21 @@ func (t *Track) Forced() bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return t.forced
+}
+
+func (t *Track) fail(name string, err error) {
+	if t != nil {
+		t.mu.Lock()
+		t.failed = append(t.failed, Failure{name, err})
+		t.mu.Unlock()
+	}
+}
+
+// Failed returns the sources that failed during the call, in order.
+func (t *Track) Failed() []Failure {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return slices.Clone(t.failed)
 }
 
 // BoutSources returns each bout's source by match number, for a Torikumi

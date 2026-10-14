@@ -22,6 +22,9 @@ func TestFreshness(t *testing.T) {
 			t.Errorf("%s: %s, pinned %v; want %s", tt.now.Format("15:04"), ttl, pinned, tt.want)
 		}
 	}
+	if ttl, _ := (Freshness{}).Policy(DefaultBaseURL+BanzukePath, 200, nil, day(16, 0)); ttl != ttlQuiet {
+		t.Errorf("banzuke in the window: %s", ttl)
+	}
 	if ttl, _ := (Freshness{LiveInterval: 5 * time.Minute}).Policy("", 200, nil, day(16, 0)); ttl != 5*time.Minute {
 		t.Errorf("configured interval: %s", ttl)
 	}

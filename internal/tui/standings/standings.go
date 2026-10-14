@@ -64,6 +64,7 @@ type standingsMsg struct {
 	req    int
 	day    int
 	cached bool
+	live   bool // after a live poll: the cache is fresh, no revalidation
 	res    service.Result[service.Standings]
 	err    error
 }
@@ -82,7 +83,7 @@ func (v View) fetch(ctx *tui.Context, cached bool) tea.Cmd {
 			c = service.CachedOnly(c)
 		}
 		res, err := svc.Standings(c, id, div, day)
-		return standingsMsg{req, day, cached, res, err}
+		return standingsMsg{req: req, day: day, cached: cached, res: res, err: err}
 	}
 }
 
@@ -104,6 +105,19 @@ func (v View) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 			return v, nil
 		}
 		return v.answer(ctx, msg)
+	case tui.LiveMsg:
+		// Today's results move the standings from today on; the poll put
+		// them in the cache.
+		if msg.Poll.Basho != v.id || v.day < msg.Poll.Day {
+			return v, nil
+		}
+		v.req++
+		fetch := v.fetch(ctx, true)
+		return v, func() tea.Msg {
+			m := fetch().(standingsMsg)
+			m.live = true
+			return m
+		}
 	case tea.KeyPressMsg:
 		if v.popup {
 			if key.Matches(msg, keyClose) {
@@ -118,7 +132,7 @@ func (v View) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 
 func (v View) answer(ctx *tui.Context, msg standingsMsg) (tui.Screen, tea.Cmd) {
 	if msg.err != nil {
-		if msg.cached {
+		if msg.cached && !msg.live {
 			return v, v.fetch(ctx, false)
 		}
 		v.loading = false
@@ -132,7 +146,7 @@ func (v View) answer(ctx *tui.Context, msg standingsMsg) (tui.Screen, tea.Cmd) {
 	v.data, v.prov, v.err = &msg.res.Value, &msg.res.Prov, nil
 	v.cursor = min(v.cursor, max(len(v.data.Rows)-1, 0))
 	v.clamp(ctx)
-	if msg.cached && msg.res.Prov.Source != service.SnapshotSource {
+	if msg.cached && !msg.live && msg.res.Prov.Source != service.SnapshotSource {
 		return v, v.fetch(ctx, false)
 	}
 	v.loading = false

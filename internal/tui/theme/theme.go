@@ -14,7 +14,7 @@ type Glyphs struct {
 	Kinboshi, Up, Down, None, Divider                              string
 	Musubi, Kyujo                                                  string
 	Complete, InProgress, Scheduled                                string // day bar
-	Cursor, Refresh, Stale, Spoiler, Live, Line                    string
+	Cursor, Refresh, Stale, Spoiler, Live, LiveWait, Line          string
 }
 
 // Unicode is the default glyph set.
@@ -23,7 +23,7 @@ var Unicode = Glyphs{
 	Kinboshi: "★", Up: "▲", Down: "▼", None: "–", Divider: "│",
 	Musubi: "結び", Kyujo: "休",
 	Complete: "✓", InProgress: "●", Scheduled: "·",
-	Cursor: "▶", Refresh: "↻", Stale: "⚠", Spoiler: "🙈", Live: "●", Line: "─",
+	Cursor: "▶", Refresh: "↻", Stale: "⚠", Spoiler: "🙈", Live: "●", LiveWait: "◌", Line: "─",
 }
 
 // ASCII is the glyph set of --ascii and ui.ascii.
@@ -32,7 +32,7 @@ var ASCII = Glyphs{
 	Kinboshi: "*", Up: "+", Down: "-", None: "-", Divider: "|",
 	Musubi: "musubi", Kyujo: "kyujo",
 	Complete: "v", InProgress: "*", Scheduled: ".",
-	Cursor: ">", Refresh: "~", Stale: "!", Spoiler: "[SF]", Live: "*", Line: "-",
+	Cursor: ">", Refresh: "~", Stale: "!", Spoiler: "[SF]", Live: "*", LiveWait: "o", Line: "-",
 }
 
 // Outcome returns the glyph of a day result.

@@ -1496,6 +1496,14 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    - `liveTickMsg` / `liveSnapshotMsg`, merged into the service cache, bout index and ratings
    - `NEW` badges, selection kept stable
    - status bar states (§10.3), `L` toggle, `live.auto`
+
+   Done: the root owns the scheduler for the tournament in progress (`service.LiveTournament`) and runs `service.LivePoll`, both divisions of today. Its answer, a `tui.LiveMsg`, goes to every screen on the stack:
+   - The day view showing today takes the poll's data as it is: newly decided bouts get a `NEW` badge (until the next poll, 60 s at most), and the cursor stays put. Its day bar, race panel and recap reload from the cache.
+   - The standings reload from the cache when the poll's day is within their cutoff.
+   - `L` toggles live mode, and turning it off keeps `live.auto` from turning it back on that day. While live mode polls, `R` polls at once (30 s cooldown) instead of refreshing the screen.
+   - The status bar's right part shows the live state in place of the screen's provenance; "day complete" still names the source.
+   - **Budget detail:** a poll marks its context with `resolver.Live`. osada's `torikumi.json` is revalidated once per tick (sumo-api's bout lists instead, when osada fails); osada's `banzuke.json` keeps a 30-minute TTL and is never revalidated; sumo-api's metadata and banzuke come from the cache, even expired, with osada's results laid over them. A cache miss in a cache-only read is not a source failure.
+   - **Completeness:** day 15 is only complete when no playoff is still to come: a shared lead nobody can change without listed playoff bouts keeps it open.
 3. Conditional GET for osada (the 304 path), with the sumo-api fallback each tick.
 4. Use the Kyushu 2026 recordings and the V1 result to adjust the default interval and source priorities.
 5. Scheduler and request-budget tests (≤ 90 requests per day, mostly 304).

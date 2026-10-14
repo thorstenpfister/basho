@@ -37,6 +37,8 @@ type Day struct {
 	race    *service.Standings // the wide layout's side panel
 	raceFor refreshKey         // the day race belongs to
 
+	fresh map[int]time.Time // NEW: bouts a live poll found decided, by match number
+
 	recapOpen bool           // r: the recap overlay
 	recap     *service.Recap // nil with recapErr
 	recapErr  error          // the recap failed
@@ -201,6 +203,8 @@ func (d Day) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 		if msg.err == nil && msg.key == (refreshKey{d.id, d.div, d.day}) {
 			d.race, d.raceFor = &msg.res.Value, msg.key
 		}
+	case tui.LiveMsg:
+		return d.live(ctx, msg.Poll)
 	case recapMsg:
 		if msg.key == (refreshKey{d.id, d.div, d.day}) {
 			d.recap, d.recapErr, d.recapFor = nil, msg.err, msg.key
@@ -362,6 +366,46 @@ func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 	return d, nil
 }
 
+// freshFor is how long a NEW badge stays at most (SPEC §8.4).
+const freshFor = 60 * time.Second
+
+// live takes a live poll's answer for the shown day: the bouts that are
+// newly decided get a NEW badge until the next poll or for 60 s, and the
+// cursor stays where it is.
+func (d Day) live(ctx *tui.Context, p service.LivePoll) (tui.Screen, tea.Cmd) {
+	if p.Basho != d.id {
+		return d, nil
+	}
+	statuses := d.loadStatuses(ctx)
+	res, ok := p.Days[d.div]
+	if !ok || p.Day != d.day {
+		return d, statuses
+	}
+	decided := map[int]bool{}
+	for _, r := range d.rows() {
+		decided[r.MatchNo] = r.Winner != 0
+	}
+	had := d.data != nil
+	now := ctx.Clock.Now()
+	d.data, d.prov, d.err, d.fresh = &res.Value, &res.Prov, nil, map[int]time.Time{}
+	d.req++ // an answer still on its way is older
+	d.loading = false
+	for _, r := range d.rows() {
+		if had && r.Winner != 0 && !decided[r.MatchNo] {
+			d.fresh[r.MatchNo] = now
+		}
+	}
+	d.cursor = min(d.cursor, max(len(d.rows())-1, 0))
+	d.scroll()
+	d.race, d.recap = nil, nil // reloaded from the cache
+	return d, tea.Batch(statuses, d.loadRace(ctx), d.loadRecap(ctx))
+}
+
+func (d Day) isFresh(ctx *tui.Context, r service.BoutRow) bool {
+	at, ok := d.fresh[r.MatchNo]
+	return ok && ctx.Clock.Now().Sub(at) < freshFor
+}
+
 // recapKey handles the keys while the recap is open: it takes every key
 // (CapturesKeys), closes on r, esc, q, b and enter, and follows ←/→.
 func (d Day) recapKey(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
@@ -511,7 +555,7 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 		if i == len(data.Bouts) {
 			table.WriteString(t.Dim.Render(fmt.Sprintf(" %s%s Kettei-sen %s%s", t.Line, t.Line, t.Line, t.Line)) + "\n")
 		}
-		table.WriteString(cols.row(t, rows[i], i == d.cursor) + "\n")
+		table.WriteString(cols.row(t, rows[i], i == d.cursor, d.isFresh(ctx, rows[i])) + "\n")
 	}
 	if tui.LayoutOf(width) == tui.Wide && d.race != nil && d.raceFor == (refreshKey{d.id, d.div, d.day}) {
 		left := lipgloss.NewStyle().Width(width - panelWidth - 1).Render(strings.TrimSuffix(table.String(), "\n"))

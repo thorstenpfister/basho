@@ -29,6 +29,9 @@ type Context struct {
 	Tick func(time.Duration, func(time.Time) tea.Msg) tea.Cmd
 	// TTY reports that the output is a terminal; animations run only then.
 	TTY bool
+	// Rand returns a number in [0, 1) for live mode's jitter; nil is
+	// math/rand. Tests fix it.
+	Rand func() float64
 }
 
 // Animate reports whether animations run at this width: ui.animations on,
@@ -132,6 +135,7 @@ var (
 	keyLive     = key.NewBinding(key.WithKeys("L"), key.WithHelp("L", "live mode"))
 	keySpoilers = key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "spoiler-free"))
 	keyToday    = key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "today"))
+	keyRefresh  = key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "refresh (live: poll now)"))
 )
 
 var globalKeys = []key.Binding{keyBack, keyToday, keyLive, keySpoilers, keyHelp, keyQuit, keyForce}
@@ -145,6 +149,7 @@ type Model struct {
 	help          bool
 	message       string
 	messageID     int
+	live          liveState
 }
 
 // New returns the root over a starting stack (bottom first); today builds
@@ -155,7 +160,7 @@ func New(ctx *Context, stack []Screen, today func() []Screen) Model {
 
 // Init implements tea.Model.
 func (m Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{m.top().Init(m.ctx)}
+	cmds := []tea.Cmd{m.top().Init(m.ctx), m.loadLive()}
 	if m.ctx.Cfg.UI.Theme == "auto" {
 		cmds = append(cmds, tea.RequestBackgroundColor)
 	}
@@ -172,6 +177,9 @@ func (m Model) Depth() int { return len(m.stack) }
 
 // Update implements tea.Model.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if next, cmd, ok := m.liveUpdate(msg); ok {
+		return next, cmd
+	}
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
@@ -228,7 +236,9 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, keyToday) && m.today != nil:
 		return m.Update(ResetMsg{Stack: m.today()})
 	case key.Matches(msg, keyLive):
-		return m.Update(MessageMsg{"Live mode comes with Phase 10"})
+		return m.toggleLive()
+	case key.Matches(msg, keyRefresh) && m.livePolls():
+		return m.refreshLive()
 	case key.Matches(msg, keySpoilers):
 		return m.Update(MessageMsg{"Spoiler-free mode comes with Phase 11"})
 	}
@@ -303,7 +313,9 @@ func (m Model) statusBar() string {
 	case st.Prov != nil && st.Prov.Stale:
 		right = append(right, t.Gold.Render(t.Stale+" stale"))
 	}
-	if st.Prov != nil && st.Prov.Source != "" {
+	if l := m.liveStatus(); l != "" {
+		right = append(right, l)
+	} else if st.Prov != nil && st.Prov.Source != "" {
 		if LayoutOf(m.width) == Compact {
 			right = append(right, st.Prov.Source)
 		} else {
@@ -391,6 +403,7 @@ func (m Model) helpView(width, height int) string {
 	legend := strings.Join([]string{
 		fmt.Sprintf("%s win  %s loss  %s fusen win  %s fusen loss  %s absent  %s pending  %s kinboshi", g.Win, g.Loss, g.FusenWin, g.FusenLoss, g.Absent, g.Pending, g.Kinboshi),
 		fmt.Sprintf("Day bar: %s complete  %s in progress  %s scheduled", g.Complete, g.InProgress, g.Scheduled),
+		fmt.Sprintf("LIVE: %s polling  %s waiting  %s day complete · NEW: decided since the last poll", g.Live, g.LiveWait, g.Complete),
 		"KK kachi-koshi (8 wins) · MK make-koshi (8 losses and absences) · " + g.Kyujo + " kyujo (absent)",
 		"Ranks: Y yokozuna · O ozeki · S sekiwake · K komusubi · M maegashira · J juryo · Ms makushita; e/w east/west",
 		"Height and weight are the latest known; * marks them on tournaments other than the current one",

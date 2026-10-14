@@ -1,6 +1,7 @@
 package osada
 
 import (
+	"strings"
 	"time"
 
 	"github.com/thorstenpfister/basho/internal/domain"
@@ -19,8 +20,13 @@ type Freshness struct {
 // day's bouts a few times a day (SPEC §4.2).
 const ttlQuiet = 30 * time.Minute
 
-// Policy implements cache.Policy for osada.us URLs.
-func (f Freshness) Policy(_ string, _ int, _ []byte, now time.Time) (time.Duration, bool) {
+// Policy implements cache.Policy for osada.us URLs. The banzuke is kept for
+// ttlQuiet even in the window: the results come from the bout list, so a
+// live poll costs one request (SPEC §7.3).
+func (f Freshness) Policy(url string, _ int, _ []byte, now time.Time) (time.Duration, bool) {
+	if strings.HasSuffix(url, BanzukePath) {
+		return ttlQuiet, false
+	}
 	if f.LiveInterval == 0 {
 		f.LiveInterval = 3 * time.Minute
 	}

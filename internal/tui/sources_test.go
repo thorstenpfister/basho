@@ -66,7 +66,9 @@ func liveContext(t *testing.T, sumoUp, osadaUp bool) *tui.Context {
 	}
 	svc := service.New(service.Options{Remote: res, Wrestlers: wrestlers{}, Clock: clk})
 	res.IDs = svc.IDs
-	return &tui.Context{Svc: svc, Cfg: config.Default(), Theme: theme.New(true, false), Clock: clk, Tick: tui.NoTimers}
+	cfg := config.Default()
+	cfg.Live.Auto = false // the source of each screen's data, not live mode's
+	return &tui.Context{Svc: svc, Cfg: cfg, Theme: theme.New(true, false), Clock: clk, Tick: tui.NoTimers}
 }
 
 func statusLine(v string) string {

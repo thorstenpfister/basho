@@ -54,7 +54,7 @@ func (c cols) header() string {
 
 // row draws one bout: the winner bold, the loser dim, records before the
 // bout, the result glyphs next to the technique (SPEC §8.4).
-func (c cols) row(t theme.Theme, r service.BoutRow, selected bool) string {
+func (c cols) row(t theme.Theme, r service.BoutRow, selected, fresh bool) string {
 	decided := r.Winner != 0
 	east, west := fit(r.East.Shikona.Romaji(), c.name), fit(r.West.Shikona.Romaji(), c.name)
 	eastName := fmt.Sprintf("%-*s", c.name, east)
@@ -78,6 +78,9 @@ func (c cols) row(t theme.Theme, r service.BoutRow, selected bool) string {
 	tag := ""
 	if r.Musubi {
 		tag = t.Dim.Render(t.Musubi)
+	}
+	if fresh {
+		tag = strings.TrimSpace(t.Accent.Bold(true).Render("NEW") + " " + tag)
 	}
 	if r.Kinboshi {
 		tag = strings.TrimSpace(tag + " " + t.Gold.Render(t.Kinboshi))

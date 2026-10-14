@@ -174,9 +174,10 @@ func TestKeysAndStack(t *testing.T) {
 	if len(m.stack) != 1 || m.top().(*fake).name != "today" {
 		t.Error("t did not reset the stack")
 	}
-	m, _ = send(t, m, press("L"))
-	if !strings.Contains(stripANSI(m.statusBar()), "Phase 10") {
-		t.Error("L placeholder")
+	m, cmd = send(t, m, press("L")) // before the current tournament is known
+	m, _ = send(t, m, cmd())
+	if !strings.Contains(stripANSI(m.statusBar()), "still looking for the current tournament") {
+		t.Error("L before the tournament is known")
 	}
 }
 

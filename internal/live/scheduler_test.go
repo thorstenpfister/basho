@@ -61,6 +61,16 @@ func TestWake(t *testing.T) {
 	if got := s.Wake(at(15, 20, 0)); !got.IsZero() {
 		t.Errorf("after day 15: %s", got)
 	}
+	for _, tt := range []struct{ now, want time.Time }{
+		{at(2, 9, 0), at(2, 14, 0)},
+		{at(2, 15, 0), at(3, 14, 0)},
+		{at(0, 15, 0), at(1, 14, 0)},
+		{at(15, 15, 0), time.Time{}},
+	} {
+		if got := New(Config{}, kyushu).NextOpen(tt.now); !got.Equal(tt.want) {
+			t.Errorf("NextOpen(%s) = %s", tt.now, got)
+		}
+	}
 	if !s.Due(at(2, 14, 0)) {
 		t.Error("not due when the window opens")
 	}

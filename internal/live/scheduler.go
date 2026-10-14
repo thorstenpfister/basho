@@ -190,6 +190,16 @@ func (s *Scheduler) Wake(now time.Time) time.Time {
 	return s.tomorrow(now)
 }
 
+// NextOpen returns the next window opening from now: today's, while it is
+// still ahead, else the next tournament day's; zero after the tournament.
+// live.auto turns live mode on then.
+func (s *Scheduler) NextOpen(now time.Time) time.Time {
+	if open, _ := s.window(now); s.DayNumber(now) > 0 && now.Before(open) {
+		return open
+	}
+	return s.tomorrow(now)
+}
+
 // tomorrow is the next tournament day's window opening; zero after day 15.
 func (s *Scheduler) tomorrow(now time.Time) time.Time {
 	next := now.AddDate(0, 0, 1)

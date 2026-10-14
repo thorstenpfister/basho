@@ -46,6 +46,12 @@ func Revalidate(ctx context.Context) context.Context {
 
 func revalidate(ctx context.Context) bool { return Revalidating(ctx) }
 
+// WithoutRevalidate undoes Revalidate for one request: a file that changes
+// rarely beside one that is polled (osada.us's banzuke).
+func WithoutRevalidate(ctx context.Context) context.Context {
+	return context.WithValue(ctx, revalidateKey{}, false)
+}
+
 // Revalidating reports whether ctx is marked by Revalidate.
 func Revalidating(ctx context.Context) bool {
 	v, _ := ctx.Value(revalidateKey{}).(bool)

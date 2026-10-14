@@ -109,8 +109,8 @@ func IsCurrent(id domain.BashoID, today domain.Date) bool {
 
 // Basho returns a tournament's metadata: sumo-api, then osada's dates.
 func (r *Resolver) Basho(ctx context.Context, id domain.BashoID) (domain.Basho, error) {
-	sumo := step[domain.Basho]{SumoAPI, func(ctx context.Context) (domain.Basho, error) { return r.Historical.Basho(ctx, id) }}
-	osada := step[domain.Basho]{Osada, func(ctx context.Context) (domain.Basho, error) {
+	sumo := step[domain.Basho]{name: SumoAPI, fn: func(ctx context.Context) (domain.Basho, error) { return r.Historical.Basho(ctx, id) }}
+	osada := step[domain.Basho]{name: Osada, fn: func(ctx context.Context) (domain.Basho, error) {
 		cur, err := r.osada(ctx, id)
 		if err != nil {
 			return domain.Basho{}, err
@@ -123,16 +123,16 @@ func (r *Resolver) Basho(ctx context.Context, id domain.BashoID) (domain.Basho, 
 	case osadaOnly:
 		return try(ctx, osada)
 	}
-	return try(ctx, sumo, osada)
+	return try(ctx, settled(ctx, sumo), osada)
 }
 
 // Banzuke returns a division's banzuke: sumo-api with osada's newer results
 // laid over it, or osada's alone when sumo-api fails (rule 2).
 func (r *Resolver) Banzuke(ctx context.Context, id domain.BashoID, div domain.Division) ([]domain.BanzukeEntry, error) {
-	sumo := step[[]domain.BanzukeEntry]{SumoAPI, func(ctx context.Context) ([]domain.BanzukeEntry, error) {
+	sumo := step[[]domain.BanzukeEntry]{name: SumoAPI, fn: func(ctx context.Context) ([]domain.BanzukeEntry, error) {
 		return r.Historical.Banzuke(ctx, id, div)
 	}}
-	osada := step[[]domain.BanzukeEntry]{Osada, func(ctx context.Context) ([]domain.BanzukeEntry, error) {
+	osada := step[[]domain.BanzukeEntry]{name: Osada, fn: func(ctx context.Context) ([]domain.BanzukeEntry, error) {
 		cur, err := r.osada(ctx, id)
 		if err != nil {
 			return nil, err
@@ -149,7 +149,8 @@ func (r *Resolver) Banzuke(ctx context.Context, id domain.BashoID, div domain.Di
 	case osadaOnly:
 		return try(ctx, osada)
 	}
-	merged := step[[]domain.BanzukeEntry]{SumoAPI, func(ctx context.Context) ([]domain.BanzukeEntry, error) {
+	sumo = settled(ctx, sumo)
+	merged := step[[]domain.BanzukeEntry]{name: SumoAPI, staleOK: sumo.staleOK, fn: func(ctx context.Context) ([]domain.BanzukeEntry, error) {
 		es, err := sumo.fn(ctx)
 		if err != nil {
 			return nil, err
@@ -176,12 +177,12 @@ func (r *Resolver) Banzuke(ctx context.Context, id domain.BashoID, div domain.Di
 // tournament, with sumo-api's cached copy filling in what osada lacks, then
 // sumo-api.
 func (r *Resolver) Torikumi(ctx context.Context, id domain.BashoID, div domain.Division, day int) ([]domain.Bout, error) {
-	sumo := step[[]domain.Bout]{SumoAPI, func(ctx context.Context) ([]domain.Bout, error) {
-		return r.Historical.Torikumi(ctx, id, div, day)
+	sumo := step[[]domain.Bout]{name: SumoAPI, fn: func(ctx context.Context) ([]domain.Bout, error) {
+		return r.Historical.Torikumi(polled(ctx), id, div, day)
 	}}
 	osada := func(merge bool) step[[]domain.Bout] {
-		return step[[]domain.Bout]{Osada, func(ctx context.Context) ([]domain.Bout, error) {
-			cur, err := r.osada(ctx, id)
+		return step[[]domain.Bout]{name: Osada, fn: func(ctx context.Context) ([]domain.Bout, error) {
+			cur, err := r.osada(polled(ctx), id)
 			if err != nil {
 				return nil, err
 			}
@@ -243,8 +244,44 @@ func osadaBasho(cur source.Current) (domain.Basho, error) {
 
 // step is one source to try for a request.
 type step[T any] struct {
-	name string
-	fn   func(context.Context) (T, error)
+	name    string
+	fn      func(context.Context) (T, error)
+	staleOK bool // an expired cache copy is good enough: live polling
+}
+
+type liveKey struct{}
+
+// Live marks ctx as a live poll (SPEC §10.2): the bout list is what the
+// poll is for, so osada's (or, failing that, sumo-api's) is revalidated when
+// revalidate is set, once per tick; sumo-api's metadata and banzuke come
+// from the cache, even expired, with osada's results laid over them. A poll
+// thus costs one conditional GET to osada.
+func Live(ctx context.Context, revalidate bool) context.Context {
+	return context.WithValue(ctx, liveKey{}, revalidate)
+}
+
+func live(ctx context.Context) (on, revalidate bool) {
+	revalidate, on = ctx.Value(liveKey{}).(bool)
+	return on, revalidate
+}
+
+// polled is the context of a live poll's bout list: revalidated.
+func polled(ctx context.Context) context.Context {
+	if on, revalidate := live(ctx); on && revalidate {
+		return cache.Revalidate(ctx)
+	}
+	return ctx
+}
+
+// settled makes a sumo-api step of a live poll answer from the cache.
+func settled[T any](ctx context.Context, s step[T]) step[T] {
+	if on, _ := live(ctx); !on {
+		return s
+	}
+	fn := s.fn
+	s.fn = func(ctx context.Context) (T, error) { return fn(cache.CachedOnly(ctx)) }
+	s.staleOK = true
+	return s
 }
 
 // try asks the sources in order (rule 1). It moves on when a source fails
@@ -262,6 +299,9 @@ func try[T any](ctx context.Context, steps ...step[T]) (T, error) {
 		t.answer(s.name) // first: a merge adds the other source after it
 		v, err := s.fn(sctx)
 		if err == nil {
+			if s.staleOK {
+				t.clearStale(s.name)
+			}
 			if t.stale(s.name) && i < len(steps)-1 {
 				if staleTrack == nil {
 					stale, staleTrack = v, t
@@ -273,6 +313,9 @@ func try[T any](ctx context.Context, steps ...step[T]) (T, error) {
 		}
 		if firstErr == nil {
 			firstErr = err
+		}
+		if !errors.Is(err, cache.ErrOffline) { // not cached is no outage
+			parent.fail(s.name, err)
 		}
 		if !fallsBack(err) {
 			break
@@ -333,6 +376,7 @@ func (t *Track) absorb(c *Track) {
 	if c.bouts != nil {
 		t.bouts = c.bouts
 	}
+	t.failed = append(t.failed, c.failed...)
 }
 
 // fromSumoAPI reports whether a merge took any bout from sumo-api.
