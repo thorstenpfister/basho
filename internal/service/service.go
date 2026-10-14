@@ -321,3 +321,8 @@ func (s *Service) CurrentBasho() domain.BashoID {
 // disk cache only, never the network: browsing such as the picker (SPEC
 // §8.3). Uncached data then fails as Unavailable.
 func CachedOnly(ctx context.Context) context.Context { return cache.CachedOnly(ctx) }
+
+// Revalidate marks ctx so that cached answers are revalidated with the
+// source even while fresh: the manual refresh R. Finished tournaments stay
+// as they are.
+func Revalidate(ctx context.Context) context.Context { return cache.Revalidate(ctx) }

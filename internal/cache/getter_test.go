@@ -141,6 +141,27 @@ func TestGetterCachedOnly(t *testing.T) {
 	})
 }
 
+func TestGetterRevalidate(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		up := &source{resp: &httpx.Response{Status: 200, Body: []byte("v1"), Validators: httpx.Validators{ETag: `"1"`}}}
+		g := &Getter{Cache: open(t, 0), Next: up, Policy: hourly}
+		if _, err := g.Get(t.Context(), url, httpx.Validators{}); err != nil {
+			t.Fatal(err)
+		}
+		up.resp = &httpx.Response{Status: 304}
+		if r, err := g.Get(Revalidate(t.Context()), url, httpx.Validators{}); err != nil || string(r.Body) != "v1" || up.calls != 2 || up.sent.ETag != `"1"` {
+			t.Errorf("revalidating a fresh entry: %v, %v after %d requests", r, err, up.calls)
+		}
+		pinned := &Getter{Cache: open(t, 0), Next: up, Policy: func(string, int, []byte, time.Time) (time.Duration, bool) { return 0, true }}
+		up.resp = &httpx.Response{Status: 200, Body: []byte("final")}
+		_, _ = pinned.Get(t.Context(), url, httpx.Validators{})
+		calls := up.calls
+		if _, err := pinned.Get(Revalidate(t.Context()), url, httpx.Validators{}); err != nil || up.calls != calls {
+			t.Error("a pinned entry was refetched")
+		}
+	})
+}
+
 func TestGetterPinnedIsFreshForever(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		up := &source{resp: &httpx.Response{Status: 200, Body: []byte("final")}}

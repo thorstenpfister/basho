@@ -32,6 +32,20 @@ func cachedOnly(ctx context.Context) bool {
 	return v
 }
 
+type revalidateKey struct{}
+
+// Revalidate marks ctx so that fresh entries are revalidated with a
+// conditional request anyway: a manual refresh (R, SPEC §8.8). Pinned
+// entries are final and still answer from the cache.
+func Revalidate(ctx context.Context) context.Context {
+	return context.WithValue(ctx, revalidateKey{}, true)
+}
+
+func revalidate(ctx context.Context) bool {
+	v, _ := ctx.Value(revalidateKey{}).(bool)
+	return v
+}
+
 // Getter is an httpx.Getter that answers from the cache while fresh,
 // revalidates stale entries with conditional requests, and falls back to a
 // stale entry when the source fails (SPEC §7.2).
@@ -56,7 +70,7 @@ func (g *Getter) Get(ctx context.Context, url string, v httpx.Validators) (*http
 				return nil, err
 			}
 		}
-		if entry.Pinned || pinned || time.Since(entry.FetchedAt) <= ttl {
+		if entry.Pinned || pinned || time.Since(entry.FetchedAt) <= ttl && !revalidate(ctx) {
 			return fromEntry(entry, false), nil
 		}
 	}

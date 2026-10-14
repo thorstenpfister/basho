@@ -1420,7 +1420,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    - `p` win-chance column
 
    Done: `basho` starts it on the current tournament's latest day with the picker underneath. The day bar comes from `service.DayStatuses` (snapshot tournaments count their bouts, so gap days such as 196503 day 7 can't be selected; later tournaments go by the dates, one metadata request at most). The compact layout caps names and techniques at 10 cells and drops the bout number. `enter`, `s` and `r` show a message until Phases 8 and 9.
-5. Loading, empty and error states; stale-while-revalidate redraws; `R` refresh with cooldown.
+5. Loading, empty and error states; stale-while-revalidate redraws; `R` refresh with cooldown. Done: a day loads through `service.CachedOnly` first (snapshot or cached copy, even expired), then, unless it came from the snapshot, through the sources in the background with `↻`; a failed refresh keeps the copy and says so. `R` revalidates with a conditional request (`service.Revalidate`; pinned, final entries are never refetched), at most every 30 s per day. Timers go through `tui.Context.Tick`, so the spinner and messages don't run in tests.
 6. Wide layout side panel (top bands of the yusho race).
 7. `teatest` golden snapshots (80×24, 120×40) and navigation flow tests.
 

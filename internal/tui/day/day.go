@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -27,8 +28,12 @@ type Day struct {
 	data    *service.Day
 	prov    *service.Provenance
 	err     error
-	loading bool
-	req     int // the current request; older answers are dropped
+	loading bool // a request for the shown day is running: ↻
+	req     int  // the current request; older answers are dropped
+
+	spinning  bool
+	frame     int
+	refreshed map[refreshKey]time.Time // when R last refreshed a day
 
 	cursor, offset int
 	width, height  int
@@ -48,6 +53,7 @@ var (
 	keyVS        = key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "VS screen"))
 	keyStandings = key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "standings"))
 	keyRecap     = key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "recap"))
+	keyRefresh   = key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "refresh (30 s cooldown)"))
 )
 
 // shifted maps the shifted digits to days 11–15 (SPEC §8.8).
@@ -77,11 +83,39 @@ type (
 		err error
 	}
 	dayMsg struct {
-		req int
-		res service.Result[service.Day]
-		err error
+		req   int
+		phase phase
+		res   service.Result[service.Day]
+		err   error
 	}
+	spinMsg struct{}
 )
+
+// phase is a step of stale-while-revalidate (SPEC §7.2): the cache's copy
+// first, even expired, then the sources.
+type phase int
+
+const (
+	cachedPhase  phase = iota // snapshot and disk cache only
+	freshPhase                // through the sources (revalidating)
+	refreshPhase              // R: revalidate even fresh entries
+)
+
+type refreshKey struct {
+	id  domain.BashoID
+	div domain.Division
+	day int
+}
+
+// refreshCooldown is how often R may refresh one day (SPEC §8.8).
+const refreshCooldown = 30 * time.Second
+
+var (
+	spinner      = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+	asciiSpinner = []string{"|", "/", "-", "\\"}
+)
+
+const spinInterval = 100 * time.Millisecond
 
 // Init implements tui.Screen.
 func (d Day) Init(ctx *tui.Context) tea.Cmd {
@@ -104,15 +138,37 @@ func (d Day) loadStatuses(ctx *tui.Context) tea.Cmd {
 	}
 }
 
-// load fetches the current day.
+// load fetches the current day, the cache's copy first.
 func (d Day) load(ctx *tui.Context) (Day, tea.Cmd) {
 	d.req++
 	d.loading = true
+	d, spin := d.spin(ctx)
+	return d, tea.Batch(d.fetch(ctx, cachedPhase), spin)
+}
+
+// fetch runs one phase of the load.
+func (d Day) fetch(ctx *tui.Context, ph phase) tea.Cmd {
 	svc, id, div, day, req := ctx.Svc, d.id, d.div, d.day, d.req
-	return d, func() tea.Msg {
-		res, err := svc.Day(context.Background(), id, div, day)
-		return dayMsg{req, res, err}
+	return func() tea.Msg {
+		c := context.Background()
+		switch ph {
+		case cachedPhase:
+			c = service.CachedOnly(c)
+		case refreshPhase:
+			c = service.Revalidate(c)
+		}
+		res, err := svc.Day(c, id, div, day)
+		return dayMsg{req, ph, res, err}
 	}
+}
+
+// spin starts the spinner if it is not running.
+func (d Day) spin(ctx *tui.Context) (Day, tea.Cmd) {
+	if d.spinning {
+		return d, nil
+	}
+	d.spinning = true
+	return d, ctx.After(spinInterval, func(time.Time) tea.Msg { return spinMsg{} })
 }
 
 // Update implements tui.Screen.
@@ -135,17 +191,68 @@ func (d Day) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 		if msg.req != d.req {
 			return d, nil // an answer for a day no longer shown
 		}
-		d.loading = false
-		d.err = msg.err
-		if msg.err == nil {
-			d.data, d.prov = &msg.res.Value, &msg.res.Prov
-			d.cursor = min(d.cursor, max(len(d.rows())-1, 0))
+		return d.answer(ctx, msg)
+	case spinMsg:
+		if !d.loading || d.data != nil {
+			d.spinning = false
+			return d, nil
 		}
-		d.scroll()
+		d.frame++
+		return d, ctx.After(spinInterval, func(time.Time) tea.Msg { return spinMsg{} })
 	case tea.KeyPressMsg:
 		return d.key(ctx, msg)
 	}
 	return d, nil
+}
+
+// answer takes a load's result. A cached copy shows at once; unless it is
+// the snapshot's (final), the sources are asked next, and their answer
+// replaces it when it comes (stale-while-revalidate).
+func (d Day) answer(ctx *tui.Context, msg dayMsg) (tui.Screen, tea.Cmd) {
+	if msg.err != nil {
+		if msg.phase == cachedPhase { // not cached: ask the sources
+			return d, d.fetch(ctx, freshPhase)
+		}
+		d.loading = false
+		if d.data != nil {
+			return d, tui.Message("Refresh failed: showing the cached copy")
+		}
+		d.err = msg.err
+		return d, nil
+	}
+	d.err = nil
+	d.data, d.prov = &msg.res.Value, &msg.res.Prov
+	d.cursor = min(d.cursor, max(len(d.rows())-1, 0))
+	d.scroll()
+	if msg.phase == cachedPhase && msg.res.Prov.Source != service.SnapshotSource {
+		return d, d.fetch(ctx, freshPhase) // revalidate in the background: ↻
+	}
+	d.loading = false
+	return d, nil
+}
+
+// refresh is R: revalidate the shown day with its source, at most every
+// 30 s; snapshot days are final.
+func (d Day) refresh(ctx *tui.Context) (tui.Screen, tea.Cmd) {
+	if d.day == 0 {
+		return d, nil
+	}
+	if d.err == nil && d.prov != nil && d.prov.Source == service.SnapshotSource {
+		return d, tui.Message("Finished tournaments in the snapshot do not change")
+	}
+	k := refreshKey{d.id, d.div, d.day}
+	now := ctx.Clock.Now()
+	if at, ok := d.refreshed[k]; ok && now.Sub(at) < refreshCooldown {
+		wait := (refreshCooldown - now.Sub(at)).Round(time.Second)
+		return d, tui.Message(fmt.Sprintf("Refreshed a moment ago; again in %s", wait))
+	}
+	if d.refreshed == nil {
+		d.refreshed = map[refreshKey]time.Time{}
+	}
+	d.refreshed[k] = now
+	d.req++
+	d.loading = true
+	return d, d.fetch(ctx, refreshPhase)
 }
 
 func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
@@ -175,7 +282,7 @@ func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 		return d.goTo(ctx, n)
 	case key.Matches(msg, keyDivision):
 		d.div = domain.DivJuryo + domain.DivMakuuchi - d.div
-		d.haveStatuses, d.cursor, d.offset = false, 0, 0
+		d.haveStatuses, d.cursor, d.offset, d.data, d.err = false, 0, 0, nil, nil
 		next, cmd := d.load(ctx)
 		return next, tea.Batch(cmd, next.loadStatuses(ctx))
 	case key.Matches(msg, keyWinChance):
@@ -183,6 +290,8 @@ func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 			return d, tui.Message("Win chances are hidden: the rating did not pass calibration")
 		}
 		d.winChance = !d.winChance
+	case key.Matches(msg, keyRefresh):
+		return d.refresh(ctx)
 	case key.Matches(msg, keyVS):
 		return d, tui.Message("The VS screen comes with Phase 8")
 	case key.Matches(msg, keyStandings, keyRecap):
@@ -240,7 +349,7 @@ func (d Day) goTo(ctx *tui.Context, n int) (tui.Screen, tea.Cmd) {
 	if n == d.day && d.data != nil {
 		return d, nil
 	}
-	d.day, d.cursor, d.offset = n, 0, 0
+	d.day, d.cursor, d.offset, d.data, d.err = n, 0, 0, nil, nil
 	return d.load(ctx)
 }
 
@@ -290,7 +399,15 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 		b.WriteString("\n" + t.Error.Render(" "+errorText(d.err)) + "\n")
 		return b.String()
 	case d.data == nil:
-		b.WriteString("\n" + t.Dim.Render(" Loading…") + "\n")
+		frames := spinner
+		if ctx.Cfg.UI.ASCII {
+			frames = asciiSpinner
+		}
+		label := " Loading…"
+		if d.day > 0 {
+			label = fmt.Sprintf(" Loading day %d…", d.day)
+		}
+		b.WriteString("\n " + t.Accent.Render(frames[d.frame%len(frames)]) + t.Dim.Render(label) + "\n")
 		return b.String()
 	}
 	data := d.data
@@ -399,5 +516,5 @@ func (d Day) Status(*tui.Context) tui.Status {
 
 // Keys implements tui.Screen.
 func (d Day) Keys() []key.Binding {
-	return []key.Binding{keyPrev, keyNext, keyUp, keyDown, keyJump, keyG, keyDivision, keyWinChance, keyVS, keyStandings, keyRecap}
+	return []key.Binding{keyPrev, keyNext, keyUp, keyDown, keyJump, keyG, keyDivision, keyWinChance, keyVS, keyStandings, keyRecap, keyRefresh}
 }
