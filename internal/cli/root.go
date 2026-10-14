@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/thorstenpfister/basho/internal/buildinfo"
+	"github.com/thorstenpfister/basho/internal/service"
 )
 
 // Execute runs root through fang and returns the process exit code. fang
@@ -26,8 +27,8 @@ func SetVersion(root *cobra.Command, info buildinfo.Info) {
 	root.SetVersionTemplate(versionText(root.Name(), info))
 }
 
-// NewRoot returns the basho root command with all subcommands.
-func NewRoot(info buildinfo.Info) *cobra.Command {
+// NewRoot returns the basho root command with all subcommands, over svc.
+func NewRoot(info buildinfo.Info, svc *service.Service) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "basho",
 		Short: "Browse grand sumo tournaments in the terminal",
@@ -47,7 +48,7 @@ func NewRoot(info buildinfo.Info) *cobra.Command {
 			_, err := io.WriteString(cmd.OutOrStdout(), versionText(cmd.Root().Name(), info))
 			return err
 		},
-	})
+	}, newRatingsCmd(svc))
 	return root
 }
 

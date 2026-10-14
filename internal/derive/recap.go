@@ -8,19 +8,23 @@ type Recap struct {
 	Leaders               []Standing
 	KachiKoshi, MakeKoshi []Standing    // reached today
 	Kinboshi              []domain.Bout // earned today
-	Upsets                []domain.Bout // see IsUpset
+	Upsets                []domain.Bout // see DayRecap
 	Technique             *domain.Bout  // the day's rarest technique; nil without one
 	TechniqueCount        int           // how often it occurs in the frequency table
 }
 
 // upsetGap is how many rank levels below the loser an upset's winner is at
-// least; see RankLevel. Phase 5 replaces it with the win chance.
+// least, while the rating is not shown; see RankLevel.
 const upsetGap = 6
 
 // DayRecap summarises day s.Today of division div at the cutoff s was
 // computed for: bouts are the tournament's, freq counts each technique over
-// the bout index.
-func DayRecap(s Standings, div domain.Division, bouts []domain.Bout, c AsOf, freq KimariteFreq) Recap {
+// the bout index. upset tells upsets apart, from the win chance once the
+// rating is shown (SPEC §8.4); nil uses the rank gap (IsUpset).
+func DayRecap(s Standings, div domain.Division, bouts []domain.Bout, c AsOf, freq KimariteFreq, upset func(*domain.Bout) bool) Recap {
+	if upset == nil {
+		upset = IsUpset
+	}
 	r := Recap{Day: s.Today}
 	for _, row := range s.Rows {
 		if row.Band == Leaders && row.Record.Wins > 0 {
@@ -41,7 +45,7 @@ func DayRecap(s Standings, div domain.Division, bouts []domain.Bout, c AsOf, fre
 		if _, ok := IsKinboshi(b); ok {
 			r.Kinboshi = append(r.Kinboshi, *b)
 		}
-		if IsUpset(b) {
+		if upset(b) {
 			r.Upsets = append(r.Upsets, *b)
 		}
 		if b.Kimarite.Category() == domain.NoTechnique {

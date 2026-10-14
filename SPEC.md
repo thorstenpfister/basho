@@ -782,7 +782,7 @@ BASHO ─ select tournament                                            [/] filte
   - leaders after the day
   - who reached kachi-koshi or make-koshi today
   - kinboshi earned today
-  - upsets (the winner's win chance before the bout was below 35%, §6.8). Until the rating exists (Phase 5), an upset is a win by technique over a wrestler at least 6 rank levels higher, where each san'yaku title is three levels and each Maegashira or Juryo number one (`derive.IsUpset`)
+  - upsets (the winner's win chance before the bout was below 35%, §6.8; `service.Ratings.IsUpset`). While the rating is hidden (V9), an upset is a win by technique over a wrestler at least 6 rank levels higher, where each san'yaku title is three levels and each Maegashira or Juryo number one (`derive.IsUpset`)
   - technique of the day (the technique of the day's bouts that is rarest over the bout index; ties go to the earlier bout)
 
 ### 8.5 VS screen ("tale of the tape")
@@ -1385,7 +1385,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 2. `basho-data rating calibrate`: grid search, train/test split, log loss, Brier score, accuracy, calibration table, both baselines; writes `data/rating/params.json`.
 3. **Decide V9** and record the metrics in this spec. If Elo doesn't beat the rank baseline, the win-chance UI stays switched off and a revised model goes on the list. Done: shown (§16, V9).
 4. Plausibility check: the top-rated wrestlers of all time compared with published Elo lists (Ozeki Analytics) and common sense. Done: the calibration report lists the 10 highest peaks (`docs/rating.md`). With the chosen parameters they are Taiho (2072, 196711), Hakuho (2054, 201101), Kitanoumi, Tamanoumi, Asashoryu, Chiyonofuji, Kitanofuji, Kashiwado, Takanohana and Wajima: all dominant yokozuna. Ozeki Analytics (all divisions from 1958, K 20) has Hakuho first, peaking in 2021, and notes rating inflation among top yokozuna; with sekitori bouts only and a lower K, our Hakuho peaks during his 2010 winning streak, just behind Taiho.
-5. Service output: rating, change since the tournament start, win chance; `basho ratings` command.
+5. Service output: rating, change since the tournament start, win chance; `basho ratings` command. Done: `service.Ratings` (as-of rating with change since the tournament start, win chance, upsets, live `Set`) on a lazy `service.Service`; `basho ratings` prints plain text for snapshot tournaments, and the remote layers, `--json` and exit codes follow in Phase 6.
 6. Tests from §13 (maths, rules, metric regression).
 
 **AC:** the calibration report is committed under `docs/rating.md`; `params.json` is embedded; win chances for a sample of bouts are plausible and identical between two runs (deterministic).

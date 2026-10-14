@@ -64,7 +64,7 @@ func TestDayRecap(t *testing.T) {
 		t.Fatalf("freq = %v", freq)
 	}
 
-	r := DayRecap(s, domain.DivMakuuchi, bouts, c, freq)
+	r := DayRecap(s, domain.DivMakuuchi, bouts, c, freq, nil)
 	if r.Day != 9 || len(r.Leaders) != 1 || r.Leaders[0].RikishiID != 4 {
 		t.Errorf("day %d, leaders %+v", r.Day, r.Leaders)
 	}
@@ -74,13 +74,16 @@ func TestDayRecap(t *testing.T) {
 	if len(r.Kinboshi) != 1 || r.Kinboshi[0].MatchNo != 2 || len(r.Upsets) != 1 {
 		t.Errorf("kinboshi %+v upsets %+v", r.Kinboshi, r.Upsets)
 	}
+	if every := DayRecap(s, domain.DivMakuuchi, bouts, c, freq, func(*domain.Bout) bool { return true }); len(every.Upsets) != 2 {
+		t.Errorf("a given upset test decides: %d upsets", len(every.Upsets))
+	}
 	if r.Technique == nil || r.Technique.Kimarite != "ipponzeoi" || r.TechniqueCount != 1 {
 		t.Errorf("technique %+v ×%d; Juryo's must not count", r.Technique, r.TechniqueCount)
 	}
 
 	// Through match 1 of day 9 only: the kinboshi has not happened yet.
 	c = ThroughBout(bouts[1])
-	r = DayRecap(StandingsAt(entries, d, c), domain.DivMakuuchi, bouts, c, freq)
+	r = DayRecap(StandingsAt(entries, d, c), domain.DivMakuuchi, bouts, c, freq, nil)
 	if len(r.Kinboshi) != 0 || r.Technique.Kimarite != "oshidashi" {
 		t.Errorf("spoiler-safe recap: %+v", r)
 	}

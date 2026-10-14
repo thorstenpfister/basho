@@ -8,7 +8,7 @@ import (
 )
 
 func TestUnknownArgumentFails(t *testing.T) {
-	root := NewRoot(buildinfo.Info{Version: "devel"})
+	root := NewRoot(buildinfo.Info{Version: "devel"}, nil)
 	root.SetOut(&bytes.Buffer{})
 	root.SetErr(&bytes.Buffer{})
 	root.SetArgs([]string{"bogus"})
@@ -38,7 +38,7 @@ func TestVersionOutput(t *testing.T) {
 		// The subcommand and the flag must print the same text.
 		for _, args := range [][]string{{"version"}, {"--version"}} {
 			t.Run(tt.name+" "+args[0], func(t *testing.T) {
-				root := NewRoot(tt.info)
+				root := NewRoot(tt.info, nil)
 				var out bytes.Buffer
 				root.SetOut(&out)
 				root.SetArgs(args)
