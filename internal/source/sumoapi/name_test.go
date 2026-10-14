@@ -18,3 +18,16 @@ func TestCleanShikona(t *testing.T) {
 		}
 	}
 }
+
+func TestCleanShikonaEn(t *testing.T) {
+	for in, want := range map[string]string{
+		"Hakuho Sho": "Hakuho", // retired: ring name and given name
+		"Onosato":    "Onosato",
+		" Abi ":      "Abi",
+		"":           "",
+	} {
+		if got := cleanShikonaEn(in); got != want {
+			t.Errorf("cleanShikonaEn(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

@@ -12,3 +12,10 @@ func cleanShikona(jp string) string {
 	}
 	return strings.TrimSpace(name)
 }
+
+// cleanShikonaEn does the same for the romaji name: sumo-api gives retired
+// wrestlers' as "Hakuho Sho", ring name and given name.
+func cleanShikonaEn(en string) string {
+	name, _, _ := strings.Cut(strings.TrimSpace(en), " ")
+	return name
+}

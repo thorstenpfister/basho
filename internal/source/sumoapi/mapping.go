@@ -125,7 +125,7 @@ func mapRikishi(r rikishiDTO) domain.Rikishi {
 		ID:       domain.RikishiID(r.ID),
 		NSKID:    r.NSKID,
 		SumoDBID: r.SumoDBID,
-		Name:     domain.Name{En: r.ShikonaEn, Jp: cleanShikona(r.ShikonaJp)},
+		Name:     domain.Name{En: cleanShikonaEn(r.ShikonaEn), Jp: cleanShikona(r.ShikonaJp)},
 		Heya:     r.Heya,
 		Shusshin: r.Shusshin,
 		Height:   r.Height,

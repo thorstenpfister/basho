@@ -393,6 +393,7 @@ Rules:
 
 - sumo-api `shikonaJp` contains `四股名　名` (ring name, full-width space, given name). The **display name is the part before the first U+3000 (full-width space)**. Bracketed readings such as `伊波(いなみ)` are removed for display.
 - Older tournaments have an empty `shikonaJp`; show romaji only.
+- For retired wrestlers, sumo-api's `/rikishis` gives `shikonaEn` as ring name and given name (`Hakuho Sho`); the adapter keeps the part before the first space, like the kanji rule above.
 - Kana to romaji (only for the fallback above): modified Hepburn without macrons. Long vowels are collapsed (`おう`/`おお` → `o`, `うう` → `u`), so `おおのさと` → `Onosato`. Capitalise the first letter. This is known to be imperfect, so mark such names with a dim `≈`.
 - Kimarite: one table with 82 entries plus non-technique results, mapping canonical romaji keys to romaji display, kanji, and an English gloss (for example `yorikiri` / 寄り切り / "frontal force out"). Both adapters map into these keys. Unknown values are passed through unchanged.
 - Width: all layout measures display width with Lip Gloss / `ansi.StringWidth`, never `len()`, so kanji take two cells.
