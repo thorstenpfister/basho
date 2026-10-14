@@ -31,12 +31,16 @@ type VS struct {
 	loading bool
 	req     int
 
-	history       bool // v: the last 10 meetings
+	history       bool          // v: the last 10 meetings
+	moveset       bool          // m: the moveset overlay
+	window        derive.Window // w: its sample window
 	width, height int
 }
 
 var (
 	keyHistory = key.NewBinding(key.WithKeys("v"), key.WithHelp("v", "head-to-head history"))
+	keyMoveset = key.NewBinding(key.WithKeys("m"), key.WithHelp("m", "moveset panel"))
+	keyWindow  = key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "moveset window"))
 	keyBack    = key.NewBinding(key.WithKeys("q", "esc", "b"), key.WithHelp("q/esc", "back to the day")) // the root pops
 )
 
@@ -98,8 +102,13 @@ func (v VS) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 		}
 		v.loading = false
 	case tea.KeyPressMsg:
-		if key.Matches(msg, keyHistory) {
+		switch {
+		case key.Matches(msg, keyHistory):
 			v.history = !v.history
+		case key.Matches(msg, keyMoveset):
+			v.moveset = !v.moveset
+		case key.Matches(msg, keyWindow) && v.moveset:
+			v.window = (v.window + 1) % 3
 		}
 	}
 	return v, nil
@@ -141,6 +150,9 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 		return b.String()
 	}
 	tape := v.tape(ctx, l)
+	if v.moveset && v.tale != nil {
+		tape = v.movesetPanel(ctx, l)
+	}
 	if l.Layout == tui.Wide && v.tale != nil {
 		col := lipgloss.NewStyle().Width(historyWidth).PaddingLeft(1).
 			BorderStyle(lipgloss.NormalBorder()).BorderLeft(true).BorderForeground(t.Colors.Subtle).
@@ -149,7 +161,7 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 	}
 	b.WriteString(tape + "\n")
 	b.WriteString(v.resultPanel(ctx, l) + "\n")
-	b.WriteString(t.Dim.Render(" [ ] prev/next · v head-to-head · esc back"))
+	b.WriteString(t.Dim.Render(" [ ] prev/next · v head-to-head · m moveset · esc back"))
 	return b.String()
 }
 
@@ -200,6 +212,7 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 	if e.Shikona.Jp != "" || w.Shikona.Jp != "" {
 		lines = append(lines, row(e.Shikona.Jp, "", w.Shikona.Jp))
 	}
+	lines = append(lines, row(t.Dim.Render(e.Moveset().Type.String()), "", t.Dim.Render(w.Moveset().Type.String())))
 	lines = append(lines, " "+t.Rule.Render(strings.Repeat(t.Line, l.width-2)))
 	lines = append(lines,
 		row(e.Rank.String(), "RANK", w.Rank.String()),
@@ -213,6 +226,8 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 	lines = append(lines,
 		row(components.Stars(t, e.Kinboshi), "KINBOSHI", components.Stars(t, w.Kinboshi)),
 		row(fmt.Sprint(e.Career.Yusho[domain.DivMakuuchi]), "YUSHO", fmt.Sprint(w.Career.Yusho[domain.DivMakuuchi])),
+		row(styleBar(ctx, e.Moveset(), true, l), "STYLE", styleBar(ctx, w.Moveset(), false, l)),
+		row(signature(ctx, e.Moveset()), "SIGNATURE", signature(ctx, w.Moveset())),
 	)
 	if e.Career.Now != "" || w.Career.Now != "" {
 		lines = append(lines, row(t.Dim.Render(now(e.Career.Now)), "", t.Dim.Render(now(w.Career.Now))))
@@ -367,7 +382,7 @@ func (v VS) Status(*tui.Context) tui.Status {
 }
 
 // Keys implements tui.Screen.
-func (v VS) Keys() []key.Binding { return []key.Binding{keyHistory, keyBack} }
+func (v VS) Keys() []key.Binding { return []key.Binding{keyHistory, keyMoveset, keyWindow, keyBack} }
 
 // resultPanel is the box under the tape (SPEC §8.5): the winner, the
 // technique in romaji, kanji and English, the records after the bout and
@@ -444,4 +459,92 @@ func recordAfter(r derive.Record, visitor bool) string {
 		return ""
 	}
 	return r.String()
+}
+
+// notEnough is the STYLE and SIGNATURE rows below 10 wins (SPEC §8.5).
+const notEnough = "— not enough data —"
+
+// styleBar is the STYLE row's bar: 20 cells, 10 in the compact layout.
+func styleBar(ctx *tui.Context, p derive.Profile, left bool, l layout) string {
+	if !p.Enough() {
+		return ctx.Theme.Dim.Render(notEnough)
+	}
+	cells := components.StyleCells
+	if l.Layout == tui.Compact {
+		cells /= 2
+	}
+	return components.StyleBar(ctx.Theme, p.WinShare, cells, left)
+}
+
+func signature(ctx *tui.Context, p derive.Profile) string {
+	if !p.Enough() {
+		return ctx.Theme.Dim.Render(notEnough)
+	}
+	return fmt.Sprintf("%s %.0f%%", p.Signature.Kimarite, 100*p.SignatureShare)
+}
+
+var categories = []domain.KimariteCategory{domain.Push, domain.Belt, domain.Throw, domain.Pull, domain.Other}
+
+// movesetPanel is the m overlay: both technique profiles side by side in
+// the chosen window, the matchup line and the window switch (SPEC §8.5).
+func (v VS) movesetPanel(ctx *tui.Context, l layout) string {
+	t := ctx.Theme
+	col := max((l.width-4)/2, 30)
+	side := func(s service.TaleSide) string {
+		p := s.Movesets[v.window]
+		lines := []string{
+			t.Bold.Render(strings.ToUpper(s.Shikona.En)) + t.Dim.Render(fmt.Sprintf("   %d W · %d L", p.Wins, p.Losses)),
+			t.Dim.Render(orDash(p.Type.String())),
+		}
+		cells := min(20, col-16)
+		for _, c := range categories {
+			n := int(p.WinShare[c]*float64(cells) + 0.5)
+			bar := lipgloss.NewStyle().Foreground(t.Colors.Categories[c]).Render(strings.Repeat("█", n)) + t.Dim.Render(strings.Repeat("░", cells-n))
+			if t.ASCII {
+				bar = strings.Repeat("#", n) + strings.Repeat(".", cells-n)
+			}
+			lines = append(lines, fmt.Sprintf("%-6s %s %4.0f%%", strings.ToUpper(c.String()), bar, 100*p.WinShare[c]))
+		}
+		lines = append(lines,
+			"Wins by   "+orDash(counts(p.TopWins)),
+			"Loses to  "+orDash(counts(p.TopLosses)),
+		)
+		for i := range lines {
+			lines[i] = tui.Truncate(lines[i], col)
+		}
+		return lipgloss.NewStyle().Width(col).Render(strings.Join(lines, "\n"))
+	}
+	var windows []string
+	for w := derive.LastSix; w <= derive.ThisBasho; w++ {
+		name := w.String()
+		if w == v.window {
+			name = t.Selected.Render(name)
+		} else {
+			name = t.Dim.Render(name)
+		}
+		windows = append(windows, name)
+	}
+	out := []string{
+		" " + t.Title.Render("MOVESET · "+v.window.String()) + t.Dim.Render("   [m] close"),
+		"",
+		lipgloss.JoinHorizontal(lipgloss.Top, "  ", side(v.tale.East), "  ", side(v.tale.West)),
+		" " + t.Rule.Render(strings.Repeat(t.Line, l.width-2)),
+	}
+	if m := v.tale.Matchups[v.window]; m != nil {
+		att, def := v.tale.East.Shikona.En, v.tale.West.Shikona.En
+		if !m.AttackerIsA {
+			att, def = def, att
+		}
+		cat := strings.ToUpper(m.Category.String())
+		out = append(out, tui.Truncate(fmt.Sprintf("  Matchup: %s wins %.0f%% by %s; %s loses %.0f%% to %s", att, 100*m.WinShare, cat, def, 100*m.LossShare, cat), l.width))
+	}
+	out = append(out, "  Window: "+t.StatusKey.Render("[w]")+" "+strings.Join(windows, " ▸ "))
+	return strings.Join(out, "\n")
+}
+
+func orDash(s string) string {
+	if s == "" {
+		return "—"
+	}
+	return s
 }

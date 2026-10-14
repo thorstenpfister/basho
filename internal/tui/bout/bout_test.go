@@ -11,6 +11,7 @@ import (
 	"github.com/thorstenpfister/basho/data"
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/config"
+	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/tui"
@@ -84,7 +85,7 @@ func TestLayouts(t *testing.T) {
 		t.Errorf("wide:\n%s", wide)
 	}
 	compact := open(t, aki2026, domain.DivMakuuchi, 13, 19, 70, 30).View()
-	if strings.Contains(compact, "█") || !strings.Contains(compact, "190cm") {
+	if strings.Contains(lineWith(compact, "HEIGHT"), "█") || !strings.Contains(compact, "190cm") {
 		t.Errorf("compact has bars or lacks values:\n%s", compact)
 	}
 	for _, v := range []string{wide, compact} {
@@ -162,4 +163,46 @@ func TestUndecided(t *testing.T) {
 	if v := ansi.Strip(today.resultPanel(ctx, measure(100))); !strings.Contains(v, "Waiting for result…") {
 		t.Errorf("waiting:\n%s", v)
 	}
+}
+
+func TestTechniqueRows(t *testing.T) {
+	d := open(t, aki2026, domain.DivMakuuchi, 13, 19, 100, 40)
+	v := d.View()
+	for _, want := range []string{"All-rounder", "Belt fighter", "STYLE", "yorikiri 34%  SIGNATURE   yorikiri 22%"} {
+		if !strings.Contains(v, want) {
+			t.Errorf("lacks %q:\n%s", want, v)
+		}
+	}
+	d.Keys("m")
+	v = d.View()
+	if !strings.Contains(v, "MOVESET · last 6 basho") || !strings.Contains(v, "Matchup:") || !strings.Contains(v, "Wins by") {
+		t.Errorf("moveset panel:\n%s", v)
+	}
+	d.Keys("w")
+	if v := d.View(); !strings.Contains(v, "MOVESET · career") || !strings.Contains(v, "187 W · 65 L") {
+		t.Errorf("career window:\n%s", v)
+	}
+	d.Keys("w", "w", "m")
+	if v := d.View(); strings.Contains(v, "MOVESET") || screen(d).window != derive.LastSix {
+		t.Error("closing the panel")
+	}
+	d.Keys("w")
+	if screen(d).window != derive.LastSix {
+		t.Error("w changed the window with the panel closed")
+	}
+
+	// Day 1 of 1960: nobody has 10 wins yet.
+	early := open(t, domain.FirstBasho, domain.DivMakuuchi, 1, 21, 100, 40).View()
+	if strings.Count(early, "— not enough data —") != 4 {
+		t.Errorf("not enough data:\n%s", early)
+	}
+}
+
+func lineWith(s, sub string) string {
+	for _, l := range strings.Split(s, "\n") {
+		if strings.Contains(l, sub) {
+			return l
+		}
+	}
+	return ""
 }
