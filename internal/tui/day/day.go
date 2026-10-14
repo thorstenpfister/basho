@@ -329,7 +329,7 @@ func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 		return d.refresh(ctx)
 	case key.Matches(msg, keyVS):
 		if sel, ok := d.Selected(); ok {
-			return d, tui.Push(bout.New(d.id, d.div, d.day, sel))
+			return d, tui.Push(bout.New(d.id, d.div, d.day, d.data.Date, sel))
 		}
 	case key.Matches(msg, keyStandings, keyRecap):
 		return d, tui.Message("Standings and the recap come with Phase 9")

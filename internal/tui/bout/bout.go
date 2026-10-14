@@ -23,6 +23,7 @@ type VS struct {
 	day   int
 	match int
 	row   service.BoutRow // what the day view knew: drawn until the tale is in
+	date  domain.Date     // of the day: an undecided bout today waits for its result
 
 	tale    *service.Tale
 	prov    *service.Provenance
@@ -39,9 +40,10 @@ var (
 	keyBack    = key.NewBinding(key.WithKeys("q", "esc", "b"), key.WithHelp("q/esc", "back to the day")) // the root pops
 )
 
-// New returns the VS screen of a bout; row is the day view's row of it.
-func New(id domain.BashoID, div domain.Division, day int, row service.BoutRow) VS {
-	return VS{id: id, div: div, day: day, match: row.MatchNo, row: row}
+// New returns the VS screen of a bout; row is the day view's row of it and
+// date the day's date.
+func New(id domain.BashoID, div domain.Division, day int, date domain.Date, row service.BoutRow) VS {
+	return VS{id: id, div: div, day: day, date: date, match: row.MatchNo, row: row}
 }
 
 type taleMsg struct {
@@ -146,6 +148,7 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 		tape = lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(l.width+1).Render(tape), col)
 	}
 	b.WriteString(tape + "\n")
+	b.WriteString(v.resultPanel(ctx, l) + "\n")
 	b.WriteString(t.Dim.Render(" [ ] prev/next · v head-to-head · esc back"))
 	return b.String()
 }
@@ -365,3 +368,80 @@ func (v VS) Status(*tui.Context) tui.Status {
 
 // Keys implements tui.Screen.
 func (v VS) Keys() []key.Binding { return []key.Binding{keyHistory, keyBack} }
+
+// resultPanel is the box under the tape (SPEC §8.5): the winner, the
+// technique in romaji, kanji and English, the records after the bout and
+// the KINBOSHI or FUSEN stamp; or the undecided state.
+func (v VS) resultPanel(ctx *tui.Context, l layout) string {
+	t := ctx.Theme
+	var lines []string
+	switch r := v.result(); {
+	case r == nil && v.tale == nil && v.row.Winner == 0 && v.err == nil:
+		lines = []string{t.Dim.Render("…")}
+	case r == nil:
+		lines = []string{t.Dim.Render(v.undecided(ctx))}
+	default:
+		e, w := v.row.East.Shikona.En, v.row.West.Shikona.En
+		winner := e
+		if r.Winner == domain.West {
+			winner = w
+		}
+		head := t.Bold.Render(strings.ToUpper(winner)) + " wins by " + t.Bold.Render(strings.ToUpper(string(r.Technique.Kimarite)))
+		if r.Technique.Kanji != "" {
+			head += "  " + r.Technique.Kanji
+		}
+		lines = append(lines, head)
+		if r.Technique.English != "" {
+			lines = append(lines, t.Dim.Render(r.Technique.English))
+		}
+		lines = append(lines, fmt.Sprintf("%s %s   ·   %s %s", e, recordAfter(r.East, v.row.East.Visitor), w, recordAfter(r.West, v.row.West.Visitor)))
+		var stamps []string
+		if r.Kinboshi {
+			stamps = append(stamps, t.Gold.Render(t.Kinboshi+" KINBOSHI"))
+		}
+		if r.Fusen {
+			stamps = append(stamps, t.Accent.Render("FUSEN (default)"))
+		}
+		if len(stamps) > 0 {
+			lines = append(lines, strings.Join(stamps, "   "))
+		}
+	}
+	inner := max(l.width-4, 10)
+	body := make([]string, len(lines))
+	for i, s := range lines {
+		body[i] = lipgloss.PlaceHorizontal(inner, lipgloss.Center, s)
+	}
+	return lipgloss.NewStyle().MarginLeft(1).Border(lipgloss.RoundedBorder()).BorderForeground(t.Colors.Subtle).
+		Render(strings.Join(body, "\n"))
+}
+
+// result is the decided bout from the tale, or from the day's row while the
+// tale loads.
+func (v VS) result() *service.TaleResult {
+	if v.tale != nil {
+		return v.tale.Result
+	}
+	if v.row.Winner == 0 {
+		return nil
+	}
+	return &service.TaleResult{
+		Winner: v.row.Winner, Technique: v.row.Kimarite, Kinboshi: v.row.Kinboshi, Fusen: v.row.Fusen,
+		East: v.row.East.After, West: v.row.West.After,
+	}
+}
+
+// undecided is the panel of a bout without a result: today's waits, later
+// ones are scheduled.
+func (v VS) undecided(ctx *tui.Context) string {
+	if v.date == domain.DateOf(ctx.Clock.Now()) {
+		return "Waiting for result…"
+	}
+	return fmt.Sprintf("Scheduled — Day %d", v.day)
+}
+
+func recordAfter(r derive.Record, visitor bool) string {
+	if visitor {
+		return ""
+	}
+	return r.String()
+}

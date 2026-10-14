@@ -41,7 +41,7 @@ func open(t *testing.T, id domain.BashoID, div domain.Division, day, match, widt
 	}
 	for _, r := range append(res.Value.Bouts, res.Value.Playoffs...) {
 		if r.MatchNo == match {
-			return tuitest.New(tui.New(ctx, []tui.Screen{New(id, div, day, r)}, nil), width, height)
+			return tuitest.New(tui.New(ctx, []tui.Screen{New(id, div, day, res.Value.Date, r)}, nil), width, height)
 		}
 	}
 	t.Fatalf("no bout %d", match)
@@ -100,7 +100,7 @@ func TestLayouts(t *testing.T) {
 func TestFromTheDayView(t *testing.T) {
 	ctx := testContext(svc())
 	res, _ := svc().Day(t.Context(), aki2026, domain.DivMakuuchi, 13)
-	d := tuitest.New(tui.New(ctx, []tui.Screen{tuiDayStub{}, New(aki2026, domain.DivMakuuchi, 13, res.Value.Bouts[0])}, nil), 100, 40)
+	d := tuitest.New(tui.New(ctx, []tui.Screen{tuiDayStub{}, New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts[0])}, nil), 100, 40)
 	d.Keys("q")
 	if d.M.(tui.Model).Depth() != 1 {
 		t.Error("q did not go back")
@@ -110,7 +110,7 @@ func TestFromTheDayView(t *testing.T) {
 func TestProgressive(t *testing.T) {
 	ctx := testContext(svc())
 	res, _ := svc().Day(t.Context(), aki2026, domain.DivMakuuchi, 13)
-	v := New(aki2026, domain.DivMakuuchi, 13, res.Value.Bouts[18]) // before Init: nothing loaded
+	v := New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts[18]) // before Init: nothing loaded
 	out := ansi.Strip(v.View(ctx, 100, 39))
 	for _, want := range []string{"ONOSATO      VS      KIRISHIMA", "大の里", "Yokozuna 1 East     RANK     Ozeki 1 East", "11-1    RECORD    6-6", "…    HEIGHT    …", "H2H  …"} {
 		if !strings.Contains(out, want) {
@@ -119,5 +119,47 @@ func TestProgressive(t *testing.T) {
 	}
 	if st := v.Status(ctx); !strings.Contains(st.Left, "Bout 19") {
 		t.Errorf("status %+v", st)
+	}
+}
+
+func TestResultPanel(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		id    domain.BashoID
+		day   int
+		match int
+		want  []string
+	}{
+		{"regular", aki2026, 13, 19, []string{"KIRISHIMA wins by SHITATENAGE  下手投げ", "underarm throw", "Onosato 11-2   ·   Kirishima 7-6"}},
+		{"fusen", aki2026, 13, 15, []string{"HAKUNOFUJI wins by FUSEN", "FUSEN (default)"}},
+		{"kinboshi", domain.BashoID{Year: 1960, Month: time.January}, 1, 21, []string{"★ KINBOSHI", "SUKUINAGE"}},
+	} {
+		v := open(t, tt.id, domain.DivMakuuchi, tt.day, tt.match, 100, 40).View()
+		for _, w := range tt.want {
+			if !strings.Contains(v, w) {
+				t.Errorf("%s: lacks %q:\n%s", tt.name, w, v)
+			}
+		}
+		lines := strings.Split(v, "\n")
+		for i, l := range lines {
+			if strings.HasPrefix(strings.TrimLeft(l, " "), "│") && !strings.HasPrefix(l, " │") {
+				t.Errorf("%s: box line %d not aligned: %q", tt.name, i, l)
+			}
+		}
+	}
+}
+
+func TestUndecided(t *testing.T) {
+	ctx := testContext(svc())
+	row := service.BoutRow{MatchNo: 3, East: service.BoutSide{Wrestler: service.Wrestler{Shikona: domain.Name{En: "A"}}}, West: service.BoutSide{Wrestler: service.Wrestler{Shikona: domain.Name{En: "B"}}}}
+	later := New(aki2026, domain.DivMakuuchi, 13, domain.NewDate(2026, time.September, 25), row)
+	later.tale = &service.Tale{}
+	if v := ansi.Strip(later.resultPanel(ctx, measure(100))); !strings.Contains(v, "Scheduled — Day 13") {
+		t.Errorf("scheduled:\n%s", v)
+	}
+	today := New(aki2026, domain.DivMakuuchi, 13, domain.DateOf(testNow), row)
+	today.tale = &service.Tale{}
+	if v := ansi.Strip(today.resultPanel(ctx, measure(100))); !strings.Contains(v, "Waiting for result…") {
+		t.Errorf("waiting:\n%s", v)
 	}
 }
