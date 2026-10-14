@@ -519,9 +519,9 @@ Also derived (shown in the day recap, §8.5): `ThisBashoScalps` (`derive.Scalps`
 ### 6.4 Head-to-head record
 
 Computed from one wrestler's cached career matches, filtered to the opponent's ID, before the cutoff. It contains:
-- wins for each side
-- each side's top 2 winning techniques
-- the last 3 meetings (tournament, day, winner, technique)
+- wins for each side (fusen included, as in the official record)
+- each side's top 2 winning techniques (fusen and draws left out; ties by name)
+- the last n meetings, newest first (tournament, day, both ranks, winner, technique): 3 on the VS screen, up to 10 expanded
 
 The API's `/matches/{b}` endpoint is not used for this, because it can't apply a cutoff.
 
