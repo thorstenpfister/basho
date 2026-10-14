@@ -7,9 +7,11 @@ import (
 	"maps"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/idmap"
 	"github.com/thorstenpfister/basho/internal/rating"
 	"github.com/thorstenpfister/basho/internal/snapshot"
 	"github.com/thorstenpfister/basho/internal/source"
@@ -24,7 +26,13 @@ type Options struct {
 	Params     func() (rating.File, error)
 	Remote     TournamentSource // disk cache over the network; nil: snapshot only
 	RemoteName string           // provenance label, e.g. "sumo-api"
+	Wrestlers  WrestlerSource   // the active wrestlers, for the index refresh; nil: none
 	Clock      clock.Clock      // nil: the real clock
+}
+
+// WrestlerSource returns the active wrestlers; *sumoapi.Client implements it.
+type WrestlerSource interface {
+	ActiveRikishi(ctx context.Context) ([]domain.Rikishi, error)
 }
 
 // Service is the façade the TUI and CLI talk to (SPEC §5.1). Everything heavy
@@ -32,11 +40,11 @@ type Options struct {
 // needed, so commands such as `basho version` stay instant. It is safe for
 // concurrent use.
 type Service struct {
-	opts      Options
-	snapshot  func() (*snapshot.Snapshot, error)
-	index     func() (*snapshot.Index, error)
-	ratings   func() (*Ratings, error)
-	wrestlers func() (map[domain.RikishiID]domain.Rikishi, error)
+	opts     Options
+	snapshot func() (*snapshot.Snapshot, error)
+	index    func() (*snapshot.Index, error)
+	ratings  func() (*Ratings, error)
+	profiles func() (*profiles, error)
 
 	mu    sync.Mutex
 	later map[domain.BashoID]*laterTournament // after the snapshot: the days loaded so far
@@ -89,22 +97,108 @@ func New(opts Options) *Service {
 		}
 		return NewRatings(x, f)
 	})
-	s.wrestlers = sync.OnceValues(func() (map[domain.RikishiID]domain.Rikishi, error) {
+	s.profiles = sync.OnceValues(func() (*profiles, error) {
 		sn, err := s.snapshot()
 		if err != nil || sn == nil {
-			return map[domain.RikishiID]domain.Rikishi{}, err
+			return newProfiles(nil), err
 		}
 		rs, err := sn.Rikishi()
 		if err != nil {
 			return nil, err
 		}
-		m := make(map[domain.RikishiID]domain.Rikishi, len(rs))
-		for _, r := range rs {
-			m[r.ID] = r
-		}
-		return m, nil
+		return newProfiles(rs), nil
 	})
 	return s
+}
+
+// profiles holds the wrestler index: the snapshot's, overlaid with the active
+// wrestlers once refreshed. The map is replaced, never changed, so readers
+// use it without a lock.
+type profiles struct {
+	mu   sync.RWMutex
+	byID map[domain.RikishiID]domain.Rikishi
+	ids  *idmap.Map
+}
+
+func newProfiles(rs []domain.Rikishi) *profiles {
+	p := &profiles{byID: make(map[domain.RikishiID]domain.Rikishi, len(rs)), ids: idmap.New(rs)}
+	for _, r := range rs {
+		p.byID[r.ID] = r
+	}
+	return p
+}
+
+func (p *profiles) all() map[domain.RikishiID]domain.Rikishi {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.byID
+}
+
+func (p *profiles) overlay(rs []domain.Rikishi) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	m := maps.Clone(p.byID)
+	for _, r := range rs {
+		m[r.ID] = r
+	}
+	p.byID = m
+	p.ids.Add(rs)
+}
+
+// wrestlers returns the wrestler index as it stands.
+func (s *Service) wrestlers() (map[domain.RikishiID]domain.Rikishi, error) {
+	p, err := s.profiles()
+	if err != nil {
+		return nil, err
+	}
+	return p.all(), nil
+}
+
+// IDs returns the JSA ID mapping (SPEC §5.5), for the osada.us adapter.
+func (s *Service) IDs() (*idmap.Map, error) {
+	p, err := s.profiles()
+	if err != nil {
+		return nil, err
+	}
+	return p.ids, nil
+}
+
+// indexMaxAge is how old the snapshot's wrestler index may get before the
+// active wrestlers are fetched (SPEC §7.3).
+const indexMaxAge = 7 * 24 * time.Hour
+
+// RefreshWrestlers overlays the active wrestlers' current profiles (heya,
+// height, weight, retirement) when the snapshot's index is older than 7 days.
+// It makes one request at most, and none while the disk cache holds the
+// answer (also 7 days). It reports whether it refreshed.
+func (s *Service) RefreshWrestlers(ctx context.Context) (bool, error) {
+	if s.opts.Wrestlers == nil {
+		return false, nil
+	}
+	sn, err := s.snapshot()
+	if err != nil {
+		return false, err
+	}
+	if sn != nil && s.opts.Clock.Now().Sub(sn.Manifest().GeneratedAt) <= indexMaxAge {
+		return false, nil
+	}
+	p, err := s.profiles()
+	if err != nil {
+		return false, err
+	}
+	rs, err := s.opts.Wrestlers.ActiveRikishi(ctx)
+	if err != nil {
+		return false, err
+	}
+	p.overlay(rs)
+	return true, nil
+}
+
+// StartBackground starts the background work of a long-running session (the
+// TUI): the wrestler index refresh. Errors are dropped; the snapshot's index
+// stays in use.
+func (s *Service) StartBackground(ctx context.Context) {
+	go func() { _, _ = s.RefreshWrestlers(ctx) }()
 }
 
 func (s *Service) today() domain.Date { return domain.DateOf(s.opts.Clock.Now()) }

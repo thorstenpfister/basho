@@ -1393,7 +1393,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 ### Phase 6: Service layer and non-interactive CLI
 
 1. `service` façade: `CurrentBasho`, `Basho`, `Day(basho, division, day)`, `Bout(basho, division, day, matchNo)` (the full tale-of-the-tape model, including moveset and rating), `Standings(basho, division, day)`, `Recap`, `Ratings`. Each returns `Result[T]` with provenance. Done as `CurrentBasho`, `Info`, `List`, `DefaultDay`, `Day`, `Bout`, `Standings`, `Recap` and `RatingTable`. `Info` names Makuuchi and Juryo winners always and lower-division winners only when the wrestler index knows them (it holds sekitori).
-2. Background refresh of the active-wrestler index when the snapshot's index is older than 7 days, plus the `idmap` skeleton (filled in Phase 9).
+2. Background refresh of the active-wrestler index when the snapshot's index is older than 7 days, plus the `idmap` skeleton (filled in Phase 9). Done: `service.RefreshWrestlers` fetches `/rikishis` without `intai` (the ~600 active wrestlers, one page) once the snapshot is more than 7 days old and overlays their current profiles; `StartBackground` runs it for long sessions (the TUI), while one-shot CLI commands don't wait for it. `idmap.Map` maps JSA IDs from the index.
 3. Config loading (file, environment, flags, defaults) and validation, including minimum intervals and maximum rates.
 4. Commands: `list`, `info`, `day`, `bout`, `standings` (`--grid`), `ratings`, `credits`, with text renderers (Lip Gloss tables in a terminal, plain when piped).
 5. The `--json` envelope, `docs/json.md` and exit codes.

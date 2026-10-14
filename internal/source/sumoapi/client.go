@@ -67,10 +67,20 @@ func (c *Client) Torikumi(ctx context.Context, id domain.BashoID, div domain.Div
 
 // RikishiIndex returns every wrestler, retired ones included, page by page.
 func (c *Client) RikishiIndex(ctx context.Context) ([]domain.Rikishi, error) {
+	return c.rikishis(ctx, "intai=true&")
+}
+
+// ActiveRikishi returns the wrestlers still active: about 600, one page
+// (SPEC §7.3).
+func (c *Client) ActiveRikishi(ctx context.Context) ([]domain.Rikishi, error) {
+	return c.rikishis(ctx, "")
+}
+
+func (c *Client) rikishis(ctx context.Context, filter string) ([]domain.Rikishi, error) {
 	var all []domain.Rikishi
 	for skip := 0; ; skip += PageSize {
 		var page rikishiPageDTO
-		path := fmt.Sprintf("/api/rikishis?intai=true&limit=%d&skip=%d", PageSize, skip)
+		path := fmt.Sprintf("/api/rikishis?%slimit=%d&skip=%d", filter, PageSize, skip)
 		if err := c.getJSON(ctx, path, &page); err != nil {
 			return nil, err
 		}

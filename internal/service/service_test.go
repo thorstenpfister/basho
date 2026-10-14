@@ -286,3 +286,54 @@ func TestCurrentBasho(t *testing.T) {
 		t.Errorf("current on 2026-10-14: %v", got)
 	}
 }
+
+type fakeWrestlers struct{ calls int }
+
+func (f *fakeWrestlers) ActiveRikishi(context.Context) ([]domain.Rikishi, error) {
+	f.calls++
+	return []domain.Rikishi{{ID: 8850, NSKID: 4227, Name: domain.Name{En: "Onosato"}, Heya: "New heya", Height: 193}}, nil
+}
+
+func TestRefreshWrestlers(t *testing.T) {
+	sn, err := data.Snapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	built := sn.Manifest().GeneratedAt
+	for _, tt := range []struct {
+		name    string
+		now     time.Time
+		refresh bool
+	}{
+		{"index fresh", built.Add(6 * 24 * time.Hour), false},
+		{"index older than 7 days", built.Add(8 * 24 * time.Hour), true},
+	} {
+		w := &fakeWrestlers{}
+		s := New(Options{Snapshot: data.Snapshot, Params: data.RatingParams, Wrestlers: w, Clock: clock.NewFake(tt.now)})
+		got, err := s.RefreshWrestlers(t.Context())
+		if err != nil || got != tt.refresh || w.calls != b2i(tt.refresh) {
+			t.Errorf("%s: refreshed %v after %d requests, %v", tt.name, got, w.calls, err)
+		}
+		ws, _ := s.wrestlers()
+		if heya := ws[8850].Heya; (heya == "New heya") != tt.refresh {
+			t.Errorf("%s: Onosato's heya %q", tt.name, heya)
+		}
+		if len(ws) < 900 {
+			t.Errorf("%s: %d wrestlers; the overlay must keep the snapshot's", tt.name, len(ws))
+		}
+		ids, _ := s.IDs()
+		if id, ok := ids.ByJSA(4227); tt.refresh && (!ok || id != 8850) {
+			t.Errorf("%s: JSA 4227 → %d, %v", tt.name, id, ok)
+		}
+	}
+	if got, _ := embedded().RefreshWrestlers(t.Context()); got {
+		t.Error("refreshed without a source")
+	}
+}
+
+func b2i(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}

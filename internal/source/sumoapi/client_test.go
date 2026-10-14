@@ -147,6 +147,10 @@ func TestRikishiIndexPages(t *testing.T) {
 	if r.ID != 1 || r.NSKID != 4001 || r.Name.Jp != "名1" || r.Debut != (domain.BashoID{Year: 2023, Month: time.May}) || r.Birth.String() != "2000-06-07" {
 		t.Errorf("first = %+v", r)
 	}
+	active, err := fakeAPI{"/api/rikishis?limit=1000&skip=0": page(1, 601, 601)}.client().ActiveRikishi(t.Context())
+	if err != nil || len(active) != 601 {
+		t.Errorf("active: %d, %v; want 601 from one page without intai", len(active), err)
+	}
 }
 
 func TestErrorMapping(t *testing.T) {
