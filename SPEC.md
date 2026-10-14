@@ -171,7 +171,7 @@ Endpoints used:
 | Endpoint | Used for | Notes |
 |---|---|---|
 | `GET /torikumi.json` | **The whole current tournament in one request:** `resultDays[]` and `scheduleDays[]` for each day, Makuuchi and Juryo bout lists, `isPlayoff`, `absentees`, `status`, and the timestamps `updatedAt`, `resultUpdatedAt` and `scheduleUpdatedAt` | Bout names are **hiragana only**; `eastEnglish` is usually empty. Ranks are in Japanese (`前頭十七枚目`). `kimarite` is Japanese, and `未定` means undecided. `winner` is `east`, `west` or `null`. Wrestler identity comes from `…/profile/{nskId}/` in `eastProfileUrl`. |
-| `GET /banzuke.json` | Current ranking with kanji `name`, `yomi` (reading), `id` (= JSA ID), `results[15]` (`win`, `loss`, `draw` or `null`) | **Doesn't distinguish fusen wins/losses or absences**; they appear as `null` or win/loss. Prefer sumo-api.com for those details once it has caught up. |
+| `GET /banzuke.json` | Current ranking with kanji `name`, `yomi` (reading), `id` (= JSA ID), `results[15]` (`win`, `loss`, `draw` or `null`) | **Doesn't distinguish fusen wins/losses**: a fusen loss is `loss`, and absences are `draw` (Phase 9 finding). Prefer sumo-api.com for those details once it has caught up. |
 | `GET /rikishi.json`, `/rikishi/{id}.json` | Optional profile data | Not needed in v1 |
 
 Between tournaments, osada.us keeps serving the last tournament until the new ranking is published.
@@ -1461,6 +1461,12 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    - Japanese technique names → canonical keys (via the kimarite table); `未定` → pending
    - `isPlayoff`, absentees, status and timestamps
    - JSA ID taken from the profile URL
+
+   Done: `osada.Client.Current` reads `banzuke.json` and `torikumi.json` into `source.Current` (JSA IDs, both divisions, published days with the results where they are out and the schedule otherwise). Findings from the recorded Aki 2026 files:
+   - The banzuke writes absences as `draw`: Hoshoryu, kyujo all tournament, has 15. They map to absent; the modern era has no draws.
+   - Bout ranks carry no side, and san'yaku titles no number (`大関` for O2e). Ranks therefore come from the banzuke, which lists each rank level's east and west wrestlers in order. Makushita visitors keep the bout list's rank without a side.
+   - The JSA spells 浴せ倒し where the kimarite table has 浴びせ倒し; the adapter keeps such spellings. Unknown names pass through.
+   - The tournament comes from the banzuke's `令和八年` + `九月場所`. When the bout list's `pathDate` names another tournament (the next banzuke is out), the days are left out.
 4. `idmap`: JSA ID ↔ sumo-api ID from the snapshot index plus the active index; refresh on an unknown ID (at most once an hour); kana→romaji fallback marked with `≈`.
 5. `resolver`: the policy table (§5.4), "behind" detection, merge rules, per-bout source tracking, `--source` override, stale cache as last resort.
 6. Contract tests: both adapters produce equivalent domain output for the current-tournament fixtures.
