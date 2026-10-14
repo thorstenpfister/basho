@@ -93,3 +93,35 @@ func TestStandingsMatchFinalRecords(t *testing.T) {
 		}
 	}
 }
+
+// Career kinboshi totals as published (Wikipedia, checked 2026-10-14).
+func TestKinboshiTotals(t *testing.T) {
+	_, x := embedded(t)
+	for id, want := range map[domain.RikishiID]int{
+		3833: 16, // Akinoshima, the record
+		1014: 12, // Takamiyama
+		3847: 12, // Tochinonada
+		3857: 11, // Tosanoumi
+	} {
+		if got := derive.KinboshiOf(id, x.Rikishi(id), derive.NoCutoff); got.Count != want {
+			t.Errorf("wrestler %d: %d kinboshi, want %d", id, got.Count, want)
+		}
+	}
+}
+
+// The fighter-type thresholds against the career profiles they were tuned
+// on (SPEC §6.7).
+func TestFighterTypes(t *testing.T) {
+	_, x := embedded(t)
+	for id, want := range map[domain.RikishiID]derive.FighterType{
+		1:    derive.PusherThruster, // Takakeisho
+		3142: derive.BeltFighter,    // Kotoshogiku
+		1511: derive.BeltFighter,    // Taiho
+		3081: derive.Thrower,        // Hakuho
+		45:   derive.BeltFighter,    // Terunofuji
+	} {
+		if got := derive.ProfileOf(id, x.Rikishi(id), derive.NoCutoff, derive.Career).Type; got != want {
+			t.Errorf("wrestler %d: %v, want %v", id, got, want)
+		}
+	}
+}

@@ -565,7 +565,7 @@ Built entirely from the cached career matches (§6.2–6.4), so it needs **no ex
 Fusen wins and losses are **excluded** from every profile.
 
 **Sample window.**
-- Default: the **last 6 tournaments** before the as-of cutoff (§6), including earlier days of the current tournament.
+- Default: the wrestler's **last 6 tournaments** with sekitori bouts before the as-of cutoff (§6), including earlier days of the current tournament.
 - If the window has fewer than 20 wins, it is widened one tournament at a time, up to the whole career.
 - Other choices: `career`, `this basho`.
 - The window and sample size are always shown ("last 6 basho · 61 W").
@@ -580,7 +580,7 @@ Fusen wins and losses are **excluded** from every profile.
   3. PULL ≥ 25% → "Counter-puller"
   4. otherwise → "All-rounder"
 
-  The thresholds are constants for now; tune them in Phase 3 against a sample of well-known wrestlers.
+  Tuned in Phase 4 on career profiles of about 45 well-known wrestlers; only the thrower share moved, from 30% to **35%**, so that classic yotsu wrestlers such as Taiho (33% THROW) and Takanohana (32%) stay belt fighters. Reference results, checked in a test: Takakeisho, Abi, Chiyotaikai, Tamawashi pusher-thrusters; Kotoshogiku, Terunofuji, Tochinoshin, Kyokutenho, Taiho belt fighters; Hakuho, Chiyonofuji, Hoshoryu, Enho throwers; Tobizaru counter-puller; Ura, Mitakeumi, Takayasu all-rounders.
 - **Matchup line:** A's main winning category against the share of B's losses in that category, and the same the other way round. Show the direction with the larger product.
 
 **Spoilers:** the as-of cutoff applies, so the profile only uses bouts before the bout being viewed (and before the reveal horizon in spoiler-free mode).
