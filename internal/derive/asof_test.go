@@ -102,3 +102,21 @@ func TestBefore(t *testing.T) {
 		}
 	}
 }
+
+func TestComparePlay(t *testing.T) {
+	playoff := bout(aki, domain.DivMakuuchi, 15, 1)
+	playoff.IsPlayoff = true
+	ordered := []domain.Bout{
+		bout(nago, domain.DivMakuuchi, 15, 20),
+		bout(aki, domain.DivJuryo, 1, 14),
+		bout(aki, domain.DivMakuuchi, 1, 1),
+		bout(aki, domain.DivMakuuchi, 1, 2),
+		bout(aki, domain.DivMakuuchi, 15, 20),
+		playoff,
+	}
+	for i := 1; i < len(ordered); i++ {
+		if ComparePlay(ordered[i-1], ordered[i]) >= 0 || ComparePlay(ordered[i], ordered[i-1]) <= 0 {
+			t.Errorf("bout %d not before bout %d", i-1, i)
+		}
+	}
+}

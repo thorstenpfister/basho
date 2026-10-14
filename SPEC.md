@@ -595,11 +595,11 @@ There is no public sumo rating API. Ozeki Analytics published an Elo analysis co
 
 - Win chance for A against B: `1 / (1 + 10^((R_B − R_A) / 400))`.
 - Fusen bouts and draws are skipped. Playoff bouts count.
-- **Starting rating:** lower-division bouts aren't available. So a wrestler's first sekitori bout starts at the average rating of wrestlers in the same rank band over the previous 6 tournaments.
-  - Bands: each san'yaku title, M1–5, M6–10, M11–17, J1–7, J8–14.
-  - During the 1960 warm-up period, when not enough history exists yet, a fixed table by rank is used.
+- **Starting rating:** lower-division bouts aren't available. So a wrestler's first sekitori bout starts at the average rating of established wrestlers (those with earlier rated bouts, as they entered each tournament) in the same rank band over the previous 6 tournaments.
+  - Bands: each san'yaku title, M1–5, M6–10, M11–17, J1–7, J8–14, and Makushita for visitors in Juryo bouts.
+  - During the 1960 warm-up period, and whenever the window holds fewer than 10 established wrestlers in the band, a fixed table by rank is used (Appendix F).
 - **K factor:** a higher value (`K_new`) for a wrestler's first 30 sekitori bouts, then `K`.
-- **Return after absence:** for each tournament missed completely (fully absent, or ranked below Juryo), the rating is pulled a fraction `r` towards the rank-band average at the return.
+- **Return after absence:** for each tournament held but missed completely (fully absent, or ranked below Juryo), the rating is pulled a fraction `r` towards the rank-band average at the return: `avg + (R − avg)·(1 − r)^missed`. As-of queries before the return already include the pull; `NoCutoff` gives the latest rating unpulled.
 - The parameters `K_new`, `K` and `r` are stored in `data/rating/params.json` (embedded) and come from calibration.
 
 **Calibration** (`basho-data rating calibrate`):
@@ -611,7 +611,7 @@ There is no public sumo rating API. Ozeki Analytics published an Elo analysis co
 
 **At runtime:**
 
-- Ratings are recomputed from the bout index the first time they are needed (about 210,000 updates, a few milliseconds) and continue through later tournaments and live results.
+- Ratings are recomputed from the bout index the first time they are needed (about 195,000 bouts, about 40 ms on an Apple M5) and continue through later tournaments and live results: the newest tournament can be set again, replayed from a checkpoint taken before it.
 - Everything respects the as-of cutoff, so the VS screen always shows ratings from *before* the bout, and spoiler-free mode stays intact.
 
 **Display:**
@@ -1721,9 +1721,9 @@ Owned by `internal/snapshot` (`manifest.go`, `tournament.go`, `rikishi.go`). Eve
 
 Starting ratings for the 1960 warm-up period (also the fallback when a rank band has too little history):
 
-| Band | Y | O | S | K | M1–5 | M6–10 | M11–17 | J1–7 | J8–14 |
-|---|---|---|---|---|---|---|---|---|---|
-| Rating | 1750 | 1700 | 1650 | 1625 | 1575 | 1550 | 1525 | 1475 | 1450 |
+| Band | Y | O | S | K | M1–5 | M6–10 | M11–17 | J1–7 | J8–14 | Ms |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Rating | 1750 | 1700 | 1650 | 1625 | 1575 | 1550 | 1525 | 1475 | 1450 | 1425 |
 
 Search ranges:
 

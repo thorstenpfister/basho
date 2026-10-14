@@ -61,12 +61,21 @@ func (c AsOf) Includes(b domain.Bout) bool {
 	if c.MatchNo == 0 {
 		return c.Inclusive
 	}
-	n := cmp.Or(
-		cmp.Compare(c.Division, b.Division), // Juryo (the larger value) fights first
-		boolCompare(b.IsPlayoff, c.Playoff),
-		cmp.Compare(b.MatchNo, c.MatchNo),
-	)
+	n := ComparePlay(b, domain.Bout{Basho: c.Basho, Day: c.Day, Division: c.Division, MatchNo: c.MatchNo, IsPlayoff: c.Playoff})
 	return n < 0 || n == 0 && c.Inclusive
+}
+
+// ComparePlay orders bouts as they are fought: by tournament and day; within
+// a day Juryo before Makuuchi, a division's playoffs after its regular bouts,
+// then by match number. It is the order AsOf cuts.
+func ComparePlay(a, b domain.Bout) int {
+	return cmp.Or(
+		a.Basho.Compare(b.Basho),
+		cmp.Compare(a.Day, b.Day),
+		cmp.Compare(b.Division, a.Division), // Juryo (the larger value) fights first
+		boolCompare(a.IsPlayoff, b.IsPlayoff),
+		cmp.Compare(a.MatchNo, b.MatchNo),
+	)
 }
 
 // IncludesDay reports whether a banzuke day result counts before the cutoff:
