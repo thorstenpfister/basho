@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
+
 	"github.com/thorstenpfister/basho/data"
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/config"
@@ -148,5 +150,35 @@ func TestCompact(t *testing.T) {
 	}
 	if v := d.View(); !strings.Contains(v, "Toshinofu…") || !strings.Contains(v, "Aki 2026 · Makuuchi · Day 13") {
 		t.Errorf("compact:\n%s", v)
+	}
+}
+
+func TestWidePanel(t *testing.T) {
+	_, d := open(t, aki2026, 13, 140, 32)
+	v := d.View()
+	if !strings.Contains(v, "Yusho race · after Day 13") || !strings.Contains(v, "11-2  Y1e  Onosato") || !strings.Contains(v, "── −1 ──") {
+		t.Errorf("wide:\n%s", v)
+	}
+	d.Keys("right")
+	if v := d.View(); !strings.Contains(v, "after Day 14") {
+		t.Errorf("the panel did not follow the day:\n%s", v)
+	}
+	d.Keys("%")
+	if v := d.View(); !strings.Contains(v, "✓ yusho") {
+		t.Errorf("day 15: no decided mark:\n%s", v)
+	}
+
+	_, d = open(t, aki2026, 13, 100, 32)
+	if strings.Contains(d.View(), "Yusho race") {
+		t.Error("a panel at 100 columns")
+	}
+	d.Send(tea.WindowSizeMsg{Width: 140, Height: 32})
+	if !strings.Contains(d.View(), "Yusho race · after Day 13") {
+		t.Error("no panel after widening")
+	}
+	for i, l := range strings.Split(d.View(), "\n") {
+		if w := len([]rune(l)); w > 140 {
+			t.Errorf("line %d is %d wide", i, w)
+		}
 	}
 }

@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/tui"
@@ -30,6 +31,9 @@ type Day struct {
 	err     error
 	loading bool // a request for the shown day is running: ↻
 	req     int  // the current request; older answers are dropped
+
+	race    *service.Standings // the wide layout's side panel
+	raceFor refreshKey         // the day race belongs to
 
 	spinning  bool
 	frame     int
@@ -89,6 +93,11 @@ type (
 		err   error
 	}
 	spinMsg struct{}
+	raceMsg struct {
+		key refreshKey
+		res service.Result[service.Standings]
+		err error
+	}
 )
 
 // phase is a step of stale-while-revalidate (SPEC §7.2): the cache's copy
@@ -176,6 +185,13 @@ func (d Day) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		d.width, d.height = msg.Width, msg.Height-1
+		if d.data != nil {
+			return d, d.loadRace(ctx)
+		}
+	case raceMsg:
+		if msg.err == nil && msg.key == (refreshKey{d.id, d.div, d.day}) {
+			d.race, d.raceFor = &msg.res.Value, msg.key
+		}
 	case statusesMsg:
 		if msg.id == d.id && msg.div == d.div && msg.err == nil {
 			d.statuses, d.haveStatuses = msg.res.Value, true
@@ -224,11 +240,29 @@ func (d Day) answer(ctx *tui.Context, msg dayMsg) (tui.Screen, tea.Cmd) {
 	d.data, d.prov = &msg.res.Value, &msg.res.Prov
 	d.cursor = min(d.cursor, max(len(d.rows())-1, 0))
 	d.scroll()
+	race := d.loadRace(ctx)
 	if msg.phase == cachedPhase && msg.res.Prov.Source != service.SnapshotSource {
-		return d, d.fetch(ctx, freshPhase) // revalidate in the background: ↻
+		return d, tea.Batch(d.fetch(ctx, freshPhase), race) // revalidate in the background: ↻
 	}
 	d.loading = false
-	return d, nil
+	return d, race
+}
+
+// loadRace fetches the standings for the side panel of the wide layout; the
+// day's data is cached by now, so it costs no request.
+func (d Day) loadRace(ctx *tui.Context) tea.Cmd {
+	if tui.LayoutOf(d.width) != tui.Wide || d.day == 0 {
+		return nil
+	}
+	k := refreshKey{d.id, d.div, d.day}
+	if d.race != nil && d.raceFor == k {
+		return nil
+	}
+	svc := ctx.Svc
+	return func() tea.Msg {
+		res, err := svc.Standings(service.CachedOnly(context.Background()), k.id, k.div, k.day)
+		return raceMsg{k, res, err}
+	}
 }
 
 // refresh is R: revalidate the shown day with its source, at most every
@@ -419,14 +453,21 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 		return b.String()
 	}
 	cols := columns(d.rows(), tui.LayoutOf(width) == tui.Compact, d.winChance)
-	b.WriteString(t.Header.Render(cols.header()) + "\n")
+	var table strings.Builder
+	table.WriteString(t.Header.Render(cols.header()) + "\n")
 	rows := d.rows()
 	visible := max(height-chrome, 1)
 	for i := d.offset; i < min(d.offset+visible, len(rows)); i++ {
 		if i == len(data.Bouts) {
-			b.WriteString(t.Dim.Render(fmt.Sprintf(" %s%s Kettei-sen %s%s", t.Line, t.Line, t.Line, t.Line)) + "\n")
+			table.WriteString(t.Dim.Render(fmt.Sprintf(" %s%s Kettei-sen %s%s", t.Line, t.Line, t.Line, t.Line)) + "\n")
 		}
-		b.WriteString(cols.row(t, rows[i], i == d.cursor) + "\n")
+		table.WriteString(cols.row(t, rows[i], i == d.cursor) + "\n")
+	}
+	if tui.LayoutOf(width) == tui.Wide && d.race != nil && d.raceFor == (refreshKey{d.id, d.div, d.day}) {
+		left := lipgloss.NewStyle().Width(width - panelWidth - 1).Render(strings.TrimSuffix(table.String(), "\n"))
+		b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, left, racePanel(ctx, *d.race, visible+1)) + "\n")
+	} else {
+		b.WriteString(table.String())
 	}
 	b.WriteString(t.Rule.Render(" "+strings.Repeat(t.Line, max(width-2, 1))) + "\n")
 	b.WriteString(kyujo(d, width) + "\n")
@@ -517,4 +558,33 @@ func (d Day) Status(*tui.Context) tui.Status {
 // Keys implements tui.Screen.
 func (d Day) Keys() []key.Binding {
 	return []key.Binding{keyPrev, keyNext, keyUp, keyDown, keyJump, keyG, keyDivision, keyWinChance, keyVS, keyStandings, keyRecap, keyRefresh}
+}
+
+// panelWidth is the side panel of the wide layout.
+const panelWidth = 36
+
+// racePanel is the yusho race after the day: the leaders and those one win
+// behind (SPEC §8.4), as many as fit.
+func racePanel(ctx *tui.Context, s service.Standings, height int) string {
+	t := ctx.Theme
+	lines := []string{t.Title.Render(fmt.Sprintf("Yusho race · after Day %d", s.Day))}
+	band := derive.Band(-1)
+	for _, r := range s.Rows {
+		if r.Band > derive.OneBack || len(lines) >= height {
+			break
+		}
+		if r.Band != band {
+			band = r.Band
+			if band == derive.OneBack {
+				lines = append(lines, t.Dim.Render(t.Line+t.Line+" −1 "+t.Line+t.Line))
+			}
+		}
+		lines = append(lines, fmt.Sprintf("%5s  %-4s %s", r.Record.String(), r.Rank.Short(), tui.Truncate(r.Shikona.En, panelWidth-16)))
+	}
+	if s.YushoDecided {
+		lines = append(lines, t.Gold.Render("✓ yusho"))
+	}
+	return lipgloss.NewStyle().Width(panelWidth).Height(height).PaddingLeft(1).
+		BorderStyle(lipgloss.NormalBorder()).BorderLeft(true).BorderForeground(t.Colors.Subtle).
+		Render(strings.Join(lines, "\n"))
 }
