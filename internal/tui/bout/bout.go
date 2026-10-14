@@ -3,6 +3,7 @@ package bout
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 
 	"charm.land/bubbles/v2/key"
@@ -229,6 +230,7 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 		row(styleBar(ctx, e.Moveset(), true, l), "STYLE", styleBar(ctx, w.Moveset(), false, l)),
 		row(signature(ctx, e.Moveset()), "SIGNATURE", signature(ctx, w.Moveset())),
 	)
+	lines = append(lines, v.rating(ctx, l, row)...)
 	if e.Career.Now != "" || w.Career.Now != "" {
 		lines = append(lines, row(t.Dim.Render(now(e.Career.Now)), "", t.Dim.Render(now(w.Career.Now))))
 	}
@@ -547,4 +549,34 @@ func orDash(s string) string {
 		return "—"
 	}
 	return s
+}
+
+// rating is the RATING and WIN CHANCE rows: ratings before the bout with the
+// change since the tournament began, and the win chance drawn from the
+// centre outwards. Hidden when the rating failed calibration (V9) or
+// ui.win_chance is off.
+func (v VS) rating(ctx *tui.Context, l layout, row func(string, string, string) string) []string {
+	t := ctx.Theme
+	e, w := v.tale.East.Rating, v.tale.West.Rating
+	if !ctx.Cfg.UI.WinChance || e == nil || w == nil || v.tale.WinChance == nil {
+		return nil
+	}
+	value := func(r *service.Rating) string {
+		s := fmt.Sprintf("%.0f", r.Value)
+		switch c := int(math.Round(r.Change)); {
+		case c > 0:
+			s += " " + t.Green.Render(fmt.Sprintf("%s%d", t.Up, c))
+		case c < 0:
+			s += " " + t.Red.Render(fmt.Sprintf("%s%d", t.Down, -c))
+		}
+		if r.Provisional {
+			s += t.Dim.Render(" new")
+		}
+		return s
+	}
+	left, right := components.WinChance(t, *v.tale.WinChance, max(l.side-6, 4))
+	return []string{
+		row(value(e), "RATING", value(w)),
+		row(left, "WIN CHANCE", right),
+	}
 }

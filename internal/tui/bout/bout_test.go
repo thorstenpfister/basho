@@ -13,6 +13,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/config"
 	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/rating"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/tui"
 	"github.com/thorstenpfister/basho/internal/tui/theme"
@@ -205,4 +206,31 @@ func lineWith(s, sub string) string {
 		}
 	}
 	return ""
+}
+
+func TestRatingRows(t *testing.T) {
+	v := open(t, aki2026, domain.DivMakuuchi, 13, 19, 100, 40).View()
+	r, wc := lineWith(v, "RATING"), lineWith(v, "WIN CHANCE")
+	if !strings.Contains(r, "1681 ▲23") || !strings.Contains(r, "1633 ▼26") || !strings.Contains(wc, "57%") || !strings.Contains(wc, "43%") {
+		t.Errorf("rating rows:\n%s\n%s", r, wc)
+	}
+	// Hidden by the config.
+	ctx := testContext(svc())
+	ctx.Cfg.UI.WinChance = false
+	res, _ := svc().Day(t.Context(), aki2026, domain.DivMakuuchi, 13)
+	d := tuitest.New(tui.New(ctx, []tui.Screen{New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts[18])}, nil), 100, 40)
+	if v := d.View(); strings.Contains(v, "RATING") || strings.Contains(v, "WIN CHANCE") {
+		t.Error("ui.win_chance = false shows the rating")
+	}
+	// Hidden when calibration failed (V9).
+	hidden := service.New(service.Options{Snapshot: data.Snapshot, Params: func() (rating.File, error) {
+		f, err := data.RatingParams()
+		f.Show = false
+		return f, err
+	}, Clock: clock.NewFake(testNow)})
+	ctx = testContext(hidden)
+	d = tuitest.New(tui.New(ctx, []tui.Screen{New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, res.Value.Bouts[18])}, nil), 100, 40)
+	if v := d.View(); strings.Contains(v, "RATING") {
+		t.Error("a hidden rating is shown")
+	}
 }
