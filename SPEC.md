@@ -541,7 +541,7 @@ Inputs: banzuke entries, cut off at day N.
 
 - **Height and weight:** sumo-api only records them at a wrestler's debut, so per-tournament values do not exist. The wrestler index holds the latest values (updated over a career; for retired wrestlers the last known), and the VS screen uses those, labelled "latest" for tournaments other than the current one.
 - **Age:** birth date to tournament start date.
-- **Yusho and sansho:** counted exactly as of the tournament, from each tournament's yusho and sansho lists in the snapshot plus later tournaments (§5.8). The current tournament's results only count once they fall before the cutoff, so nothing is spoiled.
+- **Yusho and sansho:** counted exactly as of the tournament, from each tournament's yusho (Makuuchi and Juryo) and special prizes (by type) in the snapshot plus later tournaments (§5.8). A tournament counts once all of it, playoffs included, lies before the cutoff (`EndOf` or later), so nothing is spoiled.
 - **Heya and hometown:** sumo-api only provides current values. Stable closures and moves aren't reflected (known limitation, noted in the help screen).
 - **Shikona:** the name from the bout or ranking is as of that tournament. If it differs from today's name, show "now: X" dimmed.
 
