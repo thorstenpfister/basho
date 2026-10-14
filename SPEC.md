@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.15** (2026-10-14). Implemented: Phases 0–9; the full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and the TUI has the picker, the day view with its recap, the VS screen and the standings. The current tournament comes from osada.us and sumo-api through the resolver. Later phases are still the plan.
+> Status: **v0.16** (2026-10-14). Implemented: Phases 0–10 (Phase 10 step 4 and its real-day check wait for Kyushu 2026); the full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and the TUI has the picker, the day view with its recap, the VS screen and the standings. The current tournament comes from osada.us and sumo-api through the resolver, and live mode polls it. Later phases are still the plan.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -680,7 +680,7 @@ There is no public sumo rating API. Ozeki Analytics published an Elo analysis co
 | Wrestler index | 1 request (active wrestlers) in the background, only when the snapshot's index is older than 7 days | 0 |
 | Prefetch | **none by default**. Optional (`prefetch.adjacent_days = true`): the next day only, and only when idle for more than 2 s. | |
 | Live mode, per poll | 1 conditional GET to osada (usually 304 or a small body) | |
-| Live mode, per tournament day | ≈ 1 request every 3 min over ≈ 4.5 h ≈ **≤ 90 requests**, mostly 304 | |
+| Live mode, per tournament day | ≈ 1 request every 3 min over ≈ 4.5 h ≈ **≤ 90 requests**, mostly 304; simulated: 73 (Phase 10) | |
 
 ---
 
@@ -1508,9 +1508,15 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 
    Done: tested end to end over HTTP servers with ETags through the production cache stack. After the first poll, each poll is exactly one request, a 304 for `torikumi.json`, and no sumo-api requests. The first poll fetches whatever was never cached (osada's two files, sumo-api's metadata and banzuke) and then does not revalidate again. Each live poll revalidates once per source: the bout list's osada read, and sumo-api's bout lists only when osada fails. A source that can answer only from an expired copy counts as failed (`resolver.ErrStale`), so the next source is asked on the same tick and live mode backs off. When everything fails, the status bar says "osada unreachable, showing the cached copy".
 4. Use the Kyushu 2026 recordings and the V1 result to adjust the default interval and source priorities.
+
+   **Waiting for data:** the recordings are made during Kyushu 2026 (2026-11-08 to 22, Appendix E). Until then the defaults stay at a 3-minute interval and osada first.
 5. Scheduler and request-budget tests (≤ 90 requests per day, mostly 304).
 
+   Done: `TestLiveDay` runs the scheduler and `LivePoll` on a fake clock against a simulated osada. Its cron publishes day 13's results every 3 minutes as the bouts end (Juryo from 14:30, Makuuchi from 16:00, the last at 17:54). The run takes 72 polls from 14:00, and the day is complete at 17:58. One final check follows at 18:28, then no more polls. That is 73 osada requests: the banzuke once and one bout list per poll, 39 of them 304. While results come in every cron run, most answers are new data rather than 304s, so "mostly 304" holds for quiet stretches. Results show within the base interval plus jitter. Only the first ones after the quiet start may take up to the doubled interval (10 minutes at most).
+
 **AC:** during a real tournament day the app shows new results within one poll interval of osada's update, stays within budget, and stops polling once the day is complete.
+
+AC status: met on the simulated day above. The check on a real day happens during Kyushu 2026, together with step 4.
 
 ### Phase 11: Spoiler-free mode and `basho watch`
 
