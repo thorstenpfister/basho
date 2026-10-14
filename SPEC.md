@@ -1532,6 +1532,13 @@ AC status: met on the simulated day above. The check on a real day happens durin
    Done: `service.Hiding(ctx, horizons)` limits every cutoff with `derive.Earlier`. That covers records, last 5, kinboshi, head-to-head, movesets, career yusho, ratings and win chance in the tale and the day's rows, standings, recap and the ratings table. Bouts after the horizon come back undecided with `Hidden` set, decided or not: telling decided from undecided would itself be a spoiler. The TUI draws them as `?`. Playoff rows stay out until the horizon has passed the division's last regular bout, since a playoff's existence gives the day away. The yusho and prizes (info, picker, standings) wait until the horizon has passed the whole tournament; the picker says "Yusho hidden (spoiler-free)". Standings and recap carry the banner "as of Day 13 · Makuuchi bout 5 (spoiler-free)", the standings refuse `→` past the horizon's day, and the status bar shows 🙈 spoiler-free. Screens take their service context from `tui.Context.Data()` when they build a command; `tui.SpoilersMsg` makes them reload.
    - **Leak found and fixed:** a day's load only knew that day's bouts, so results of an earlier day cut by the horizon counted by their day. Such a load now also reads the horizon day's bouts (snapshot or cache, one request at most).
 3. VS screen `space` reveal flow; `ctrl+r` "reveal up to here" with confirmation; `S` session toggle.
+
+   Done:
+   - **VS screen:** shows "Result hidden (spoiler-free) · [space] reveal". `space` moves the horizon through the bout and saves it; every screen on the stack reloads, and the result flashes in once the revealed tale arrives.
+   - **Day view:** `ctrl+r` asks "Reveal every result up to Day 13 bout 10? [y/N]". Only `y` reveals; any other key cancels, and while the prompt is open `esc` and `q` answer it rather than leaving.
+   - **`S`:** toggles the session's mode (it starts from `spoilers.mode`) and reloads every screen.
+   - **Live mode:** in spoiler-free mode it never feeds the day view the poll's answer. The day view reloads behind the horizon from the cache, without `NEW` badges, and the status bar adds "3 new results hidden".
+   - **Fix:** screens below the top used to lose the answers to their own commands, because the root delivers to the top. This also affected Phase 10's live updates. The root now addresses those answers back to the screen that asked.
 4. CLI `--no-spoilers` and `--reveal-to`.
 5. `basho watch` line stream (text and NDJSON), reusing the live scheduler.
 6. Tests: no spoiler leaks through any view (snapshot tests with a horizon in the middle of a day), and the horizon persists between runs.

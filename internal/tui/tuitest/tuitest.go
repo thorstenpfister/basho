@@ -2,6 +2,8 @@
 package tuitest
 
 import (
+	"strings"
+
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -60,8 +62,8 @@ func Key(k string) tea.KeyPressMsg {
 		"up": tea.KeyUp, "down": tea.KeyDown, "tab": tea.KeyTab, "space": tea.KeySpace,
 		"pgup": tea.KeyPgUp, "pgdown": tea.KeyPgDown,
 	}
-	if k == "ctrl+c" {
-		return tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl}
+	if c, ok := strings.CutPrefix(k, "ctrl+"); ok && len(c) == 1 {
+		return tea.KeyPressMsg{Code: rune(c[0]), Mod: tea.ModCtrl}
 	}
 	if c, ok := special[k]; ok {
 		return tea.KeyPressMsg{Code: c}

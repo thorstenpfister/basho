@@ -38,6 +38,7 @@ type VS struct {
 	slide, slideVel float64 // the names' slide-in: 0 at the edges, 1 in place
 	sliding         bool
 	flash           bool // the result panel's reveal flash
+	revealing       bool // space: flash once the revealed tale is in
 
 	history       bool          // v: the last 10 meetings
 	moveset       bool          // m: the moveset overlay
@@ -51,6 +52,7 @@ var (
 	keyWindow  = key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "moveset window"))
 	keyPrev    = key.NewBinding(key.WithKeys("["), key.WithHelp("[", "previous bout"))
 	keyNext    = key.NewBinding(key.WithKeys("]"), key.WithHelp("]", "next bout"))
+	keyReveal  = key.NewBinding(key.WithKeys("space"), key.WithHelp("space", "reveal the result (spoiler-free)"))
 	keyBack    = key.NewBinding(key.WithKeys("q", "esc", "b"), key.WithHelp("q/esc", "back to the day")) // the root pops
 )
 
@@ -227,13 +229,25 @@ func (v VS) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 			return v, nil
 		}
 		v.tale, v.prov, v.err = &msg.res.Value, &msg.res.Prov, nil
+		var flash tea.Cmd
+		if v.revealing && !v.tale.Hidden {
+			v.revealing = false
+			flash = func() tea.Msg { return RevealMsg{} }
+		}
 		if msg.cached && msg.res.Prov.Source != service.SnapshotSource {
 			v.loading = true
-			return v, v.fetch(ctx, false)
+			return v, tea.Batch(flash, v.fetch(ctx, false))
 		}
 		v.loading = false
+		return v, flash
+	case tui.SpoilersMsg:
+		v.req++
+		v.loading = true
+		return v, v.fetch(ctx, true)
 	case tea.KeyPressMsg:
 		switch {
+		case key.Matches(msg, keyReveal):
+			return v.reveal(ctx)
 		case key.Matches(msg, keyHistory):
 			v.history = !v.history
 		case key.Matches(msg, keyMoveset):
@@ -249,6 +263,23 @@ func (v VS) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 		return v.adjacent(ctx, msg)
 	}
 	return v, nil
+}
+
+// reveal is space in spoiler-free mode: the horizon moves through this
+// bout, every screen reloads, and the result flashes in (SPEC §9).
+func (v VS) reveal(ctx *tui.Context) (tui.Screen, tea.Cmd) {
+	switch {
+	case !ctx.Hide || ctx.Spoilers == nil:
+		return v, nil
+	case v.tale == nil || !v.tale.Hidden:
+		return v, nil
+	}
+	b := domain.Bout{Basho: v.id, Division: v.div, Day: v.day, MatchNo: v.match, IsPlayoff: v.tale.Playoff}
+	if _, err := ctx.Spoilers.Reveal(b); err != nil {
+		return v, tui.Message("Could not save the horizon: " + err.Error())
+	}
+	v.revealing = true
+	return v, tui.Spoilers()
 }
 
 // QuitGoesBack implements tui.QuitBacker: q returns to the day view.
@@ -510,7 +541,7 @@ func (v VS) Status(*tui.Context) tui.Status {
 
 // Keys implements tui.Screen.
 func (v VS) Keys() []key.Binding {
-	return []key.Binding{keyPrev, keyNext, keyHistory, keyMoveset, keyWindow, keyBack}
+	return []key.Binding{keyPrev, keyNext, keyReveal, keyHistory, keyMoveset, keyWindow, keyBack}
 }
 
 // resultPanel is the box under the tape (SPEC §8.5): the winner, the
@@ -522,6 +553,8 @@ func (v VS) resultPanel(ctx *tui.Context, l layout) string {
 	switch r := v.result(); {
 	case r == nil && v.tale == nil && v.row.Winner == 0 && v.err == nil:
 		lines = []string{t.Dim.Render("…")}
+	case v.hidden():
+		lines = []string{t.Dim.Render("Result hidden (spoiler-free)"), t.Accent.Render("[space] reveal")}
 	case r == nil:
 		lines = []string{t.Dim.Render(v.undecided(ctx))}
 	default:
@@ -561,6 +594,14 @@ func (v VS) resultPanel(ctx *tui.Context, l layout) string {
 	}
 	return lipgloss.NewStyle().MarginLeft(1).Border(lipgloss.RoundedBorder()).BorderForeground(t.Colors.Subtle).
 		Render(style.Render(strings.Join(body, "\n")))
+}
+
+// hidden reports a result behind the spoiler horizon.
+func (v VS) hidden() bool {
+	if v.tale != nil {
+		return v.tale.Hidden
+	}
+	return v.row.Hidden
 }
 
 // result is the decided bout from the tale, or from the day's row while the

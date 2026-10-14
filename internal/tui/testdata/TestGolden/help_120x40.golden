@@ -12,6 +12,7 @@
   s       standings                                                                                                     
   r       recap                                                                                                         
   R       refresh (30 s cooldown)                                                                                       
+  ctrl+r  reveal up to here                                                                                             
                                                                                                                         
   Legend                                                                                                                
   ○ win  ● loss  □ fusen win  ■ fusen loss  – absent  · pending  ★ kinboshi                                             
@@ -27,7 +28,6 @@
   heya and hometown are today's values. The rating is an estimate, not betting advice.                                  
                                                                                                                         
   ? or esc to close                                                                                                     
-                                                                                                                        
                                                                                                                         
                                                                                                                         
                                                                                                                         

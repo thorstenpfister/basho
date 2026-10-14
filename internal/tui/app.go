@@ -144,6 +144,9 @@ func Push(s Screen) tea.Cmd       { return func() tea.Msg { return PushMsg{s} } 
 func Pop() tea.Cmd                { return func() tea.Msg { return PopMsg{} } }
 func Message(text string) tea.Cmd { return func() tea.Msg { return MessageMsg{text} } }
 
+// Spoilers is the command that sends SpoilersMsg to every screen.
+func Spoilers() tea.Cmd { return func() tea.Msg { return SpoilersMsg{} } }
+
 // messageTTL is how long a status message stays.
 const messageTTL = 3 * time.Second
 
@@ -213,6 +216,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.resized(msg.Screen.Init(m.ctx))
 	case PopMsg:
 		return m.pop()
+	case SpoilersMsg:
+		return m.broadcast(msg)
+	case screenMsg:
+		return m.deliver(msg)
 	case ResetMsg:
 		m.stack = msg.Stack
 		return m.resized(m.top().Init(m.ctx))
@@ -261,9 +268,23 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, keyRefresh) && m.livePolls():
 		return m.refreshLive()
 	case key.Matches(msg, keySpoilers):
-		return m.Update(MessageMsg{"Spoiler-free mode comes with Phase 11"})
+		return m.toggleSpoilers()
 	}
 	return m.forward(msg)
+}
+
+// toggleSpoilers is S: spoiler-free mode on or off for this session.
+func (m Model) toggleSpoilers() (tea.Model, tea.Cmd) {
+	if m.ctx.Spoilers == nil {
+		return m.Update(MessageMsg{"Spoiler-free mode is unavailable: no state file"})
+	}
+	m.ctx.Hide = !m.ctx.Hide
+	text := "Spoiler-free mode off: all results shown"
+	if m.ctx.Hide {
+		text = "Spoiler-free mode on: results up to the horizon; space on a bout reveals it"
+	}
+	next, cmd := m.broadcast(SpoilersMsg{})
+	return next, tea.Batch(cmd, Message(text))
 }
 
 // pop closes the top screen, keeping the last one.

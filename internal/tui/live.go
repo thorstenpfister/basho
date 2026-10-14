@@ -204,15 +204,67 @@ func (m Model) livePolls() bool {
 	return st == live.Polling || st == live.Backoff
 }
 
-// broadcast sends a message to every screen on the stack, top last.
+// broadcast sends a message to every screen on the stack, top last. The
+// answers to a lower screen's commands go back to that screen.
 func (m Model) broadcast(msg tea.Msg) (Model, tea.Cmd) {
 	stack := make([]Screen, len(m.stack))
 	cmds := make([]tea.Cmd, len(m.stack))
 	for i, s := range m.stack {
 		stack[i], cmds[i] = s.Update(m.ctx, msg)
+		if i < len(m.stack)-1 {
+			cmds[i] = toScreen(i, cmds[i])
+		}
 	}
 	m.stack = stack
 	return m, tea.Batch(cmds...)
+}
+
+// screenMsg is an answer for the screen at a depth of the stack.
+type screenMsg struct {
+	depth int
+	msg   tea.Msg
+}
+
+// toScreen addresses a command's messages to the screen at depth, batches
+// included.
+func toScreen(depth int, cmd tea.Cmd) tea.Cmd {
+	if cmd == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		switch msg := cmd().(type) {
+		case nil:
+			return nil
+		case tea.BatchMsg:
+			out := make(tea.BatchMsg, len(msg))
+			for i, c := range msg {
+				out[i] = toScreen(depth, c)
+			}
+			return out
+		default:
+			return screenMsg{depth, msg}
+		}
+	}
+}
+
+// deliver hands an addressed answer to its screen, if it is still there.
+func (m Model) deliver(msg screenMsg) (Model, tea.Cmd) {
+	if msg.depth >= len(m.stack) {
+		return m, nil
+	}
+	if msg.depth == len(m.stack)-1 {
+		next, cmd := m.forward(msg.msg)
+		return next.(Model), cmd
+	}
+	switch msg.msg.(type) { // root messages from a lower screen still reach the root
+	case MessageMsg, PushMsg, PopMsg, ResetMsg, SpoilersMsg:
+		next, cmd := m.Update(msg.msg)
+		return next.(Model), cmd
+	}
+	s, cmd := m.stack[msg.depth].Update(m.ctx, msg.msg)
+	m.stack = append([]Screen(nil), m.stack...)
+	m.stack[msg.depth] = s
+	return m, toScreen(msg.depth, cmd)
 }
 
 // liveStatus is the status bar's live part (SPEC §10.3); empty when off.
@@ -232,7 +284,7 @@ func (m Model) liveStatus() string {
 	case live.Waiting:
 		return t.Dim.Render(t.LiveWait+" LIVE") + t.Dim.Render(fmt.Sprintf(" · window opens %s (in %s)", clock(st.Next), until(st.Next.Sub(now))))
 	case live.Polling:
-		return t.Red.Render(t.Live+" LIVE") + " · next " + countdown(st.Next) + m.liveSource(now)
+		return t.Red.Render(t.Live+" LIVE") + " · next " + countdown(st.Next) + m.liveSource(now) + m.liveHidden()
 	case live.Backoff:
 		what := "the sources are unreachable"
 		if p := m.live.last; st.Fallback != "" && p != nil && p.Prov.Failed != "" {
@@ -259,6 +311,31 @@ func (m Model) liveStatus() string {
 		return t.Dim.Render(fmt.Sprintf("LIVE unavailable · next basho %s, Day 1 %s", next.Name(), next.EstimatedStart()))
 	}
 	return ""
+}
+
+// liveHidden is " · 3 new results hidden" in spoiler-free mode: what the
+// last poll found behind the horizon (SPEC §9).
+func (m Model) liveHidden() string {
+	p := m.live.last
+	if !m.ctx.Hide || m.ctx.Spoilers == nil || p == nil {
+		return ""
+	}
+	n := 0
+	for div, res := range p.Days {
+		for i, r := range append(append([]service.BoutRow{}, res.Value.Bouts...), res.Value.Playoffs...) {
+			b := domain.Bout{Basho: p.Basho, Division: div, Day: p.Day, MatchNo: r.MatchNo, IsPlayoff: i >= len(res.Value.Bouts)}
+			if r.Winner != 0 && !m.ctx.Spoilers.Visible(b) {
+				n++
+			}
+		}
+	}
+	switch n {
+	case 0:
+		return ""
+	case 1:
+		return " · " + m.ctx.Theme.Accent.Render("1 new result hidden")
+	}
+	return " · " + m.ctx.Theme.Accent.Render(fmt.Sprintf("%d new results hidden", n))
 }
 
 // liveSource names the last poll's source and its update time:

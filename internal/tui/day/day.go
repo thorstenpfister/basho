@@ -13,6 +13,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
+	"github.com/thorstenpfister/basho/internal/spoiler"
 	"github.com/thorstenpfister/basho/internal/tui"
 	"github.com/thorstenpfister/basho/internal/tui/bout"
 	"github.com/thorstenpfister/basho/internal/tui/standings"
@@ -37,7 +38,8 @@ type Day struct {
 	race    *service.Standings // the wide layout's side panel
 	raceFor refreshKey         // the day race belongs to
 
-	fresh map[int]time.Time // NEW: bouts a live poll found decided, by match number
+	fresh   map[int]time.Time // NEW: bouts a live poll found decided, by match number
+	confirm *domain.Bout      // ctrl+r: the bout to reveal up to, awaiting y
 
 	recapOpen bool           // r: the recap overlay
 	recap     *service.Recap // nil with recapErr
@@ -68,6 +70,7 @@ var (
 	keyRecap     = key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "recap"))
 	keyRefresh   = key.NewBinding(key.WithKeys("R"), key.WithHelp("R", "refresh (30 s cooldown)"))
 
+	keyRevealHere = key.NewBinding(key.WithKeys("ctrl+r"), key.WithHelp("ctrl+r", "reveal up to here"))
 	keyRecapClose = key.NewBinding(key.WithKeys("r", "esc", "q", "b", "enter"))
 )
 
@@ -119,6 +122,7 @@ const (
 	cachedPhase  phase = iota // snapshot and disk cache only
 	freshPhase                // through the sources (revalidating)
 	refreshPhase              // R: revalidate even fresh entries
+	settlePhase               // after a live poll in spoiler-free mode: the cache only, no follow-up
 )
 
 type refreshKey struct {
@@ -172,7 +176,7 @@ func (d Day) fetch(ctx *tui.Context, ph phase) tea.Cmd {
 	return func() tea.Msg {
 		c := base
 		switch ph {
-		case cachedPhase:
+		case cachedPhase, settlePhase:
 			c = service.CachedOnly(c)
 		case refreshPhase:
 			c = service.Revalidate(c)
@@ -249,6 +253,10 @@ func (d Day) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 // the snapshot's (final), the sources are asked next, and their answer
 // replaces it when it comes (stale-while-revalidate).
 func (d Day) answer(ctx *tui.Context, msg dayMsg) (tui.Screen, tea.Cmd) {
+	if msg.err != nil && msg.phase == settlePhase {
+		d.loading = false
+		return d, nil // the shown copy stays
+	}
 	if msg.err != nil {
 		if msg.phase == cachedPhase { // not cached: ask the sources
 			return d, d.fetch(ctx, freshPhase)
@@ -318,6 +326,9 @@ func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 	if d.recapOpen {
 		return d.recapKey(ctx, msg)
 	}
+	if d.confirm != nil {
+		return d.confirmKey(ctx, s)
+	}
 	if d.pending != "" || s == "g" {
 		return d.gPrefix(ctx, s)
 	}
@@ -361,6 +372,8 @@ func (d Day) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 		if d.day > 0 {
 			return d, tui.Push(standings.New(d.id, d.div, d.day))
 		}
+	case key.Matches(msg, keyRevealHere):
+		return d.revealHere(ctx)
 	case key.Matches(msg, keyRecap):
 		if d.day > 0 {
 			d.recapOpen = true
@@ -384,6 +397,10 @@ func (d Day) live(ctx *tui.Context, p service.LivePoll) (tui.Screen, tea.Cmd) {
 	res, ok := p.Days[d.div]
 	if !ok || p.Day != d.day {
 		return d, statuses
+	}
+	if ctx.Hide { // the poll's answer shows everything: reload behind the horizon
+		d.req++
+		return d, tea.Batch(statuses, d.fetch(ctx, settlePhase))
 	}
 	decided := map[int]bool{}
 	for _, r := range d.rows() {
@@ -426,7 +443,36 @@ func (d Day) recapKey(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cm
 
 // CapturesKeys implements tui.KeyCapturer: esc and q close the recap
 // instead of leaving the day view.
-func (d Day) CapturesKeys() bool { return d.recapOpen }
+func (d Day) CapturesKeys() bool { return d.recapOpen || d.confirm != nil }
+
+// revealHere is ctrl+r in spoiler-free mode: after a confirmation, the
+// horizon moves through the selected bout (SPEC §9).
+func (d Day) revealHere(ctx *tui.Context) (tui.Screen, tea.Cmd) {
+	r, ok := d.Selected()
+	switch {
+	case !ctx.Hide || ctx.Spoilers == nil:
+		return d, tui.Message("Spoiler-free mode is off: S turns it on")
+	case !ok:
+		return d, nil
+	case !r.Hidden:
+		return d, tui.Message("Already revealed")
+	}
+	b := domain.Bout{Basho: d.id, Division: d.div, Day: d.day, MatchNo: r.MatchNo, IsPlayoff: d.cursor >= len(d.data.Bouts)}
+	d.confirm = &b
+	return d, nil
+}
+
+func (d Day) confirmKey(ctx *tui.Context, s string) (tui.Screen, tea.Cmd) {
+	b := *d.confirm
+	d.confirm = nil
+	if s != "y" && s != "Y" {
+		return d, tui.Message("Nothing revealed")
+	}
+	if _, err := ctx.Spoilers.Reveal(b); err != nil {
+		return d, tui.Message("Could not save the horizon: " + err.Error())
+	}
+	return d, tea.Batch(tui.Spoilers(), tui.Message("Revealed up to "+spoiler.Of(b).String()))
+}
 
 // gPrefix collects the two digits of g13.
 func (d Day) gPrefix(ctx *tui.Context, s string) (tui.Screen, tea.Cmd) {
@@ -569,6 +615,10 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 	}
 	b.WriteString(t.Rule.Render(" "+strings.Repeat(t.Line, max(width-2, 1))) + "\n")
 	b.WriteString(kyujo(d, width) + "\n")
+	if c := d.confirm; c != nil {
+		b.WriteString(t.Gold.Render(fmt.Sprintf(" Reveal every result up to Day %d bout %d? [y/N]", c.Day, c.MatchNo)))
+		return b.String()
+	}
 	hints := " [enter] VS · [s] standings · [r] recap · ←/→ day · j/k bout · d division · ? help"
 	if tui.LayoutOf(width) == tui.Compact {
 		hints = " enter VS · ←/→ day · j/k bout · d division"
@@ -646,7 +696,7 @@ func (d Day) Status(*tui.Context) tui.Status {
 
 // Keys implements tui.Screen.
 func (d Day) Keys() []key.Binding {
-	return []key.Binding{keyPrev, keyNext, keyUp, keyDown, keyJump, keyG, keyDivision, keyWinChance, keyVS, keyStandings, keyRecap, keyRefresh}
+	return []key.Binding{keyPrev, keyNext, keyUp, keyDown, keyJump, keyG, keyDivision, keyWinChance, keyVS, keyStandings, keyRecap, keyRefresh, keyRevealHere}
 }
 
 // panelWidth is the side panel of the wide layout.

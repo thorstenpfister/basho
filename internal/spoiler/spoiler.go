@@ -64,6 +64,9 @@ type State struct {
 	horizons map[domain.BashoID]Horizon
 }
 
+// FileName is the state file in basho's state directory.
+const FileName = "state.json"
+
 // fileSchema is the state file's version.
 const fileSchema = 1
 

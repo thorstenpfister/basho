@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/colorprofile"
@@ -15,6 +16,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/config"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
+	"github.com/thorstenpfister/basho/internal/spoiler"
 	"github.com/thorstenpfister/basho/internal/tui"
 	"github.com/thorstenpfister/basho/internal/tui/day"
 	"github.com/thorstenpfister/basho/internal/tui/picker"
@@ -35,9 +37,18 @@ func main() {
 // runTUI starts the interactive app on the current tournament's latest day,
 // with the picker underneath (SPEC §8.3).
 func runTUI(cfg config.Config, svc *service.Service, noColor bool) error {
+	dir, err := config.StateDir(os.LookupEnv)
+	if err != nil {
+		return err
+	}
+	st, err := spoiler.Load(filepath.Join(dir, spoiler.FileName))
+	if err != nil {
+		return err
+	}
 	ctx := &tui.Context{
 		Svc: svc, Cfg: cfg, Theme: theme.New(cfg.UI.Theme != "light", cfg.UI.ASCII), Clock: clock.Real{},
-		TTY: term.IsTerminal(os.Stdout.Fd()),
+		TTY:      term.IsTerminal(os.Stdout.Fd()),
+		Spoilers: st, Hide: cfg.Spoilers.Mode == "hide",
 	}
 	open := func(id domain.BashoID) tui.Screen { return day.New(ctx, id, 0) }
 	today := func() []tui.Screen {
