@@ -44,6 +44,9 @@ test: ## Run all tests
 test-race: ## Run all tests with the race detector
 	$(GO) test -race ./...
 
+test-leaks: ## The spoiler leak tests, which skip under the race detector
+	$(GO) test -run 'TestNoLeaks|TestWalkDay13' ./internal/tui/
+
 test-live: ## Real API smoke tests, manual only (phase 1)
 	$(todo)
 
@@ -72,7 +75,7 @@ tidy: ## go mod tidy and verify
 	$(GO) mod tidy
 	$(GO) mod verify
 
-check: fmt-check lint vuln test-race ## All checks; run before committing
+check: fmt-check lint vuln test-race test-leaks ## All checks; run before committing
 
 tools: ## Check that external tools are installed
 	@command -v golangci-lint >/dev/null || { echo "missing golangci-lint: brew install golangci-lint"; exit 1; }

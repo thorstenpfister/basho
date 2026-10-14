@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.16** (2026-10-14). Implemented: Phases 0–10 (Phase 10 step 4 and its real-day check wait for Kyushu 2026); the full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and the TUI has the picker, the day view with its recap, the VS screen and the standings. The current tournament comes from osada.us and sumo-api through the resolver, and live mode polls it. Later phases are still the plan.
+> Status: **v0.17** (2026-10-14). Implemented: Phases 0–11 (Phase 10 step 4 and its real-day check wait for Kyushu 2026); the full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and the TUI has the picker, the day view with its recap, the VS screen and the standings. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Later phases are still the plan.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1185,6 +1185,7 @@ adjacent_days = false
 | `run` | `go run ./cmd/basho $(ARGS)` | 0 |
 | `test` | `go test ./...` | 0 |
 | `test-race` | `go test -race ./...` | 0 |
+| `test-leaks` | The spoiler leak tests without the race detector, under which they skip (single-threaded, ten times slower there) | 11 |
 | `test-live` | `go test -tags live ./...`: real API smoke tests, manual only | 1 |
 | `golden` | Re-runs tests with `-update` to rewrite golden files (review the diff afterwards) | 6 |
 | `cover` | Coverage profile and HTML report (`coverage.html`) | 0 |
@@ -1193,7 +1194,7 @@ adjacent_days = false
 | `lint` | `golangci-lint run` | 0 |
 | `vuln` | `go tool govulncheck ./...` | 0 |
 | `tidy` | `go mod tidy` and `go mod verify` | 0 |
-| `check` | `fmt-check lint vuln test-race`; the full check before committing | 0 |
+| `check` | `fmt-check lint vuln test-race test-leaks`; the full check before committing | 0 |
 | `tools` | Checks that external tools exist (golangci-lint; goreleaser from Phase 13) and prints install hints | 0 |
 | `fixtures` | `basho-data fixtures record`: polite recording of the test fixtures | 1 |
 | `record` | `basho-data record $(ARGS)`: live recorder (Appendix E) | 1 |
@@ -1553,7 +1554,16 @@ AC status: met on the simulated day above. The check on a real day happens durin
    - **Spoilers:** `watch` ignores spoiler-free mode; watching along is revealing.
 6. Tests: no spoiler leaks through any view (snapshot tests with a horizon in the middle of a day), and the horizon persists between runs.
 
+   Done, as a differential test. Every screen is drawn in spoiler-free mode over two worlds that agree up to the horizon and differ after it. One is the real Aki 2026; in the other, every later result went the other way, by a rare technique, with another yusho winner and prizes. Any difference on screen is a leak.
+   - **`TestNoLeaks`:** horizon after Makuuchi bout 9 of day 13. It covers days 12–15 in both divisions: day view with the race panel, recap, standings (race, expanded, grid, three popups), every bout's VS screen with the moveset and head-to-head panels, and the picker. All 15 days are loaded first, so later results sit in the bout index and the ratings, where they could leak through last 5, head-to-head and ratings.
+   - **Teeth:** taking the horizon out of one record cutoff makes the test fail.
+   - **`TestWalkDay13` (the AC):** steps through day 13 with `]` and `space`. Before each `space`, the VS screen equals the one of a world flipped after the current horizon. At bouts 6 and 14 every screen is compared.
+   - **Persistence:** the horizon surviving a restart is tested in `spoiler` and with `ctrl+r` in the TUI.
+   - **Time:** both tests skip under the race detector; `make check` runs them as `test-leaks`, about 6 s.
+
 **AC:** in spoiler-free mode, a tester can step through day 13 bout by bout with `]` + `space`, and nothing on any screen reveals a later result, including ratings.
+
+AC status: met, by `TestWalkDay13` and `TestNoLeaks` (step 6).
 
 ### Phase 12: Polish
 

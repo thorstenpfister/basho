@@ -17,12 +17,16 @@ var files embed.FS
 // Snapshot opens the snapshot compiled into the binary. Only binaries that
 // call it carry the data; basho-data builds snapshots and does not.
 func Snapshot() (*snapshot.Snapshot, error) {
-	sub, err := fs.Sub(files, "snapshot")
+	sub, err := SnapshotFS()
 	if err != nil {
 		return nil, err
 	}
 	return snapshot.Open(sub)
 }
+
+// SnapshotFS returns the embedded snapshot's files, for tests that build a
+// snapshot from part of them.
+func SnapshotFS() (fs.FS, error) { return fs.Sub(files, "snapshot") }
 
 // RatingParams returns the calibrated rating parameters compiled into the
 // binary, with whether the rating is shown (V9).
