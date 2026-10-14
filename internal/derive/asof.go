@@ -76,10 +76,22 @@ func (c AsOf) IncludesDay(basho domain.BashoID, day int, bout *domain.Bout) bool
 	if bout != nil {
 		return c.Includes(*bout)
 	}
-	if n := basho.Compare(c.Basho); n != 0 {
-		return n < 0
+	return day <= c.daysStarted(basho)
+}
+
+// daysStarted returns how many days of basho have begun at the cutoff: the
+// latest one is "today".
+func (c AsOf) daysStarted(basho domain.BashoID) int {
+	switch n := basho.Compare(c.Basho); {
+	case n < 0:
+		return domain.BashoDays
+	case n > 0:
+		return 0
+	case c.Inclusive || c.MatchNo > 0:
+		return min(c.Day, domain.BashoDays)
+	default:
+		return max(c.Day-1, 0)
 	}
-	return day < c.Day || day == c.Day && (c.Inclusive || c.MatchNo > 0)
 }
 
 // before returns the bouts of a chronological career before the cutoff. A

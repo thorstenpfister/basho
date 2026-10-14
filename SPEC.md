@@ -528,13 +528,13 @@ The API's `/matches/{b}` endpoint is not used for this, because it can't apply a
 ### 6.5 Standings after day N
 
 Inputs: banzuke entries, cut off at day N.
-- **Sort order:** wins descending, losses ascending, then banzuke rank. Grouped into bands: `Leader(s)`, `−1`, `−2`, then everyone else collapsed (expandable).
-- **Contention:** a wrestler is still in contention if their wins + days remaining ≥ the leader's wins. Show "✓ yusho" once the leader's wins are more than anyone else's maximum possible wins. A playoff is possible if wrestlers end up tied.
+- **Sort order:** wins descending, losses and absences together ascending, then banzuke rank. Grouped into bands by wins behind the leader: `Leader(s)`, `−1`, `−2`, then everyone else collapsed (expandable).
+- **Contention:** a wrestler is still in contention if their wins + days remaining ≥ the leader's wins (with a cutoff inside a day, a wrestler whose bout is still to come has that day remaining). Show "✓ yusho" once a sole leader's wins are more than anyone else's maximum possible wins. When the top is shared and nobody in contention has a day left, the yusho goes to a playoff (`Playoff`); sumo-api's bout lists carry no playoffs, so for finished tournaments the winner comes from the tournament's yusho (202609 Juryo: three at 11-4).
 - **Markers:**
   - 8+ wins: kachi-koshi, green, `KK`
-  - 8+ losses: make-koshi, red, `MK`
-  - kachi-koshi or make-koshi reached **on day N**: bold "new" marker
-  - out for the rest of the tournament: `休` (absent)
+  - 8+ losses and absences together: make-koshi, red, `MK`
+  - kachi-koshi or make-koshi reached **on day N** (the latest day begun at the cutoff): bold "new" marker
+  - absent on the latest day counted: `休` (kyujo)
 - **Hoshitori grid:** one row per wrestler in banzuke order, 15 result columns, with day N's column highlighted.
 
 ### 6.6 Career statistics as of a date
