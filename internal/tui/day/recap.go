@@ -99,7 +99,7 @@ func recapBody(ctx *tui.Context, r service.Recap, width int) string {
 		if tech.English != "" {
 			name += " (" + tech.English + ")"
 		}
-		technique = append(technique, t.Bold.Render(name)+" by "+winner.Shikona.En, times(r.TechniqueCount))
+		technique = append(technique, t.Bold.Render(name)+" by "+winner.Shikona.Romaji(), times(r.TechniqueCount))
 	}
 	add("Technique", technique, "—", " ·")
 	return strings.Join(lines, "\n")
@@ -120,7 +120,7 @@ func times(n int) string {
 func standingNames(rows []derive.Standing, withRecord bool) []string {
 	names := make([]string, len(rows))
 	for i, r := range rows {
-		names[i] = fmt.Sprintf("%s (%s)", r.Shikona.En, r.Rank.Short())
+		names[i] = fmt.Sprintf("%s (%s)", r.Shikona.Romaji(), r.Rank.Short())
 		if withRecord {
 			names[i] += " " + r.Record.String()
 		}
@@ -165,5 +165,5 @@ func pack(items []string, width int, sep string) []string {
 // over is "Winner (M9e) over Loser (Y1e) · technique".
 func over(b domain.Bout) string {
 	w, l, _ := b.Result()
-	return fmt.Sprintf("%s (%s) over %s (%s) · %s", w.Shikona.En, w.Rank.Short(), l.Shikona.En, l.Rank.Short(), b.Kimarite)
+	return fmt.Sprintf("%s (%s) over %s (%s) · %s", w.Shikona.Romaji(), w.Rank.Short(), l.Shikona.Romaji(), l.Rank.Short(), b.Kimarite)
 }

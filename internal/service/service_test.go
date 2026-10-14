@@ -384,3 +384,42 @@ func TestDayStatuses(t *testing.T) {
 		t.Errorf("day 5 of Kyushu: %v after %d calls", live.Value, fake.calls)
 	}
 }
+
+// An unknown JSA ID refreshes the active wrestlers, revalidated past the
+// cache, at most once an hour (SPEC §5.5).
+func TestUnknownJSAID(t *testing.T) {
+	w := &revalidated{}
+	clk := clock.NewFake(time.Date(2026, time.November, 8, 15, 0, 0, 0, domain.JST))
+	s := New(Options{Snapshot: data.Snapshot, Params: data.RatingParams, Wrestlers: w, Clock: clk})
+	ids, err := s.IDs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := ids.Resolve(t.Context(), 4227, "", "おおのさと"); got.ID != 8850 || w.calls != 0 {
+		t.Errorf("Onosato: %+v after %d requests", got, w.calls)
+	}
+	got := ids.Resolve(t.Context(), 9999, "新人", "しんじん")
+	if got.ID != 9100 || got.Temporary || w.calls != 1 || !w.revalidate {
+		t.Errorf("newcomer: %+v after %d requests (revalidated %v)", got, w.calls, w.revalidate)
+	}
+	if ws, _ := s.wrestlers(); ws[9100].Heya != "Newheya" {
+		t.Error("the refresh did not reach the profiles")
+	}
+	ids.Resolve(t.Context(), 9998, "", "べつ")
+	clk.Advance(30 * time.Minute)
+	ids.Resolve(t.Context(), 9997, "", "べつ")
+	if w.calls != 1 {
+		t.Errorf("%d requests within the hour", w.calls)
+	}
+}
+
+type revalidated struct {
+	calls      int
+	revalidate bool
+}
+
+func (f *revalidated) ActiveRikishi(ctx context.Context) ([]domain.Rikishi, error) {
+	f.calls++
+	f.revalidate = cache.Revalidating(ctx)
+	return []domain.Rikishi{{ID: 9100, NSKID: 9999, Name: domain.Name{En: "Shinjin"}, Heya: "Newheya"}}, nil
+}

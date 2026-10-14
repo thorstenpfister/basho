@@ -1468,6 +1468,8 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    - The JSA spells 浴せ倒し where the kimarite table has 浴びせ倒し; the adapter keeps such spellings. Unknown names pass through.
    - The tournament comes from the banzuke's `令和八年` + `九月場所`. When the bout list's `pathDate` names another tournament (the next banzuke is out), the days are left out.
 4. `idmap`: JSA ID ↔ sumo-api ID from the snapshot index plus the active index; refresh on an unknown ID (at most once an hour); kana→romaji fallback marked with `≈`.
+
+   Done: `idmap.Map.Resolve` maps a JSA ID to the sumo-api wrestler with the index's romaji, and osada's kanji and kana. An unknown ID refetches the active wrestlers once an hour at most (revalidated past the 7-day cache, failures count too) and overlays them on the profiles. A wrestler still unknown gets a temporary identity: ID minus the JSA ID, and a name transliterated by `idmap.Romaji` with `Name.Approx` set. Screens and the CLI print names with `Name.Romaji()`, which puts `≈` in front; JSON carries `"approx": true`. Collapsing `ou` also hits morpheme boundaries (しょうなんのうみ → Shonannomi), which the `≈` admits.
 5. `resolver`: the policy table (§5.4), "behind" detection, merge rules, per-bout source tracking, `--source` override, stale cache as last resort.
 6. Contract tests: both adapters produce equivalent domain output for the current-tournament fixtures.
 

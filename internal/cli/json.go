@@ -61,8 +61,9 @@ func rankJSON(r domain.Rank) *jsonRank {
 }
 
 type jsonName struct {
-	En string `json:"en"`
-	Jp string `json:"jp,omitempty"`
+	En     string `json:"en"`
+	Jp     string `json:"jp,omitempty"`
+	Approx bool   `json:"approx,omitempty"` // en transliterated from kana
 }
 
 type jsonWrestler struct {
@@ -72,7 +73,7 @@ type jsonWrestler struct {
 }
 
 func wrestlerJSON(w service.Wrestler) jsonWrestler {
-	return jsonWrestler{ID: w.RikishiID, Shikona: jsonName{En: w.Shikona.En, Jp: w.Shikona.Jp}, Rank: rankJSON(w.Rank)}
+	return jsonWrestler{ID: w.RikishiID, Shikona: jsonName{En: w.Shikona.En, Jp: w.Shikona.Jp, Approx: w.Shikona.Approx}, Rank: rankJSON(w.Rank)}
 }
 
 type jsonRecord struct {

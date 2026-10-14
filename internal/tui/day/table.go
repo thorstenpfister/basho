@@ -29,7 +29,7 @@ const (
 func columns(rows []service.BoutRow, compact, winChance bool) cols {
 	c := cols{name: 4, rec: 3, tech: 6, compact: compact, winChance: winChance}
 	for _, r := range rows {
-		c.name = max(c.name, len(r.East.Shikona.En), len(r.West.Shikona.En))
+		c.name = max(c.name, len(r.East.Shikona.Romaji()), len(r.West.Shikona.Romaji()))
 		c.rec = max(c.rec, len(record(r.East)), len(record(r.West)))
 		c.tech = max(c.tech, len(r.Kimarite.Kimarite))
 	}
@@ -56,7 +56,7 @@ func (c cols) header() string {
 // bout, the result glyphs next to the technique (SPEC §8.4).
 func (c cols) row(t theme.Theme, r service.BoutRow, selected bool) string {
 	decided := r.Winner != 0
-	east, west := fit(r.East.Shikona.En, c.name), fit(r.West.Shikona.En, c.name)
+	east, west := fit(r.East.Shikona.Romaji(), c.name), fit(r.West.Shikona.Romaji(), c.name)
 	eastName := fmt.Sprintf("%-*s", c.name, east)
 	westName := fmt.Sprintf("%-*s", c.name, west)
 	switch r.Winner {

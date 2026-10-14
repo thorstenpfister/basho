@@ -582,7 +582,7 @@ func kyujo(d Day, width int) string {
 	}
 	names := make([]string, len(d.data.Kyujo))
 	for i, w := range d.data.Kyujo {
-		names[i] = fmt.Sprintf("%s (%s)", w.Shikona.En, w.Rank.Short())
+		names[i] = fmt.Sprintf("%s (%s)", w.Shikona.Romaji(), w.Rank.Short())
 	}
 	return tui.Truncate(" Kyujo: "+strings.Join(names, ", "), width)
 }
@@ -620,7 +620,7 @@ func racePanel(ctx *tui.Context, s service.Standings, height int) string {
 				lines = append(lines, t.Dim.Render(t.Line+t.Line+" −1 "+t.Line+t.Line))
 			}
 		}
-		lines = append(lines, fmt.Sprintf("%5s  %-4s %s", r.Record.String(), r.Rank.Short(), tui.Truncate(r.Shikona.En, panelWidth-16)))
+		lines = append(lines, fmt.Sprintf("%5s  %-4s %s", r.Record.String(), r.Rank.Short(), tui.Truncate(r.Shikona.Romaji(), panelWidth-16)))
 	}
 	if s.YushoDecided {
 		lines = append(lines, t.Gold.Render("✓ yusho"))

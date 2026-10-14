@@ -101,13 +101,13 @@ func New(opts Options) *Service {
 	s.profiles = sync.OnceValues(func() (*profiles, error) {
 		sn, err := s.snapshot()
 		if err != nil || sn == nil {
-			return newProfiles(nil), err
+			return s.withRefresh(newProfiles(nil)), err
 		}
 		rs, err := sn.Rikishi()
 		if err != nil {
 			return nil, err
 		}
-		return newProfiles(rs), nil
+		return s.withRefresh(newProfiles(rs)), nil
 	})
 	return s
 }
@@ -125,6 +125,22 @@ func newProfiles(rs []domain.Rikishi) *profiles {
 	p := &profiles{byID: make(map[domain.RikishiID]domain.Rikishi, len(rs)), ids: idmap.New(rs)}
 	for _, r := range rs {
 		p.byID[r.ID] = r
+	}
+	return p
+}
+
+// withRefresh lets the JSA ID mapping look up an unknown ID among the active
+// wrestlers (SPEC §5.5): revalidated with sumo-api, since the cache keeps the
+// index for 7 days, and overlaid on the profiles too.
+func (s *Service) withRefresh(p *profiles) *profiles {
+	if w := s.opts.Wrestlers; w != nil {
+		p.ids.SetRefresh(func(ctx context.Context) ([]domain.Rikishi, error) {
+			rs, err := w.ActiveRikishi(Revalidate(ctx))
+			if err == nil {
+				p.overlay(rs)
+			}
+			return rs, err
+		}, s.opts.Clock.Now)
 	}
 	return p
 }

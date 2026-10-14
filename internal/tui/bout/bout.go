@@ -447,9 +447,9 @@ func (v VS) historyView(ctx *tui.Context, width int, column bool) string {
 		n = min(n, 3)
 	}
 	for _, m := range h.Meetings[:n] {
-		who := v.tale.East.Shikona.En
+		who := v.tale.East.Shikona.Romaji()
 		if m.Winner == v.tale.West.RikishiID {
-			who = v.tale.West.Shikona.En
+			who = v.tale.West.Shikona.Romaji()
 		}
 		line := fmt.Sprintf(" %s %2d %-4s %-4s %s %s", m.Basho, m.Day, m.RankA.Short(), m.RankB.Short(), t.Bold.Render(who), t.Dim.Render(string(m.Kimarite)))
 		lines = append(lines, tui.Truncate(line, width))
@@ -526,7 +526,7 @@ func (v VS) resultPanel(ctx *tui.Context, l layout) string {
 	case r == nil:
 		lines = []string{t.Dim.Render(v.undecided(ctx))}
 	default:
-		e, w := v.row.East.Shikona.En, v.row.West.Shikona.En
+		e, w := v.row.East.Shikona.Romaji(), v.row.West.Shikona.Romaji()
 		winner := e
 		if r.Winner == domain.West {
 			winner = w
@@ -627,7 +627,7 @@ func (v VS) movesetPanel(ctx *tui.Context, l layout) string {
 	side := func(s service.TaleSide) string {
 		p := s.Movesets[v.window]
 		lines := []string{
-			t.Bold.Render(strings.ToUpper(s.Shikona.En)) + t.Dim.Render(fmt.Sprintf("   %d W · %d L", p.Wins, p.Losses)),
+			t.Bold.Render(strings.ToUpper(s.Shikona.Romaji())) + t.Dim.Render(fmt.Sprintf("   %d W · %d L", p.Wins, p.Losses)),
 			t.Dim.Render(orDash(p.Type.String())),
 		}
 		cells := min(20, col-16)
@@ -665,7 +665,7 @@ func (v VS) movesetPanel(ctx *tui.Context, l layout) string {
 		" " + t.Rule.Render(strings.Repeat(t.Line, l.width-2)),
 	}
 	if m := v.tale.Matchups[v.window]; m != nil {
-		att, def := v.tale.East.Shikona.En, v.tale.West.Shikona.En
+		att, def := v.tale.East.Shikona.Romaji(), v.tale.West.Shikona.Romaji()
 		if !m.AttackerIsA {
 			att, def = def, att
 		}
@@ -717,7 +717,7 @@ func (v VS) rating(ctx *tui.Context, l layout, row func(string, string, string) 
 // runs, and VS goes from dim to bright.
 func (v VS) names(ctx *tui.Context, l layout, east, west service.BoutSide) string {
 	t := ctx.Theme
-	e, w := strings.ToUpper(east.Shikona.En), strings.ToUpper(west.Shikona.En)
+	e, w := strings.ToUpper(east.Shikona.Romaji()), strings.ToUpper(west.Shikona.Romaji())
 	shift := 0
 	if v.sliding {
 		shift = int((1 - math.Min(math.Max(v.slide, 0), 1)) * float64(max(l.side-lipgloss.Width(e), 0)))

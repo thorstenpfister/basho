@@ -41,7 +41,10 @@ func Revalidate(ctx context.Context) context.Context {
 	return context.WithValue(ctx, revalidateKey{}, true)
 }
 
-func revalidate(ctx context.Context) bool {
+func revalidate(ctx context.Context) bool { return Revalidating(ctx) }
+
+// Revalidating reports whether ctx is marked by Revalidate.
+func Revalidating(ctx context.Context) bool {
 	v, _ := ctx.Value(revalidateKey{}).(bool)
 	return v
 }

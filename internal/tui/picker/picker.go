@@ -285,7 +285,7 @@ func (p Picker) rowView(ctx *tui.Context, i int) string {
 		note = t.Accent.Render("in progress")
 	default:
 		if y := r.yusho; y != nil {
-			note = "Yusho: " + t.Gold.Render(y.Shikona.En)
+			note = "Yusho: " + t.Gold.Render(y.Shikona.Romaji())
 			if y.Record != nil {
 				note += " (" + y.Record.String() + ")"
 			}

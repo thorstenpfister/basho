@@ -151,7 +151,7 @@ func renderDay(g glyphs, d service.Day, p service.Provenance) string {
 	rows := make([][]string, 0, len(d.Bouts)+len(d.Playoffs))
 	add := func(r service.BoutRow) {
 		decided := r.Winner != 0
-		east, west := r.East.Shikona.En, r.West.Shikona.En
+		east, west := r.East.Shikona.Romaji(), r.West.Shikona.Romaji()
 		switch r.Winner {
 		case domain.East:
 			east, west = bold.Render(east), dim.Render(west)
@@ -190,7 +190,7 @@ func renderDay(g glyphs, d service.Day, p service.Provenance) string {
 	if len(d.Kyujo) > 0 {
 		names := make([]string, len(d.Kyujo))
 		for i, w := range d.Kyujo {
-			names[i] = fmt.Sprintf("%s (%s)", w.Shikona.En, w.Rank.Short())
+			names[i] = fmt.Sprintf("%s (%s)", w.Shikona.Romaji(), w.Rank.Short())
 		}
 		b.WriteString("\nKyujo: " + strings.Join(names, ", ") + "\n")
 	}
@@ -231,7 +231,7 @@ func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 	b.WriteString(title.Render(head) + "\n\n")
 	e, w := t.East, t.West
 	rows := [][]string{
-		{bold.Render(strings.ToUpper(e.Shikona.En)), "VS", bold.Render(strings.ToUpper(w.Shikona.En))},
+		{bold.Render(strings.ToUpper(e.Shikona.Romaji())), "VS", bold.Render(strings.ToUpper(w.Shikona.Romaji()))},
 		{e.Shikona.Jp, "", w.Shikona.Jp},
 		{dim.Render(fighter(e.Moveset())), "", dim.Render(fighter(w.Moveset()))},
 		{e.Rank.String(), "RANK", w.Rank.String()},
@@ -265,9 +265,9 @@ func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 		b.WriteString("\nLast meetings: ")
 		var ms []string
 		for _, m := range h.Meetings[:min(3, len(h.Meetings))] {
-			who := e.Shikona.En
+			who := e.Shikona.Romaji()
 			if m.Winner == w.RikishiID {
-				who = w.Shikona.En
+				who = w.Shikona.Romaji()
 			}
 			ms = append(ms, fmt.Sprintf("%s day %d %s (%s)", m.Basho, m.Day, who, m.Kimarite))
 		}
@@ -278,16 +278,16 @@ func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 	if r := t.Result; r == nil {
 		fmt.Fprintf(&b, "Scheduled — Day %d\n", t.Day)
 	} else {
-		winner := e.Shikona.En
+		winner := e.Shikona.Romaji()
 		if r.Winner == domain.West {
-			winner = w.Shikona.En
+			winner = w.Shikona.Romaji()
 		}
 		line := fmt.Sprintf("%s wins by %s  %s", bold.Render(strings.ToUpper(winner)), strings.ToUpper(string(r.Technique.Kimarite)), r.Technique.Kanji)
 		if r.Technique.English != "" {
 			line += " (" + r.Technique.English + ")"
 		}
 		b.WriteString(line + "\n")
-		fmt.Fprintf(&b, "%s %s · %s %s\n", e.Shikona.En, r.East, w.Shikona.En, r.West)
+		fmt.Fprintf(&b, "%s %s · %s %s\n", e.Shikona.Romaji(), r.East, w.Shikona.Romaji(), r.West)
 		if r.Kinboshi {
 			b.WriteString(gold.Render(g.star+" KINBOSHI") + "\n")
 		}
@@ -299,7 +299,7 @@ func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 	b.WriteString("\n" + title.Render("MOVESET · "+e.Moveset().Window.String()) + "\n")
 	b.WriteString(moveset(e) + "\n" + moveset(w))
 	if m := t.Matchup(); m != nil {
-		att, def := e.Shikona.En, w.Shikona.En
+		att, def := e.Shikona.Romaji(), w.Shikona.Romaji()
 		if !m.AttackerIsA {
 			att, def = def, att
 		}
@@ -407,7 +407,7 @@ var categories = []domain.KimariteCategory{domain.Push, domain.Belt, domain.Thro
 func moveset(t service.TaleSide) string {
 	p := t.Moveset()
 	var b strings.Builder
-	fmt.Fprintf(&b, "  %s  %d W · %d L  %s\n", bold.Render(t.Shikona.En), p.Wins, p.Losses, dim.Render(fighter(p)))
+	fmt.Fprintf(&b, "  %s  %d W · %d L  %s\n", bold.Render(t.Shikona.Romaji()), p.Wins, p.Losses, dim.Render(fighter(p)))
 	if p.Wins+p.Losses == 0 {
 		return b.String()
 	}
@@ -456,7 +456,7 @@ func renderStandings(g glyphs, s service.Standings, grid bool, p service.Provena
 	if grid {
 		var rows [][]string
 		for _, r := range s.ByBanzuke() {
-			rows = append(rows, []string{r.Rank.Short(), r.Shikona.En, cells(r), r.Record.String(), marker(r)})
+			rows = append(rows, []string{r.Rank.Short(), r.Shikona.Romaji(), cells(r), r.Record.String(), marker(r)})
 		}
 		b.WriteString(table([]string{"", "", days(), "W-L-A", ""}, rows, 3) + "\n")
 	} else {
@@ -468,19 +468,19 @@ func renderStandings(g glyphs, s service.Standings, grid bool, p service.Provena
 			if r.Band != band {
 				band, label = r.Band, bands[r.Band]
 			}
-			rows = append(rows, []string{label, r.Record.String(), r.Rank.Short(), r.Shikona.En, cells(r), marker(r)})
+			rows = append(rows, []string{label, r.Record.String(), r.Rank.Short(), r.Shikona.Romaji(), cells(r), marker(r)})
 		}
 		b.WriteString(table([]string{"", "", "", "", days(), ""}, rows, 1) + "\n")
 	}
 	yusho := "no"
 	switch {
 	case s.Yusho != nil:
-		yusho = s.Yusho.Shikona.En
+		yusho = s.Yusho.Shikona.Romaji()
 		if s.Playoff {
 			yusho += " (playoff)"
 		}
 	case s.YushoDecided:
-		yusho = "yes, " + s.Rows[0].Shikona.En
+		yusho = "yes, " + s.Rows[0].Shikona.Romaji()
 	case s.Playoff:
 		yusho = "playoff"
 	}
@@ -503,7 +503,7 @@ func renderList(es []service.ListEntry, p service.Provenance) string {
 	for _, e := range es {
 		yusho := ""
 		if y := e.Yusho; y != nil {
-			yusho = y.Shikona.En
+			yusho = y.Shikona.Romaji()
 			if y.Record != nil {
 				yusho += " (" + y.Record.String() + ")"
 			}
@@ -551,7 +551,7 @@ func recordText(r *derive.Record) string {
 }
 
 func name(w service.Wrestler) string {
-	s := w.Shikona.En
+	s := w.Shikona.Romaji()
 	if s == "" {
 		s = fmt.Sprintf("#%d", w.RikishiID)
 	}
@@ -571,7 +571,7 @@ func renderRatings(g glyphs, t service.RatingTable, p service.Provenance) string
 	b.WriteString("\n")
 	rows := make([][]string, 0, len(t.Rows))
 	for i, r := range t.Rows {
-		rows = append(rows, []string{fmt.Sprint(i + 1), r.Rank.Short(), r.Shikona.En, fmt.Sprintf("%.0f", r.Value), change(g, r.Change)})
+		rows = append(rows, []string{fmt.Sprint(i + 1), r.Rank.Short(), r.Shikona.Romaji(), fmt.Sprintf("%.0f", r.Value), change(g, r.Change)})
 	}
 	b.WriteString(table([]string{"#", "Rank", "Wrestler", "Rating", "Change"}, rows, 0, 3, 4) + "\n")
 	b.WriteString("\n" + dim.Render("An estimate from past results, not betting advice.") + "\n" + provenance(p) + "\n")

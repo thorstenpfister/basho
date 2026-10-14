@@ -58,6 +58,17 @@ type Name struct {
 	En   string // romaji, e.g. "Onosato"
 	Jp   string // kanji, cleaned (SPEC §5.6), e.g. "大の里"; empty for many old records
 	Kana string // reading, e.g. "おおのさと"; only from osada.us
+	// Approx marks En as transliterated from Kana: a wrestler sumo-api does
+	// not know yet (SPEC §5.5).
+	Approx bool
+}
+
+// Romaji returns the romaji name to show: ≈ marks a transliteration.
+func (n Name) Romaji() string {
+	if n.Approx {
+		return "≈" + n.En
+	}
+	return n.En
 }
 
 // DayResult is one day of a wrestler's banzuke record.
