@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.14** (2026-10-14). Implemented: Phases 0–8; the full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and the TUI has the picker, the day view and the VS screen. Later phases are still the plan.
+> Status: **v0.15** (2026-10-14). Implemented: Phases 0–9; the full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and the TUI has the picker, the day view with its recap, the VS screen and the standings. The current tournament comes from osada.us and sumo-api through the resolver. Later phases are still the plan.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1479,6 +1479,8 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    - **Stale** (rule 4): a source that answers only from an expired cache copy gives way to the next one; when that fails too, the stale answer is served.
    - **Provenance:** a `resolver.Track` on the context records which sources answered and their responses; the status bar names them all ("osada + sumo-api"), marks `(forced)` under `--source`, and shows osada's `resultUpdatedAt`. `BoutRow.Source` names a bout's source when a day merged both.
 6. Contract tests: both adapters produce equivalent domain output for the current-tournament fixtures.
+
+   Done: over the recorded Aki 2026 files, osada mapped through the JSA IDs gives sumo-api's banzuke exactly (ranks, romaji and kanji, all 15 results with opponents, techniques, fusen and absences) and the same bouts on days 1, 13 and 15. Differences by design: osada adds kana and the playoffs, and gives Makushita visitors no side. The AC run the day view and standings on day 13 without the snapshot: sumo-api down (osada alone, English names through the mapping, none transliterated), osada down (sumo-api alone), and both up, where the status bar reads "sumo-api + osada".
 
 **AC:**
 - With sumo-api disabled (in a test), the current tournament's day view and standings still render from osada, with English names via the ID mapping.
