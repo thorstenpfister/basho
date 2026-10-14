@@ -38,3 +38,20 @@ Training baselines: rank 0.6827, coin 0.6931 (142180 bouts).
 | 70–80% | 1052 | 74.0% | 68.8% |
 | 80–90% | 364 | 84.3% | 78.0% |
 | 90–100% | 99 | 92.7% | 86.9% |
+
+## Plausibility: highest ratings of all time
+
+Each wrestler's highest rating at the end of a tournament, with the chosen parameters. For comparison, Ozeki Analytics' all-time Elo list (all divisions from 1958, K 20, through 2024) has Hakuho first.
+
+| # | Wrestler | Peak | Tournament |
+|---|---|---|---|
+| 1 | Taiho | 2072 | 196711 |
+| 2 | Hakuho | 2054 | 201101 |
+| 3 | Kitanoumi | 2041 | 197903 |
+| 4 | Tamanoumi | 2021 | 197107 |
+| 5 | Asashoryu | 1971 | 200703 |
+| 6 | Chiyonofuji | 1970 | 198811 |
+| 7 | Kitanofuji | 1965 | 197111 |
+| 8 | Kashiwado | 1958 | 196707 |
+| 9 | Takanohana | 1945 | 199609 |
+| 10 | Wajima | 1940 | 197707 |

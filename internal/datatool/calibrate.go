@@ -1,9 +1,11 @@
 package datatool
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"slices"
 	"strings"
 
@@ -18,6 +20,15 @@ type Calibration struct {
 	Split     rating.Split
 	Results   []rating.Result // best first
 	Baselines rating.Baselines
+	Peaks     []Peak // the chosen parameters' highest ratings, for the plausibility check
+}
+
+// Peak is a wrestler's highest rating at the end of a tournament.
+type Peak struct {
+	ID     domain.RikishiID
+	Name   string
+	Rating float64
+	Basho  domain.BashoID
 }
 
 // Best returns the chosen parameters' result.
@@ -26,34 +37,75 @@ func (c Calibration) Best() rating.Result { return c.Results[0] }
 // Shown reports V9: the rating beats the rank baseline on evaluation log loss.
 func (c Calibration) Shown() bool { return c.Best().Eval.LogLoss < c.Baselines.Rank.Eval.LogLoss }
 
-// LoadTournaments reads every tournament of the snapshot in fsys, oldest
-// first, each in order of play.
-func LoadTournaments(fsys fs.FS) ([][]domain.Bout, domain.BashoID, error) {
+// History is the snapshot as calibration reads it.
+type History struct {
+	Tournaments [][]domain.Bout // oldest first, each in order of play
+	Through     domain.BashoID
+	Names       map[domain.RikishiID]string
+}
+
+// LoadHistory reads the snapshot in fsys.
+func LoadHistory(fsys fs.FS) (History, error) {
 	s, err := snapshot.Open(fsys)
 	if err != nil {
-		return nil, domain.BashoID{}, err
+		return History{}, err
 	}
 	x, err := s.BuildIndex()
 	if err != nil {
-		return nil, domain.BashoID{}, err
+		return History{}, err
 	}
-	var out [][]domain.Bout
+	rs, err := s.Rikishi()
+	if err != nil {
+		return History{}, err
+	}
+	h := History{Through: s.Manifest().Newest(), Names: make(map[domain.RikishiID]string, len(rs))}
+	for _, r := range rs {
+		h.Names[r.ID] = r.Name.En
+	}
 	for _, id := range x.Tournaments() {
 		bouts := slices.Clone(x.Tournament(id))
 		slices.SortStableFunc(bouts, derive.ComparePlay)
-		out = append(out, bouts)
+		h.Tournaments = append(h.Tournaments, bouts)
 	}
-	return out, s.Manifest().Newest(), nil
+	return h, nil
 }
 
-// Calibrate searches the grid over the tournaments up to through.
-func Calibrate(tournaments [][]domain.Bout, through domain.BashoID) Calibration {
-	split := rating.DefaultSplit(through)
-	return Calibration{
+// Calibrate searches the grid over the history and lists the chosen
+// parameters' 10 highest peaks.
+func Calibrate(h History) Calibration {
+	split := rating.DefaultSplit(h.Through)
+	c := Calibration{
 		Split:     split,
-		Results:   rating.Calibrate(rating.Grid(), tournaments, split),
-		Baselines: rating.FitBaselines(tournaments, split),
+		Results:   rating.Calibrate(rating.Grid(), h.Tournaments, split),
+		Baselines: rating.FitBaselines(h.Tournaments, split),
 	}
+	c.Peaks = PeakRatings(c.Best().Params, h, 10)
+	return c
+}
+
+// PeakRatings returns the n wrestlers with the highest rating at the end of
+// any tournament, each at their best, highest first.
+func PeakRatings(p rating.Params, h History, n int) []Peak {
+	r := rating.New(p)
+	best := map[domain.RikishiID]Peak{}
+	for _, bouts := range h.Tournaments {
+		if len(bouts) == 0 {
+			continue
+		}
+		id := bouts[0].Basho
+		_ = r.Set(id, bouts) // oldest first
+		for _, b := range bouts {
+			for _, side := range []domain.BoutSide{b.East, b.West} {
+				v, _ := r.Before(side.RikishiID, side.Rank, derive.EndOf(id))
+				if v > best[side.RikishiID].Rating {
+					best[side.RikishiID] = Peak{ID: side.RikishiID, Name: h.Names[side.RikishiID], Rating: v, Basho: id}
+				}
+			}
+		}
+	}
+	peaks := slices.Collect(maps.Values(best))
+	slices.SortFunc(peaks, func(a, b Peak) int { return cmp.Or(cmp.Compare(b.Rating, a.Rating), cmp.Compare(a.ID, b.ID)) })
+	return peaks[:min(n, len(peaks))]
 }
 
 // ParamsFile is what goes into data/rating/params.json.
@@ -103,6 +155,15 @@ func (c Calibration) WriteReport(w io.Writer) error {
 	for i, k := range best.Eval.Calibration {
 		if k.Bouts > 0 {
 			p("| %d–%d%% | %d | %.1f%% | %.1f%% |\n", 10*i, 10*i+10, k.Bouts, 100*k.Predicted, 100*k.Actual)
+		}
+	}
+	if len(c.Peaks) > 0 {
+		p("\n## Plausibility: highest ratings of all time\n\n")
+		p("Each wrestler's highest rating at the end of a tournament, with the chosen parameters. ")
+		p("For comparison, Ozeki Analytics' all-time Elo list (all divisions from 1958, K 20, through 2024) has Hakuho first.\n\n")
+		p("| # | Wrestler | Peak | Tournament |\n|---|---|---|---|\n")
+		for i, k := range c.Peaks {
+			p("| %d | %s | %.0f | %s |\n", i+1, k.Name, k.Rating, k.Basho)
 		}
 	}
 	_, err := io.WriteString(w, sb.String())

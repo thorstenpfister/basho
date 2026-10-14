@@ -213,12 +213,12 @@ func newRatingCmd(info buildinfo.Info) *cobra.Command {
 			"rank and coin baselines on the evaluation years (V9).",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			tournaments, through, err := LoadTournaments(os.DirFS(dir))
+			h, err := LoadHistory(os.DirFS(dir))
 			if err != nil {
 				return err
 			}
 			start := time.Now()
-			c := Calibrate(tournaments, through)
+			c := Calibrate(h)
 			f, err := json.MarshalIndent(c.ParamsFile(info.Version), "", "  ")
 			if err != nil {
 				return err
