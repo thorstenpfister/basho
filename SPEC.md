@@ -1436,7 +1436,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 
    Done (`tui/components`): bars map the division's lightest or shortest to 20% of the cells and the heaviest or tallest to all of them; the STYLE bar splits its 20 cells by largest remainders; ASCII mode draws `#` bars and P/B/T/L/O letters.
 2. Layout of the tale of the tape (§8.5), compact and wide variants, head-to-head line and expandable history (`v`). Done (`tui/bout`): the tape is at most 110 columns; compact drops the bars; wide adds a 42-column head-to-head column with up to 10 meetings, which `v` shows below the tape otherwise. The service now carries all three moveset windows and up to 10 meetings (`service.MaxMeetings`); the CLI and JSON keep showing the last-6-basho window and 3 meetings.
-3. Progressive loading for tournaments not in the snapshot: draw immediately from bout and banzuke data, fill in the rest with `…` placeholders.
+3. Progressive loading for tournaments not in the snapshot: draw immediately from bout and banzuke data, fill in the rest with `…` placeholders. Done: the VS screen draws names, kanji, ranks and records from the day view's row at once and `…` for every other row until the tale is in (cache first, then the sources, like the day view).
 4. Result panel: winner, technique (romaji, kanji, English), records after the bout, KINBOSHI and FUSEN stamps, undecided and waiting states.
 5. Technique rows: fighter type under the name, mirrored STYLE stacked bar, SIGNATURE row, "not enough data" state. `m` opens the moveset overlay, `w` cycles its window, and it shows the matchup line.
 6. RATING and WIN CHANCE rows, hidden if V9 failed.

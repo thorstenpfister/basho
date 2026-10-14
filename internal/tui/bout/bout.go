@@ -178,10 +178,19 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 		row(t.Bold.Render(strings.ToUpper(east.Shikona.En)), "VS", t.Bold.Render(strings.ToUpper(west.Shikona.En))),
 	)
 	if v.tale == nil {
-		lines = append(lines, row("", "", ""), " "+t.Rule.Render(strings.Repeat(t.Line, l.width-2)))
+		// Progressive loading (SPEC §8.5): what the day view knew at once,
+		// placeholders for the rest.
+		wait := t.Dim.Render("…")
+		lines = append(lines, row(east.Shikona.Jp, "", west.Shikona.Jp), " "+t.Rule.Render(strings.Repeat(t.Line, l.width-2)))
 		lines = append(lines, row(east.Rank.String(), "RANK", west.Rank.String()))
+		for _, label := range []string{"HEYA", "FROM", "AGE"} {
+			lines = append(lines, row(wait, label, wait))
+		}
 		lines = append(lines, row(record(east), "RECORD", record(west)))
-		lines = append(lines, "", " "+t.Dim.Render("  Loading the tale of the tape…"))
+		for _, label := range []string{"LAST 5", "HEIGHT", "WEIGHT", "KINBOSHI", "YUSHO"} {
+			lines = append(lines, row(wait, label, wait))
+		}
+		lines = append(lines, " "+t.Rule.Render(strings.Repeat(t.Line, l.width-2)), " "+t.Dim.Render("H2H  …"))
 		return strings.Join(lines, "\n")
 	}
 	e, w := v.tale.East, v.tale.West

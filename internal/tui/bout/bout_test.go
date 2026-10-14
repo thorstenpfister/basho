@@ -106,3 +106,18 @@ func TestFromTheDayView(t *testing.T) {
 		t.Error("q did not go back")
 	}
 }
+
+func TestProgressive(t *testing.T) {
+	ctx := testContext(svc())
+	res, _ := svc().Day(t.Context(), aki2026, domain.DivMakuuchi, 13)
+	v := New(aki2026, domain.DivMakuuchi, 13, res.Value.Bouts[18]) // before Init: nothing loaded
+	out := ansi.Strip(v.View(ctx, 100, 39))
+	for _, want := range []string{"ONOSATO      VS      KIRISHIMA", "大の里", "Yokozuna 1 East     RANK     Ozeki 1 East", "11-1    RECORD    6-6", "…    HEIGHT    …", "H2H  …"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("lacks %q:\n%s", want, out)
+		}
+	}
+	if st := v.Status(ctx); !strings.Contains(st.Left, "Bout 19") {
+		t.Errorf("status %+v", st)
+	}
+}
