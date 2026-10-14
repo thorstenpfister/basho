@@ -1433,6 +1433,8 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    - bar, scaled to the division's range for that tournament
    - result glyphs, kinboshi stars
    - win-chance bar
+
+   Done (`tui/components`): bars map the division's lightest or shortest to 20% of the cells and the heaviest or tallest to all of them; the STYLE bar splits its 20 cells by largest remainders; ASCII mode draws `#` bars and P/B/T/L/O letters.
 2. Layout of the tale of the tape (§8.5), compact and wide variants, head-to-head line and expandable history (`v`).
 3. Progressive loading for tournaments not in the snapshot: draw immediately from bout and banzuke data, fill in the rest with `…` placeholders.
 4. Result panel: winner, technique (romaji, kanji, English), records after the bout, KINBOSHI and FUSEN stamps, undecided and waiting states.
