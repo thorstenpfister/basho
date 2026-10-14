@@ -1490,6 +1490,8 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 ### Phase 10: Live mode
 
 1. `live.Scheduler`, pure and testable with a fake clock: windows from config, day 15 extension, jitter, doubling when nothing changes, stop conditions, final check, error backoff.
+
+   Done: every method takes the time. `State` (off, waiting, polling, backoff, done, unavailable), `Due` and `Wake` (the next poll, the window opening, the final check, or tomorrow's window) drive the TUI's timer; `Polled` takes a poll's update stamp, completeness and error. Doubling counts two polls in a row with the same stamp; backoff runs 2, 4, 8, 10 minutes; a new date starts the day afresh. The final check runs even after the window has closed, as one more poll.
 2. Wire it into the TUI:
    - `liveTickMsg` / `liveSnapshotMsg`, merged into the service cache, bout index and ratings
    - `NEW` badges, selection kept stable
