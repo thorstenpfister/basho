@@ -604,7 +604,7 @@ There is no public sumo rating API. Ozeki Analytics published an Elo analysis co
 
 **Calibration** (`basho-data rating calibrate`):
 
-- Grid search over the parameters, training on 1960–2014 and evaluating on 2015 to the newest tournament in the snapshot.
+- Grid search over the parameters. The parameters are **chosen by log loss on the training years** 1965–2014 (1960–64 are the warm-up and not scored) and **judged on the evaluation years**, 2015 to the newest tournament in the snapshot. Choosing on the evaluation years, as first planned, would score the model on the data that picked it.
 - Metrics: log loss, Brier score, accuracy, and a calibration table (predicted vs actual in 10% buckets).
 - Baselines: 50/50, and "higher rank wins" with a probability fitted by rank difference.
 - **The rating is only shown if it beats the rank baseline on log loss** (V9). Otherwise the feature stays hidden and the model is revisited (for example Glicko-2, or a blend with rank).
@@ -1729,10 +1729,10 @@ Search ranges:
 
 | Parameter | Values |
 |---|---|
-| `K` | 12, 16, 20, 24, 32 |
+| `K` | 8, 10, 12, 16, 20, 24, 32 |
 | `K_new` | 24, 32, 40, 48 |
 | bouts counted as "new" | 15, 30, 45 |
 | `r` (pull after a missed tournament) | 0, 0.1, 0.2, 0.3, 0.5 |
 | warm-up table scale (spread around 1500) | 0.5, 1.0, 1.5 |
 
-That is 900 combinations × about 210,000 bouts, a few seconds in Go. The best combination by log loss on the evaluation set wins; ties go to the smaller `K`. The report in `docs/rating.md` lists the top 5 combinations with all metrics and both baselines.
+That is 1,260 combinations × about 195,000 bouts, about 4 seconds on 10 cores. `K` 8 and 10 were added after the first run chose 12, the lowest value then, so that the choice lies inside the grid. The best combination by log loss on the training years wins; ties go to the smaller `K`. The report in `docs/rating.md` lists the top 5 combinations with all metrics and both baselines.

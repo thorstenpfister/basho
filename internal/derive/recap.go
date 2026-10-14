@@ -14,7 +14,7 @@ type Recap struct {
 }
 
 // upsetGap is how many rank levels below the loser an upset's winner is at
-// least; see rankLevel. Phase 5 replaces it with the win chance.
+// least; see RankLevel. Phase 5 replaces it with the win chance.
 const upsetGap = 6
 
 // DayRecap summarises day s.Today of division div at the cutoff s was
@@ -58,12 +58,12 @@ func DayRecap(s Standings, div domain.Division, bouts []domain.Bout, c AsOf, fre
 // levels higher.
 func IsUpset(b *domain.Bout) bool {
 	winner, loser, ok := sides(b)
-	return ok && b.Kimarite.Category() != domain.NoTechnique && rankLevel(winner.Rank)-rankLevel(loser.Rank) >= upsetGap
+	return ok && b.Kimarite.Category() != domain.NoTechnique && RankLevel(winner.Rank)-RankLevel(loser.Rank) >= upsetGap
 }
 
-// rankLevel places a rank on one scale, highest 0: each san'yaku title is
+// RankLevel places a rank on one scale, highest 0: each san'yaku title is
 // three levels, each Maegashira or Juryo number one.
-func rankLevel(r domain.Rank) int {
+func RankLevel(r domain.Rank) int {
 	switch r.Title {
 	case domain.Yokozuna, domain.Ozeki, domain.Sekiwake, domain.Komusubi:
 		return 3 * int(r.Title-domain.Yokozuna)

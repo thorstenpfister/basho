@@ -101,8 +101,8 @@ snapshot-verify: build ## Verify the embedded snapshot (phase 3)
 snapshot-stats: build ## Snapshot sizes and coverage (phase 3)
 	$(BIN)/basho-data snapshot stats
 
-calibrate: ## Calibrate the rating model (phase 5)
-	$(todo)
+calibrate: build ## Calibrate the rating model (no network): data/rating/params.json, docs/rating.md
+	bin/basho-data rating calibrate
 
 ## Release and docs
 

@@ -1,6 +1,8 @@
 package datatool
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/thorstenpfister/basho/internal/atomicfile"
 	"github.com/thorstenpfister/basho/internal/buildinfo"
 	"github.com/thorstenpfister/basho/internal/cache"
 	"github.com/thorstenpfister/basho/internal/cli"
@@ -27,7 +30,7 @@ func NewRoot(info buildinfo.Info) *cobra.Command {
 		Args:  cobra.NoArgs,
 	}
 	cli.SetVersion(root, info)
-	root.AddCommand(newRecordCmd(info), newFixturesCmd(info), newSnapshotCmd(info))
+	root.AddCommand(newRecordCmd(info), newFixturesCmd(info), newSnapshotCmd(info), newRatingCmd(info))
 	return root
 }
 
@@ -198,4 +201,49 @@ func parseClock(s string) (time.Duration, error) {
 		return 0, fmt.Errorf("time of day %q: want HH:MM", s)
 	}
 	return time.Duration(t.Hour())*time.Hour + time.Duration(t.Minute())*time.Minute, nil
+}
+
+func newRatingCmd(info buildinfo.Info) *cobra.Command {
+	var dir, params, report string
+	calibrate := &cobra.Command{
+		Use:   "calibrate",
+		Short: "Search the rating parameters and write params.json and the report (no network)",
+		Long: "calibrate runs the Elo model over the snapshot for every parameter set of the grid\n" +
+			"(SPEC Appendix F), chooses the best on the training years and judges it against the\n" +
+			"rank and coin baselines on the evaluation years (V9).",
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			tournaments, through, err := LoadTournaments(os.DirFS(dir))
+			if err != nil {
+				return err
+			}
+			start := time.Now()
+			c := Calibrate(tournaments, through)
+			f, err := json.MarshalIndent(c.ParamsFile(info.Version), "", "  ")
+			if err != nil {
+				return err
+			}
+			if err := atomicfile.Write(params, append(f, '\n')); err != nil {
+				return err
+			}
+			var md bytes.Buffer
+			if err := c.WriteReport(&md); err != nil {
+				return err
+			}
+			if err := atomicfile.Write(report, md.Bytes()); err != nil {
+				return err
+			}
+			best := c.Best()
+			_, err = fmt.Fprintf(cmd.ErrOrStderr(), "%d parameter sets in %s; chosen %+v: eval log loss %.4f, rank baseline %.4f, shown %v\n",
+				len(c.Results), time.Since(start).Round(time.Millisecond), best.Params, best.Eval.LogLoss, c.Baselines.Rank.Eval.LogLoss, c.Shown())
+			return err
+		},
+	}
+	f := calibrate.Flags()
+	f.StringVar(&dir, "snapshot", "data/snapshot", "snapshot directory")
+	f.StringVar(&params, "params", "data/rating/params.json", "parameters file to write")
+	f.StringVar(&report, "report", "docs/rating.md", "report to write")
+	rating := &cobra.Command{Use: "rating", Short: "The rating model (SPEC §6.8)"}
+	rating.AddCommand(calibrate)
+	return rating
 }
