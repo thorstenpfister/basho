@@ -1,7 +1,6 @@
 package picker
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -76,16 +75,21 @@ type listMsg struct {
 // Init loads the winners: snapshot and cache only, so browsing never makes a
 // request.
 func (p Picker) Init(ctx *tui.Context) tea.Cmd {
-	svc := ctx.Svc
+	svc, base := ctx.Svc, ctx.Data()
 	return func() tea.Msg {
-		res, err := svc.List(service.CachedOnly(context.Background()), 0, 0)
+		res, err := svc.List(service.CachedOnly(base), 0, 0)
 		return listMsg{res, err}
 	}
 }
 
 // Update implements tui.Screen.
-func (p Picker) Update(_ *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
+func (p Picker) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tui.SpoilersMsg:
+		for i := range p.rows {
+			p.rows[i].yusho = nil
+		}
+		return p, p.Init(ctx)
 	case listMsg:
 		p.loading = false
 		if msg.err == nil {
@@ -283,6 +287,11 @@ func (p Picker) rowView(ctx *tui.Context, i int) string {
 		note = t.Dim.Render("upcoming · banzuke " + r.id.EstimatedStart().AddDays(-banzukeLead).String())
 	case service.InProgressBasho:
 		note = t.Accent.Render("in progress")
+	case service.Finished:
+		if ctx.Hide && r.yusho == nil {
+			note = t.Dim.Render("Yusho hidden (spoiler-free)")
+		}
+		fallthrough
 	default:
 		if y := r.yusho; y != nil {
 			note = "Yusho: " + t.Gold.Render(y.Shikona.Romaji())

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
@@ -55,6 +56,7 @@ type BoutRow struct {
 	Kimarite   Technique
 	Fusen      bool
 	Kinboshi   bool
+	Hidden     bool     // after the spoiler horizon, decided or not: shown as ?
 	Musubi     bool     // the day's last regular bout (結び)
 	WinChance  *float64 // the east side's chance before the bout; nil when the rating is hidden
 	Source     string   // the bout's source when the day merged sources (SPEC §5.4); empty otherwise
@@ -112,7 +114,17 @@ func (s *Service) loadDay(ctx context.Context, id domain.BashoID, div domain.Div
 	if err != nil {
 		return dayData{}, err
 	}
-	return dayData{basho: b, entries: entries, bouts: bouts, days: derive.NewDayBouts(id, bouts), prov: merge(merge(p1, p2), p3), sources: sources}, nil
+	known := bouts
+	// A spoiler horizon inside an earlier day cuts through that day's
+	// results: its bouts tell which ones count.
+	if h, ok := horizon(ctx, id); ok && h.Basho == id && h.MatchNo > 0 && h.Day < day {
+		hb, _, _, err := s.torikumi(ctx, b, div, h.Day)
+		if err != nil {
+			return dayData{}, err
+		}
+		known = append(slices.Clone(bouts), hb...)
+	}
+	return dayData{basho: b, entries: entries, bouts: bouts, days: derive.NewDayBouts(id, known), prov: merge(merge(p1, p2), p3), sources: sources}, nil
 }
 
 // Day returns a division's bouts of one day, with records as of before each
@@ -132,13 +144,17 @@ func (s *Service) Day(ctx context.Context, id domain.BashoID, div domain.Divisio
 	}
 	entries := byID(d.entries)
 	lastRegular := 0
+	var last domain.Bout
 	for _, b := range d.bouts {
-		if !b.IsPlayoff {
-			lastRegular = max(lastRegular, b.MatchNo)
+		if !b.IsPlayoff && b.MatchNo >= lastRegular {
+			lastRegular, last = b.MatchNo, b
 		}
 	}
 	for _, b := range d.bouts {
-		row := s.boutRow(b, entries, d.days, r)
+		if b.IsPlayoff && !visible(ctx, last) {
+			continue // that there is a playoff gives the day's results away
+		}
+		row := s.boutRow(ctx, b, entries, d.days, r)
 		row.Source = d.sources[b.MatchNo]
 		row.Musubi = !b.IsPlayoff && b.MatchNo == lastRegular && div == domain.DivMakuuchi
 		if b.IsPlayoff {
@@ -155,24 +171,36 @@ func (s *Service) Day(ctx context.Context, id domain.BashoID, div domain.Divisio
 	return Result[Day]{Value: out, Prov: d.prov}, nil
 }
 
-func (s *Service) boutRow(b domain.Bout, entries map[domain.RikishiID]domain.BanzukeEntry, days derive.DayBouts, r *Ratings) BoutRow {
+// boutRow is one bout of a day. In spoiler-free mode a bout after the
+// horizon keeps its result to itself: undecided, Hidden, records frozen at
+// the horizon.
+func (s *Service) boutRow(ctx context.Context, b domain.Bout, entries map[domain.RikishiID]domain.BanzukeEntry, days derive.DayBouts, r *Ratings) BoutRow {
+	shown := visible(ctx, b)
+	before := limit(ctx, derive.BeforeBout(b))
 	side := func(bs domain.BoutSide) BoutSide {
 		out := BoutSide{Wrestler: Wrestler{RikishiID: bs.RikishiID, Shikona: bs.Shikona, Rank: bs.Rank}, Visitor: true}
 		if e, ok := entries[bs.RikishiID]; ok { // a Makushita visitor has no record here
 			out.Visitor = false
 			out.Shikona = e.Shikona // with kanji, which bout sides may lack
-			out.Before = derive.RecordAt(e, days, derive.BeforeBout(b))
-			out.After = derive.RecordAt(e, days, derive.ThroughBout(b))
+			out.Before = derive.RecordAt(e, days, before)
+			out.After = out.Before
+			if shown {
+				out.After = derive.RecordAt(e, days, derive.ThroughBout(b))
+			}
 		}
 		return out
+	}
+	if !shown {
+		b.Winner, b.Kimarite = 0, ""
 	}
 	row := BoutRow{
 		MatchNo: b.MatchNo, East: side(b.East), West: side(b.West), Winner: b.Winner,
 		Kimarite: technique(b.Kimarite), Fusen: b.Kimarite == "fusen",
 	}
 	_, row.Kinboshi = derive.IsKinboshi(&b)
+	row.Hidden = !shown
 	if r.Shown() {
-		p := r.WinChance(b)
+		p := r.WinChanceAt(b, before)
 		row.WinChance = &p
 	}
 	return row

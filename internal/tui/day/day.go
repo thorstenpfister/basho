@@ -168,9 +168,9 @@ func (d Day) load(ctx *tui.Context) (Day, tea.Cmd) {
 
 // fetch runs one phase of the load.
 func (d Day) fetch(ctx *tui.Context, ph phase) tea.Cmd {
-	svc, id, div, day, req := ctx.Svc, d.id, d.div, d.day, d.req
+	svc, id, div, day, req, base := ctx.Svc, d.id, d.div, d.day, d.req, ctx.Data()
 	return func() tea.Msg {
-		c := context.Background()
+		c := base
 		switch ph {
 		case cachedPhase:
 			c = service.CachedOnly(c)
@@ -203,6 +203,10 @@ func (d Day) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 		if msg.err == nil && msg.key == (refreshKey{d.id, d.div, d.day}) {
 			d.race, d.raceFor = &msg.res.Value, msg.key
 		}
+	case tui.SpoilersMsg:
+		d.race, d.recap = nil, nil
+		next, cmd := d.load(ctx)
+		return next, tea.Batch(cmd, next.loadRace(ctx), next.loadRecap(ctx))
 	case tui.LiveMsg:
 		return d.live(ctx, msg.Poll)
 	case recapMsg:
@@ -278,9 +282,9 @@ func (d Day) loadRace(ctx *tui.Context) tea.Cmd {
 	if d.race != nil && d.raceFor == k {
 		return nil
 	}
-	svc := ctx.Svc
+	svc, base := ctx.Svc, ctx.Data()
 	return func() tea.Msg {
-		res, err := svc.Standings(service.CachedOnly(context.Background()), k.id, k.div, k.day)
+		res, err := svc.Standings(service.CachedOnly(base), k.id, k.div, k.day)
 		return raceMsg{k, res, err}
 	}
 }
@@ -652,7 +656,11 @@ const panelWidth = 36
 // behind (SPEC §8.4), as many as fit.
 func racePanel(ctx *tui.Context, s service.Standings, height int) string {
 	t := ctx.Theme
-	lines := []string{t.Title.Render(fmt.Sprintf("Yusho race · after Day %d", s.Day))}
+	head := fmt.Sprintf("Yusho race · after Day %d", s.Day)
+	if s.Limited {
+		head = "Yusho race · spoiler-free"
+	}
+	lines := []string{t.Title.Render(head)}
 	band := derive.Band(-1)
 	for _, r := range s.Rows {
 		if r.Band > derive.OneBack || len(lines) >= height {

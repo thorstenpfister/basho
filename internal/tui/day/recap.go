@@ -1,7 +1,6 @@
 package day
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -28,9 +27,9 @@ func (d Day) loadRecap(ctx *tui.Context) tea.Cmd {
 	if !d.recapOpen || d.day == 0 || d.recap != nil && d.recapFor == k {
 		return nil
 	}
-	svc := ctx.Svc
+	svc, base := ctx.Svc, ctx.Data()
 	return func() tea.Msg {
-		res, err := svc.Recap(service.CachedOnly(context.Background()), k.id, k.div, k.day)
+		res, err := svc.Recap(service.CachedOnly(base), k.id, k.div, k.day)
 		return recapMsg{k, res, err}
 	}
 }
@@ -50,7 +49,11 @@ func (d Day) recapView(ctx *tui.Context, width, height int) string {
 	default:
 		body = recapBody(ctx, *d.recap, boxWidth-4)
 	}
-	title := t.Title.Render(fmt.Sprintf("Day %d recap · %s", d.day, d.div))
+	heading := fmt.Sprintf("Day %d recap · %s", d.day, d.div)
+	if d.recap != nil && d.recapFor == k && d.recap.Limited && ctx.Spoilers != nil {
+		heading += fmt.Sprintf(" · as of %s (spoiler-free)", ctx.Spoilers.Horizon(d.id))
+	}
+	title := t.Title.Render(heading)
 	box := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(t.Colors.Subtle).Padding(0, 1).Width(boxWidth).
 		Render(title + "\n\n" + body + "\n\n" + t.Dim.Render("r/esc close · ←/→ day"))
 	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, box)

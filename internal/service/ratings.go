@@ -65,8 +65,11 @@ func (r *Ratings) At(id domain.RikishiID, rank domain.Rank, c derive.AsOf) Ratin
 }
 
 // WinChance returns the east side's chance in b, from both ratings before it.
-func (r *Ratings) WinChance(b domain.Bout) float64 {
-	c := derive.BeforeBout(b)
+func (r *Ratings) WinChance(b domain.Bout) float64 { return r.WinChanceAt(b, derive.BeforeBout(b)) }
+
+// WinChanceAt returns the east side's chance in b from both ratings as of c:
+// before the bout, or earlier at a spoiler horizon.
+func (r *Ratings) WinChanceAt(b domain.Bout, c derive.AsOf) float64 {
 	return rating.WinChance(r.At(b.East.RikishiID, b.East.Rank, c).Value, r.At(b.West.RikishiID, b.West.Rank, c).Value)
 }
 
@@ -128,5 +131,5 @@ func (s *Service) RatingTable(ctx context.Context, id domain.BashoID, n int) (Re
 		}
 		entries, prov = slices.Concat(entries, e), merge(prov, p)
 	}
-	return Result[RatingTable]{Value: RatingTable{Basho: id, Shown: r.Shown(), Rows: r.Top(entries, derive.EndOf(id), n)}, Prov: prov}, nil
+	return Result[RatingTable]{Value: RatingTable{Basho: id, Shown: r.Shown(), Rows: r.Top(entries, limit(ctx, derive.EndOf(id)), n)}, Prov: prov}, nil
 }

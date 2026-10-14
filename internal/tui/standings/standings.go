@@ -1,7 +1,6 @@
 package standings
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -76,9 +75,9 @@ func (v View) Init(ctx *tui.Context) tea.Cmd {
 
 // fetch loads the standings: the cache's copy first, like the day view.
 func (v View) fetch(ctx *tui.Context, cached bool) tea.Cmd {
-	svc, id, div, day, req := ctx.Svc, v.id, v.div, v.day, v.req
+	svc, id, div, day, req, base := ctx.Svc, v.id, v.div, v.day, v.req, ctx.Data()
 	return func() tea.Msg {
-		c := context.Background()
+		c := base
 		if cached {
 			c = service.CachedOnly(c)
 		}
@@ -105,6 +104,8 @@ func (v View) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 			return v, nil
 		}
 		return v.answer(ctx, msg)
+	case tui.SpoilersMsg:
+		return v.load(ctx)
 	case tui.LiveMsg:
 		// Today's results move the standings from today on; the poll put
 		// them in the cache.
@@ -168,6 +169,9 @@ func (v View) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 		if n < 1 || n > domain.BashoDays {
 			return v, tui.Message(fmt.Sprintf("Days run from 1 to %d", domain.BashoDays))
 		}
+		if h := v.horizonDay(ctx); dir > 0 && n > h {
+			return v, tui.Message(fmt.Sprintf("Spoiler-free: revealed up to %s", ctx.Spoilers.Horizon(v.id)))
+		}
 		v.day = n
 		return v.load(ctx)
 	case key.Matches(msg, keyDivision):
@@ -189,6 +193,15 @@ func (v View) key(ctx *tui.Context, msg tea.KeyPressMsg) (tui.Screen, tea.Cmd) {
 		}
 	}
 	return v, nil
+}
+
+// horizonDay is the last day the standings may show in spoiler-free mode:
+// the horizon's day (1 before anything is revealed); 15 otherwise.
+func (v View) horizonDay(ctx *tui.Context) int {
+	if !ctx.Hide || ctx.Spoilers == nil {
+		return domain.BashoDays
+	}
+	return max(ctx.Spoilers.Horizon(v.id).Day, 1)
 }
 
 // move is j/k: the grid's cursor, or the race's scroll position.
@@ -245,7 +258,11 @@ func (v View) View(ctx *tui.Context, width, height int) string {
 	if v.tab == Grid {
 		other = "[tab] race"
 	}
-	title := t.Title.Render(fmt.Sprintf("Standings after Day %d", v.day)) + t.Dim.Render(fmt.Sprintf(" · %s %d · ", v.id.Name(), v.id.Year)) + t.Bold.Render(v.div.String())
+	heading := fmt.Sprintf("Standings after Day %d", v.day)
+	if v.data != nil && v.data.Limited && ctx.Spoilers != nil {
+		heading = fmt.Sprintf("Standings as of %s (spoiler-free)", ctx.Spoilers.Horizon(v.id))
+	}
+	title := t.Title.Render(heading) + t.Dim.Render(fmt.Sprintf(" · %s %d · ", v.id.Name(), v.id.Year)) + t.Bold.Render(v.div.String())
 	b.WriteString(tui.Spread(title, t.Dim.Render(other), width) + "\n")
 	switch {
 	case v.err != nil:

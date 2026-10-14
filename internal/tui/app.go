@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/config"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
+	"github.com/thorstenpfister/basho/internal/spoiler"
 	"github.com/thorstenpfister/basho/internal/tui/theme"
 )
 
@@ -32,6 +34,21 @@ type Context struct {
 	// Rand returns a number in [0, 1) for live mode's jitter; nil is
 	// math/rand. Tests fix it.
 	Rand func() float64
+	// Spoilers holds the reveal horizons; Hide is spoiler-free mode for this
+	// session (spoilers.mode, S). Only the root changes Hide.
+	Spoilers *spoiler.State
+	Hide     bool
+}
+
+// Data returns the context for a screen's service calls: spoiler-free when
+// Hide is on (SPEC §9). Screens take it when they build a command, not inside
+// it.
+func (c *Context) Data() context.Context {
+	ctx := context.Background()
+	if c.Hide && c.Spoilers != nil {
+		ctx = service.Hiding(ctx, c.Spoilers)
+	}
+	return ctx
 }
 
 // Animate reports whether animations run at this width: ui.animations on,
@@ -117,6 +134,10 @@ type (
 	MessageMsg struct{ Text string }
 	clearMsg   struct{ id int }
 )
+
+// SpoilersMsg tells every screen that the spoiler horizon or spoiler-free
+// mode changed: they reload from the cache (SPEC §9).
+type SpoilersMsg struct{}
 
 // Push, Pop and Message are the commands for those messages.
 func Push(s Screen) tea.Cmd       { return func() tea.Msg { return PushMsg{s} } }
@@ -321,6 +342,9 @@ func (m Model) statusBar() string {
 		} else {
 			right = append(right, provenance(*st.Prov, m.ctx.Clock.Now()))
 		}
+	}
+	if m.ctx.Hide {
+		right = append(right, t.Accent.Render(t.Spoiler+" spoiler-free"))
 	}
 	right = append(right, t.StatusKey.Render("?")+" help")
 	r := strings.Join(right, " · ")

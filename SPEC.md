@@ -1528,6 +1528,9 @@ AC status: met on the simulated day above. The check on a real day happens durin
    - `?` results in the day view
    - standings and recap locked to the horizon, with a banner
    - picker yusho hidden
+
+   Done: `service.Hiding(ctx, horizons)` limits every cutoff with `derive.Earlier`. That covers records, last 5, kinboshi, head-to-head, movesets, career yusho, ratings and win chance in the tale and the day's rows, standings, recap and the ratings table. Bouts after the horizon come back undecided with `Hidden` set, decided or not: telling decided from undecided would itself be a spoiler. The TUI draws them as `?`. Playoff rows stay out until the horizon has passed the division's last regular bout, since a playoff's existence gives the day away. The yusho and prizes (info, picker, standings) wait until the horizon has passed the whole tournament; the picker says "Yusho hidden (spoiler-free)". Standings and recap carry the banner "as of Day 13 · Makuuchi bout 5 (spoiler-free)", the standings refuse `→` past the horizon's day, and the status bar shows 🙈 spoiler-free. Screens take their service context from `tui.Context.Data()` when they build a command; `tui.SpoilersMsg` makes them reload.
+   - **Leak found and fixed:** a day's load only knew that day's bouts, so results of an earlier day cut by the horizon counted by their day. Such a load now also reads the horizon day's bouts (snapshot or cache, one request at most).
 3. VS screen `space` reveal flow; `ctrl+r` "reveal up to here" with confirmation; `S` session toggle.
 4. CLI `--no-spoilers` and `--reveal-to`.
 5. `basho watch` line stream (text and NDJSON), reusing the live scheduler.

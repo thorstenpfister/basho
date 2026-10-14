@@ -1,7 +1,6 @@
 package bout
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"strings"
@@ -98,11 +97,11 @@ func (v VS) loadDay(ctx *tui.Context, dir, day int) tea.Cmd {
 		}
 		return tui.Message(fmt.Sprintf("This is the %s bout of the tournament", edge))
 	}
-	svc, id, div := ctx.Svc, v.id, v.div
+	svc, id, div, base := ctx.Svc, v.id, v.div, ctx.Data()
 	return func() tea.Msg {
-		res, err := svc.Day(service.CachedOnly(context.Background()), id, div, day)
+		res, err := svc.Day(service.CachedOnly(base), id, div, day)
 		if err != nil && !service.NotFound(err) {
-			res, err = svc.Day(context.Background(), id, div, day)
+			res, err = svc.Day(base, id, div, day)
 		}
 		return dayMsg{dir, day, res, err}
 	}
@@ -174,9 +173,9 @@ func (v VS) startSlide(ctx *tui.Context) (VS, tea.Cmd) {
 
 // fetch loads the tale: the cache's copy first, like the day view.
 func (v VS) fetch(ctx *tui.Context, cached bool) tea.Cmd {
-	svc, id, div, day, match, req := ctx.Svc, v.id, v.div, v.day, v.match, v.req
+	svc, id, div, day, match, req, base := ctx.Svc, v.id, v.div, v.day, v.match, v.req, ctx.Data()
 	return func() tea.Msg {
-		c := context.Background()
+		c := base
 		if cached {
 			c = service.CachedOnly(c)
 		}

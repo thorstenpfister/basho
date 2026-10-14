@@ -15,6 +15,9 @@ type Standings struct {
 	Day      int
 	derive.Standings
 	Yusho *Wrestler // the tournament's winner once it is final, also after a playoff
+	// Limited: spoiler-free mode cut the standings off at the horizon,
+	// before the end of Day.
+	Limited bool
 
 	// Opponents names everyone a row's results meet, visitors from a lower
 	// division included: the standings popup (SPEC §8.6).
@@ -27,12 +30,12 @@ func (s *Service) Standings(ctx context.Context, id domain.BashoID, div domain.D
 	if err != nil {
 		return Result[Standings]{}, err
 	}
-	c := derive.AfterDay(id, day)
-	out := Standings{Basho: id, Name: id.Name(), Division: div, Day: day, Standings: derive.StandingsAt(d.entries, d.days, c)}
+	c := limit(ctx, derive.AfterDay(id, day))
+	out := Standings{Basho: id, Name: id.Name(), Division: div, Day: day, Standings: derive.StandingsAt(d.entries, d.days, c), Limited: c != derive.AfterDay(id, day)}
 	if out.Opponents, err = s.opponents(id, d); err != nil {
 		return Result[Standings]{}, err
 	}
-	if w, ok := d.basho.Yusho[div]; ok && day == domain.BashoDays {
+	if w, ok := d.basho.Yusho[div]; ok && day == domain.BashoDays && finalShown(ctx, id) {
 		if e, ok := byID(d.entries)[w]; ok {
 			out.Yusho = &Wrestler{RikishiID: e.RikishiID, Shikona: e.Shikona, Rank: e.Rank}
 		}
@@ -47,6 +50,7 @@ type Recap struct {
 	Division domain.Division
 	derive.Recap
 	Technique *Technique // the rarest technique's names; nil without one
+	Limited   bool       // spoiler-free mode cut the day off at the horizon
 }
 
 // Recap returns the day recap of div for day. Upsets come from the win
@@ -74,8 +78,8 @@ func (s *Service) Recap(ctx context.Context, id domain.BashoID, div domain.Divis
 	if r.Shown() {
 		upset = r.IsUpset
 	}
-	c := derive.AfterDay(id, day)
-	out := Recap{Basho: id, Name: id.Name(), Division: div, Recap: derive.DayRecap(derive.StandingsAt(d.entries, d.days, c), div, d.bouts, c, freq, upset)}
+	c := limit(ctx, derive.AfterDay(id, day))
+	out := Recap{Limited: c != derive.AfterDay(id, day), Basho: id, Name: id.Name(), Division: div, Recap: derive.DayRecap(derive.StandingsAt(d.entries, d.days, c), div, d.bouts, c, freq, upset)}
 	if out.Recap.Technique != nil {
 		t := technique(out.Recap.Technique.Kimarite)
 		out.Technique = &t

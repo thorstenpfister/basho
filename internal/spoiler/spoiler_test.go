@@ -84,16 +84,3 @@ func TestPersistence(t *testing.T) {
 		t.Error("a future schema loaded")
 	}
 }
-
-func TestHidden(t *testing.T) {
-	s, _ := Load("")
-	s.AddHidden(2)
-	s.AddHidden(1)
-	if s.Hidden() != 3 {
-		t.Errorf("%d", s.Hidden())
-	}
-	s.ClearHidden()
-	if s.Hidden() != 0 {
-		t.Error("not cleared")
-	}
-}

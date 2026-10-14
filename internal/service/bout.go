@@ -25,7 +25,8 @@ type Tale struct {
 	Matchups   [3]*derive.Matchup // by derive.Window; nil without samples
 	WinChance  *float64           // the east side's chance; nil when the rating is hidden
 	Scale      Scale              // for the height and weight bars
-	Result     *TaleResult        // nil while undecided
+	Result     *TaleResult        // nil while undecided, or Hidden
+	Hidden     bool               // after the spoiler horizon, decided or not
 }
 
 // TaleSide is one wrestler's column.
@@ -69,7 +70,9 @@ func (t TaleSide) Moveset() derive.Profile { return t.Movesets[derive.LastSix] }
 func (t Tale) Matchup() *derive.Matchup { return t.Matchups[derive.LastSix] }
 
 // Bout returns the tale of the tape of bout matchNo, as of just before it:
-// nothing on it reveals the bout's own result except Result.
+// nothing on it reveals the bout's own result except Result. In spoiler-free
+// mode it is as of the horizon when that is earlier, and a result after the
+// horizon is Hidden.
 func (s *Service) Bout(ctx context.Context, id domain.BashoID, div domain.Division, day, matchNo int) (Result[Tale], error) {
 	d, err := s.loadDay(ctx, id, div, day)
 	if err != nil {
@@ -103,7 +106,7 @@ func (s *Service) Bout(ctx context.Context, id domain.BashoID, div domain.Divisi
 	}
 	tournaments := bashoList(x)
 	entries := byID(d.entries)
-	c := derive.BeforeBout(*b)
+	c := limit(ctx, derive.BeforeBout(*b))
 	current := s.CurrentBasho()
 
 	side := func(bs domain.BoutSide) TaleSide {
@@ -146,10 +149,11 @@ func (s *Service) Bout(ctx context.Context, id domain.BashoID, div domain.Divisi
 		}
 	}
 	if r.Shown() {
-		p := r.WinChance(*b)
+		p := r.WinChanceAt(*b, c)
 		tale.WinChance = &p
 	}
-	if b.Winner != 0 {
+	tale.Hidden = !visible(ctx, *b)
+	if b.Winner != 0 && !tale.Hidden {
 		res := &TaleResult{Winner: b.Winner, Technique: technique(b.Kimarite), Fusen: b.Kimarite == "fusen"}
 		_, res.Kinboshi = derive.IsKinboshi(b)
 		if e, ok := entries[b.East.RikishiID]; ok {

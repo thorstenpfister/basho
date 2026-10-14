@@ -61,7 +61,7 @@ func (s *Service) Info(ctx context.Context, id domain.BashoID) (Result[Info], er
 		}
 		p = merge(p, p2)
 		for _, e := range entries {
-			r := derive.RecordAt(e, derive.NewDayBouts(id, nil), derive.EndOf(id))
+			r := derive.RecordAt(e, derive.NewDayBouts(id, nil), limit(ctx, derive.EndOf(id)))
 			names[e.RikishiID] = Winner{Wrestler: Wrestler{RikishiID: e.RikishiID, Shikona: e.Shikona, Rank: e.Rank}, Record: &r}
 		}
 	}
@@ -76,6 +76,9 @@ func (s *Service) Info(ctx context.Context, id domain.BashoID) (Result[Info], er
 		return Winner{Wrestler: Wrestler{RikishiID: id, Shikona: profiles[id].Name}} // a lower division's winner
 	}
 	out := Info{Basho: b, Name: id.Name(), Venue: venue(b), Status: s.status(b)}
+	if !finalShown(ctx, id) { // spoiler-free: the winners stay unknown
+		return Result[Info]{Value: out, Prov: p}, nil
+	}
 	for _, div := range slices.Sorted(maps.Keys(b.Yusho)) {
 		// The snapshot names sekitori only (SPEC §5.8): a lower division's
 		// winner is listed when known.

@@ -62,7 +62,6 @@ type State struct {
 
 	mu       sync.Mutex
 	horizons map[domain.BashoID]Horizon
-	hidden   int // results live mode fetched that the horizon hides
 }
 
 // fileSchema is the state file's version.
@@ -161,26 +160,4 @@ func (s *State) save() error {
 		return err
 	}
 	return atomicfile.Write(s.path, append(b, '\n'))
-}
-
-// AddHidden counts results live mode fetched behind the horizon; the status
-// bar shows "3 new results hidden" (SPEC §9).
-func (s *State) AddHidden(n int) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.hidden += n
-}
-
-// Hidden returns the count of hidden new results.
-func (s *State) Hidden() int {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.hidden
-}
-
-// ClearHidden resets the count once the user has revealed.
-func (s *State) ClearHidden() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.hidden = 0
 }

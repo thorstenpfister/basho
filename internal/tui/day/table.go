@@ -66,7 +66,10 @@ func (c cols) row(t theme.Theme, r service.BoutRow, selected, fresh bool) string
 		eastName, westName = t.Dim.Render(eastName), t.Bold.Render(westName)
 	}
 	technique := center(fit(string(r.Kimarite.Kimarite), c.tech), c.tech)
-	if !decided {
+	switch {
+	case r.Hidden:
+		technique = center(t.Unknown, c.tech)
+	case !decided:
 		technique = center("—", c.tech)
 	}
 	marker := "  "
@@ -94,7 +97,7 @@ func (c cols) row(t theme.Theme, r service.BoutRow, selected, fresh bool) string
 	}
 	return strings.TrimRight(fmt.Sprintf("%s%s%-4s %s %*s  %s %s %s  %-*s %s %-4s %s",
 		marker, c.number(num), r.East.Rank.Short(), eastName, c.rec, record(r.East),
-		glyph(t, r.Winner == domain.East, decided, r.Fusen), technique, glyph(t, r.Winner == domain.West, decided, r.Fusen),
+		glyph(t, r, domain.East), technique, glyph(t, r, domain.West),
 		c.rec, record(r.West), westName, r.West.Rank.Short(), tag), " ")
 }
 
@@ -105,8 +108,11 @@ func record(s service.BoutSide) string {
 	return s.Before.String()
 }
 
-func glyph(t theme.Theme, won, decided, fusen bool) string {
+func glyph(t theme.Theme, r service.BoutRow, side domain.Side) string {
+	won, decided, fusen := r.Winner == side, r.Winner != 0, r.Fusen
 	switch {
+	case r.Hidden:
+		return t.Unknown
 	case !decided:
 		return t.Pending
 	case won && fusen:
