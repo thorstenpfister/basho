@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.9** (2026-10-14). Implemented: Phases 0–3; the full snapshot (196001–202609) is committed. Later phases are still the plan.
+> Status: **v0.10** (2026-10-14). Implemented: Phases 0–4; the full snapshot (196001–202609) is committed. Later phases are still the plan.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1374,6 +1374,8 @@ Each phase ends with something usable and has acceptance criteria (AC). Phases 1
 8. Day recap: leaders, kachi-koshi/make-koshi reached today, kinboshi today, upsets (using the rating once Phase 5 is done; rank gap until then), rarest technique.
 9. Technique profile (§6.7): category shares, sample window with widening, signature move, fighter type, matchup line. Tune the fighter-type thresholds against about 10 well-known wrestlers and record the final values in this spec.
 10. Table-driven tests for each, including edge cases: absence then return, fusen against a yokozuna, playoff, Juryo wrestler in Makuuchi, fewer than 10 sekitori wins.
+
+Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 standings against sumo-api's own totals, the kinboshi of Akinoshima (16), Takamiyama, Tochinonada (12) and Tosanoumi (11) against Wikipedia, and the fighter types the thresholds were tuned on; bout-index build time is in §16 (V8).
 
 **AC:** standings for 202609 after day 15 match the official final records; kinboshi counts for 3 chosen wrestlers match published totals (checked by hand once against Wikipedia); bout-index build time is recorded (V8).
 

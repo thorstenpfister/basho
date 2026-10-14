@@ -139,3 +139,9 @@ func TestMatchup(t *testing.T) {
 		t.Error("no samples, no matchup")
 	}
 }
+
+func TestNames(t *testing.T) {
+	if LastSix.String() != "last 6 basho" || ThisBasho.String() != "this basho" || Thrower.String() != "Thrower" || NoType.String() != "" {
+		t.Error("window and fighter-type names")
+	}
+}
