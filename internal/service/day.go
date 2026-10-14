@@ -1,0 +1,227 @@
+package service
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/thorstenpfister/basho/internal/derive"
+	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/source"
+)
+
+// DayStatus is how far a day has got (SPEC §8.4 day bar).
+type DayStatus int
+
+const (
+	NotPublished DayStatus = iota // no bout list yet
+	Scheduled                     // bouts known, none decided
+	InProgress                    // some decided
+	Complete                      // all decided
+)
+
+var dayStatusNames = [...]string{"not_published", "scheduled", "in_progress", "complete"}
+
+func (d DayStatus) String() string { return dayStatusNames[d] }
+
+// MarshalText implements encoding.TextMarshaler: stable lowercase names.
+func (d DayStatus) MarshalText() ([]byte, error) { return []byte(d.String()), nil }
+
+// Day is one division's bout list of one day (SPEC §8.4, `basho day`).
+type Day struct {
+	Basho    domain.BashoID
+	Name     string // "Aki"
+	Venue    string
+	Division domain.Division
+	Day      int
+	Date     domain.Date
+	Status   DayStatus
+	Bouts    []BoutRow // regular bouts in match order
+	Playoffs []BoutRow // kettei-sen, after the regular bouts
+	Kyujo    []Wrestler
+}
+
+// Wrestler names someone as of a tournament.
+type Wrestler struct {
+	RikishiID domain.RikishiID
+	Shikona   domain.Name
+	Rank      domain.Rank
+}
+
+// BoutRow is one bout of a day.
+type BoutRow struct {
+	MatchNo    int
+	East, West BoutSide
+	Winner     domain.Side // zero: undecided
+	Kimarite   Technique
+	Fusen      bool
+	Kinboshi   bool
+	Musubi     bool     // the day's last regular bout (結び)
+	WinChance  *float64 // the east side's chance before the bout; nil when the rating is hidden
+}
+
+// BoutSide is one wrestler of a bout row: the record before and after it.
+type BoutSide struct {
+	Wrestler
+	Before, After derive.Record
+}
+
+// Technique is a kimarite with its display names.
+type Technique struct {
+	Kimarite domain.Kimarite
+	Kanji    string
+	English  string
+}
+
+func technique(k domain.Kimarite) Technique {
+	info, _ := k.Info()
+	return Technique{Kimarite: k, Kanji: info.Kanji, English: info.English}
+}
+
+// dayData is what the day, bout, standings and recap views read.
+type dayData struct {
+	basho   domain.Basho
+	entries []domain.BanzukeEntry
+	bouts   []domain.Bout // this day's, this division
+	days    derive.DayBouts
+	prov    Provenance
+}
+
+func checkDay(day int) error {
+	if day < 1 || day > domain.BashoDays {
+		return fmt.Errorf("day %d: days run from 1 to %d: %w", day, domain.BashoDays, source.ErrNotFound)
+	}
+	return nil
+}
+
+func (s *Service) loadDay(ctx context.Context, id domain.BashoID, div domain.Division, day int) (dayData, error) {
+	if err := checkDay(day); err != nil {
+		return dayData{}, err
+	}
+	b, p1, err := s.basho(ctx, id)
+	if err != nil {
+		return dayData{}, err
+	}
+	entries, p2, err := s.banzuke(ctx, id, div)
+	if err != nil {
+		return dayData{}, err
+	}
+	bouts, p3, err := s.torikumi(ctx, b, div, day)
+	if err != nil {
+		return dayData{}, err
+	}
+	return dayData{basho: b, entries: entries, bouts: bouts, days: derive.NewDayBouts(id, bouts), prov: merge(merge(p1, p2), p3)}, nil
+}
+
+// Day returns a division's bouts of one day, with records as of before each
+// bout and win chances when the rating is shown.
+func (s *Service) Day(ctx context.Context, id domain.BashoID, div domain.Division, day int) (Result[Day], error) {
+	d, err := s.loadDay(ctx, id, div, day)
+	if err != nil {
+		return Result[Day]{}, err
+	}
+	r, err := s.ratings()
+	if err != nil {
+		return Result[Day]{}, err
+	}
+	out := Day{
+		Basho: id, Name: id.Name(), Venue: venue(d.basho), Division: div, Day: day,
+		Date: domain.DayDate(d.basho.Start, day), Status: status(d.bouts),
+	}
+	entries := byID(d.entries)
+	lastRegular := 0
+	for _, b := range d.bouts {
+		if !b.IsPlayoff {
+			lastRegular = max(lastRegular, b.MatchNo)
+		}
+	}
+	for _, b := range d.bouts {
+		row := s.boutRow(b, entries, d.days, r)
+		row.Musubi = !b.IsPlayoff && b.MatchNo == lastRegular && div == domain.DivMakuuchi
+		if b.IsPlayoff {
+			out.Playoffs = append(out.Playoffs, row)
+		} else {
+			out.Bouts = append(out.Bouts, row)
+		}
+	}
+	for _, e := range d.entries {
+		if e.Results[day-1].Outcome == domain.Absent {
+			out.Kyujo = append(out.Kyujo, Wrestler{RikishiID: e.RikishiID, Shikona: e.Shikona, Rank: e.Rank})
+		}
+	}
+	return Result[Day]{Value: out, Prov: d.prov}, nil
+}
+
+func (s *Service) boutRow(b domain.Bout, entries map[domain.RikishiID]domain.BanzukeEntry, days derive.DayBouts, r *Ratings) BoutRow {
+	side := func(bs domain.BoutSide) BoutSide {
+		out := BoutSide{Wrestler: Wrestler{RikishiID: bs.RikishiID, Shikona: bs.Shikona, Rank: bs.Rank}}
+		if e, ok := entries[bs.RikishiID]; ok { // a Makushita visitor has no record here
+			out.Before = derive.RecordAt(e, days, derive.BeforeBout(b))
+			out.After = derive.RecordAt(e, days, derive.ThroughBout(b))
+		}
+		return out
+	}
+	row := BoutRow{
+		MatchNo: b.MatchNo, East: side(b.East), West: side(b.West), Winner: b.Winner,
+		Kimarite: technique(b.Kimarite), Fusen: b.Kimarite == "fusen",
+	}
+	_, row.Kinboshi = derive.IsKinboshi(&b)
+	if r.Shown() {
+		p := r.WinChance(b)
+		row.WinChance = &p
+	}
+	return row
+}
+
+func status(bouts []domain.Bout) DayStatus {
+	if len(bouts) == 0 {
+		return NotPublished
+	}
+	decided := 0
+	for _, b := range bouts {
+		if b.Winner != 0 {
+			decided++
+		}
+	}
+	switch decided {
+	case 0:
+		return Scheduled
+	case len(bouts):
+		return Complete
+	default:
+		return InProgress
+	}
+}
+
+func byID(entries []domain.BanzukeEntry) map[domain.RikishiID]domain.BanzukeEntry {
+	m := make(map[domain.RikishiID]domain.BanzukeEntry, len(entries))
+	for _, e := range entries {
+		m[e.RikishiID] = e
+	}
+	return m
+}
+
+// venue prefers the source's location and falls back to the calendar's.
+func venue(b domain.Basho) string {
+	if b.Location != "" {
+		return b.Location
+	}
+	return b.ID.Venue()
+}
+
+// DefaultDay is the day `basho day` shows without N (SPEC §11): today during
+// the tournament, otherwise its last day once over, or day 1 before it.
+func (s *Service) DefaultDay(ctx context.Context, id domain.BashoID) (int, error) {
+	b, _, err := s.basho(ctx, id)
+	if err != nil {
+		return 0, err
+	}
+	today := s.today()
+	switch {
+	case b.Start.IsZero() || today.Compare(b.End) > 0:
+		return domain.BashoDays, nil
+	case today.Compare(b.Start) < 0:
+		return 1, nil
+	default:
+		return min(today.DaysSince(b.Start)+1, domain.BashoDays), nil
+	}
+}

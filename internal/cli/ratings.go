@@ -27,10 +27,11 @@ func newRatingsCmd(svc *service.Service) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			t, err := svc.TopRatings(id, top)
+			res, err := svc.RatingTable(cmd.Context(), id, top)
 			if err != nil {
 				return err
 			}
+			t := res.Value
 			w := cmd.OutOrStdout()
 			if _, err := fmt.Fprintf(w, "Ratings after %s %d (%s)\n", id.Name(), id.Year, id); err != nil {
 				return err

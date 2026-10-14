@@ -425,8 +425,8 @@ Consequences:
 - **Derived statistics count sekitori bouts only** (Makuuchi and Juryo). This applies to head-to-head, moveset, last 5, rating, and career yusho/sansho as of a date. Kinboshi are Makuuchi-only by definition anyway.
 - All of these are computed from the snapshot plus later tournaments, so `/rikishi/{id}/matches` and `/rikishi/{id}/stats` aren't needed in normal use. They remain in the adapter as a fallback when no snapshot is present (`--no-snapshot`, for development).
 - A newly promoted wrestler's last 5 only shows their sekitori bouts so far, padded with `·` and labelled "new".
-- An in-memory **bout index** (by wrestler and by tournament) is built from the snapshot the first time it is needed (estimated under 200 ms, measured in Phase 4) and extended with later tournaments and live results.
-- Provenance for snapshot data reads `snapshot (2026-11-25)`, the snapshot's build date.
+- An in-memory **bout index** (by wrestler and by tournament) is built from the snapshot the first time it is needed (about 50 ms, V8) and extended with later tournaments and live results: every day the service reads from the remote layers for a tournament after the snapshot goes into the index and the ratings. Tournaments after the snapshot are not fetched in full in the background (that would break the request budget, §7.3); a snapshot update covers them.
+- Provenance for snapshot data reads `snapshot (2026-11-25)`, the snapshot's build date. Remote answers read `sumo-api` when any response came from the network, `cache:sumo-api` when all came from the disk cache, with the oldest response's time and `stale` when an expired entry stood in for a failed source; facts from the calendar alone (a cancelled tournament) read `calendar`. A wrapper getter under the adapter records this per call (`service.Recording`).
 
 ### 5.9 Dependencies
 
@@ -1392,7 +1392,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 
 ### Phase 6: Service layer and non-interactive CLI
 
-1. `service` façade: `CurrentBasho`, `Basho`, `Day(basho, division, day)`, `Bout(basho, division, day, matchNo)` (the full tale-of-the-tape model, including moveset and rating), `Standings(basho, division, day)`, `Recap`, `Ratings`. Each returns `Result[T]` with provenance.
+1. `service` façade: `CurrentBasho`, `Basho`, `Day(basho, division, day)`, `Bout(basho, division, day, matchNo)` (the full tale-of-the-tape model, including moveset and rating), `Standings(basho, division, day)`, `Recap`, `Ratings`. Each returns `Result[T]` with provenance. Done as `CurrentBasho`, `Info`, `List`, `DefaultDay`, `Day`, `Bout`, `Standings`, `Recap` and `RatingTable`. `Info` names Makuuchi and Juryo winners always and lower-division winners only when the wrestler index knows them (it holds sekitori).
 2. Background refresh of the active-wrestler index when the snapshot's index is older than 7 days, plus the `idmap` skeleton (filled in Phase 9).
 3. Config loading (file, environment, flags, defaults) and validation, including minimum intervals and maximum rates.
 4. Commands: `list`, `info`, `day`, `bout`, `standings` (`--grid`), `ratings`, `credits`, with text renderers (Lip Gloss tables in a terminal, plain when piped).

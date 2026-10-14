@@ -1,0 +1,288 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/thorstenpfister/basho/data"
+	"github.com/thorstenpfister/basho/internal/clock"
+	"github.com/thorstenpfister/basho/internal/derive"
+	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/httpx"
+	"github.com/thorstenpfister/basho/internal/source"
+)
+
+var (
+	kyushu2026 = domain.BashoID{Year: 2026, Month: time.November}
+	testNow    = time.Date(2026, time.October, 14, 12, 0, 0, 0, domain.JST)
+)
+
+// embedded is a service over the embedded snapshot with no remote layers;
+// it is built once, as the bout index and ratings take a moment.
+var embedded = sync.OnceValue(func() *Service {
+	return New(Options{Snapshot: data.Snapshot, Params: data.RatingParams, Clock: clock.NewFake(testNow)})
+})
+
+func TestDay(t *testing.T) {
+	res, err := embedded().Day(t.Context(), aki2026, domain.DivMakuuchi, 13)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := res.Value
+	if res.Prov.Source != SnapshotSource || d.Status != Complete || len(d.Bouts) != 19 || d.Date != domain.NewDate(2026, time.September, 25) {
+		t.Fatalf("day 13: %s, %v, %d bouts on %v", res.Prov.Source, d.Status, len(d.Bouts), d.Date)
+	}
+	last := d.Bouts[18]
+	if !last.Musubi || last.East.Shikona.En != "Onosato" || last.East.Before.String() != "11-1" || last.East.After.String() != "11-2" ||
+		last.Winner != domain.West || last.Kimarite.Kanji != "下手投げ" || last.WinChance == nil {
+		t.Errorf("musubi %+v", last)
+	}
+	if d.Bouts[0].Musubi {
+		t.Error("bout 1 marked musubi")
+	}
+	kyujo := map[string]bool{}
+	for _, w := range d.Kyujo {
+		kyujo[w.Shikona.En] = true
+	}
+	if !kyujo["Hoshoryu"] {
+		t.Errorf("kyujo %v lacks Hoshoryu", kyujo)
+	}
+	if _, err := embedded().Day(t.Context(), aki2026, domain.DivMakuuchi, 16); !errors.Is(err, source.ErrNotFound) {
+		t.Errorf("day 16: %v", err)
+	}
+}
+
+func TestBout(t *testing.T) {
+	res, err := embedded().Bout(t.Context(), aki2026, domain.DivMakuuchi, 13, 19)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := res.Value
+	e, w := b.East, b.West
+	if !b.Musubi || b.Of != 19 || e.Shikona.En != "Onosato" || e.Record.String() != "11-1" || w.RikishiID != 7 {
+		t.Fatalf("tale %+v", b)
+	}
+	if !e.Profile || e.Heya == "" || e.Career.Age == 0 || e.Career.Height == 0 || e.Career.Yusho[domain.DivMakuuchi] == 0 {
+		t.Errorf("Onosato's profile %+v", e)
+	}
+	if len(e.Last5.Results) != 5 || e.Moveset.Wins == 0 || e.Rating == nil || b.WinChance == nil {
+		t.Errorf("Onosato's form %+v", e)
+	}
+	// Nothing before the result may count the bout itself.
+	if h := b.HeadToHead; h.A.Wins+h.B.Wins == 0 || len(h.Meetings) == 0 || h.Meetings[0].Basho == aki2026 && h.Meetings[0].Day == 13 {
+		t.Errorf("head-to-head %+v", h)
+	}
+	if last := e.Last5.Results[4]; last.Basho == aki2026 && last.Day >= 13 {
+		t.Errorf("last 5 includes the bout: %+v", last)
+	}
+	if r := b.Result; r == nil || r.Winner != domain.West || r.East.String() != "11-2" || r.Technique.Kimarite != "shitatenage" {
+		t.Errorf("result %+v", b.Result)
+	}
+	if b.Scale.MinHeight == 0 || b.Scale.MaxHeight < b.Scale.MinHeight {
+		t.Errorf("scale %+v", b.Scale)
+	}
+	if _, err := embedded().Bout(t.Context(), aki2026, domain.DivMakuuchi, 13, 99); !errors.Is(err, source.ErrNotFound) {
+		t.Errorf("bout 99: %v", err)
+	}
+}
+
+func TestStandingsAndRecap(t *testing.T) {
+	res, err := embedded().Standings(t.Context(), aki2026, domain.DivMakuuchi, 15)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := res.Value
+	if s.Rows[0].Shikona.En != "Onosato" || s.Rows[0].Record.String() != "12-3" || !s.YushoDecided || s.Yusho == nil || s.Yusho.RikishiID != 8850 {
+		t.Errorf("standings top %+v, decided %v, yusho %+v", s.Rows[0], s.YushoDecided, s.Yusho)
+	}
+	if res, _ := embedded().Standings(t.Context(), aki2026, domain.DivMakuuchi, 13); res.Value.Yusho != nil {
+		t.Error("the yusho shown after day 13")
+	}
+	rec, err := embedded().Recap(t.Context(), aki2026, domain.DivMakuuchi, 13)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r := rec.Value; r.Day != 13 || len(r.Leaders) == 0 || r.Technique == nil || r.Technique.English == "" {
+		t.Errorf("recap %+v", r)
+	}
+}
+
+func TestInfoAndList(t *testing.T) {
+	res, err := embedded().Info(t.Context(), aki2026)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := res.Value
+	// Makushita's winner (Inami) is not a sekitori in the snapshot: left out.
+	if in.Status != Finished || in.Name != "Aki" || len(in.Yusho) != 2 || in.Yusho[0].Division != domain.DivMakuuchi || in.Yusho[0].Shikona.En != "Onosato" || len(in.Prizes) != 2 {
+		t.Errorf("info %+v", in)
+	}
+	cancelled, _ := embedded().Info(t.Context(), domain.BashoID{Year: 2020, Month: time.May})
+	if cancelled.Value.Status != Cancelled {
+		t.Errorf("202005: %v", cancelled.Value.Status)
+	}
+
+	list, err := embedded().List(t.Context(), 2020, 2020)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list.Value) != 6 || list.Value[0].Basho != (domain.BashoID{Year: 2020, Month: time.November}) || list.Value[3].Status != Cancelled {
+		t.Errorf("2020: %+v", list.Value)
+	}
+	if y := list.Value[0].Yusho; y == nil || y.Shikona.En == "" || !list.Value[0].InSnapshot {
+		t.Errorf("202011 %+v", list.Value[0])
+	}
+	all, _ := embedded().List(t.Context(), 0, 0)
+	if first := all.Value[0]; first.Basho != aki2026 { // Kyushu 2026 has not started on 2026-10-14
+		t.Errorf("newest %v", first.Basho)
+	}
+}
+
+func TestDefaultDay(t *testing.T) {
+	fake := &fakeRemote{start: domain.NewDate(2026, time.November, 8)}
+	for _, tt := range []struct {
+		now  time.Time
+		want int
+	}{
+		{time.Date(2026, time.November, 1, 12, 0, 0, 0, domain.JST), 1},
+		{time.Date(2026, time.November, 12, 12, 0, 0, 0, domain.JST), 5},
+		{time.Date(2026, time.November, 30, 12, 0, 0, 0, domain.JST), 15},
+	} {
+		s := New(Options{Remote: fake, Clock: clock.NewFake(tt.now)})
+		if got, err := s.DefaultDay(t.Context(), kyushu2026); err != nil || got != tt.want {
+			t.Errorf("on %v: day %d, %v; want %d", tt.now, got, err, tt.want)
+		}
+	}
+	if got, _ := embedded().DefaultDay(t.Context(), aki2026); got != 15 {
+		t.Errorf("a finished tournament: day %d", got)
+	}
+}
+
+// fakeRemote serves a made-up Kyushu 2026: two Makuuchi wrestlers who meet
+// every day, and the East one wins.
+type fakeRemote struct {
+	start domain.Date
+	calls int
+}
+
+var (
+	fakeY1 = domain.Rank{Title: domain.Yokozuna, Number: 1, Side: domain.East}
+	fakeM1 = domain.Rank{Title: domain.Maegashira, Number: 1, Side: domain.West}
+)
+
+func (f *fakeRemote) Basho(_ context.Context, id domain.BashoID) (domain.Basho, error) {
+	f.calls++
+	return domain.Basho{ID: id, Start: f.start, End: f.start.AddDays(14)}, nil
+}
+
+func (f *fakeRemote) Banzuke(_ context.Context, _ domain.BashoID, div domain.Division) ([]domain.BanzukeEntry, error) {
+	f.calls++
+	if div != domain.DivMakuuchi {
+		return nil, nil
+	}
+	a := domain.BanzukeEntry{RikishiID: 8850, Shikona: domain.Name{En: "Onosato"}, Rank: fakeY1}
+	b := domain.BanzukeEntry{RikishiID: 7, Shikona: domain.Name{En: "Kirishima"}, Rank: fakeM1}
+	a.Results[0] = domain.DayResult{Outcome: domain.Win, OpponentID: 7, Kimarite: "yorikiri"}
+	b.Results[0] = domain.DayResult{Outcome: domain.Loss, OpponentID: 8850, Kimarite: "yorikiri"}
+	return []domain.BanzukeEntry{a, b}, nil
+}
+
+func (f *fakeRemote) Torikumi(_ context.Context, id domain.BashoID, div domain.Division, day int) ([]domain.Bout, error) {
+	f.calls++
+	if day > 1 || div != domain.DivMakuuchi {
+		return nil, source.ErrNotYetAvailable
+	}
+	return []domain.Bout{{
+		Basho: id, Division: div, Day: 1, MatchNo: 1, Winner: domain.East, Kimarite: "yorikiri",
+		East: domain.BoutSide{RikishiID: 8850, Shikona: domain.Name{En: "Onosato"}, Rank: fakeY1},
+		West: domain.BoutSide{RikishiID: 7, Shikona: domain.Name{En: "Kirishima"}, Rank: fakeM1},
+	}}, nil
+}
+
+func TestLaterTournament(t *testing.T) {
+	fake := &fakeRemote{start: domain.NewDate(2026, time.November, 8)}
+	s := New(Options{Snapshot: data.Snapshot, Params: data.RatingParams, Remote: fake, Clock: clock.NewFake(testNow)})
+	res, err := s.Day(t.Context(), kyushu2026, domain.DivMakuuchi, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Prov.Source != "sumo-api" || fake.calls != 3 || len(res.Value.Bouts) != 1 {
+		t.Errorf("day 1: %+v after %d calls", res.Prov, fake.calls)
+	}
+	// The day went into the bout index and the ratings.
+	x, _ := s.index()
+	if len(x.Tournament(kyushu2026)) != 1 {
+		t.Error("not in the bout index")
+	}
+	r, _ := s.Ratings()
+	before := r.At(8850, fakeY1, derive.BeforeDay(kyushu2026, 1)).Value
+	if after := r.At(8850, fakeY1, derive.NoCutoff).Value; after <= before {
+		t.Errorf("rating %.1f → %.1f after a win", before, after)
+	}
+	// Onosato's last 5 crosses into the snapshot's Aki.
+	tale, err := s.Bout(t.Context(), kyushu2026, domain.DivMakuuchi, 1, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if l := tale.Value.East.Last5.Results; len(l) != 5 || l[4].Basho != aki2026 {
+		t.Errorf("last 5 %+v", l)
+	}
+	if _, err := s.Day(t.Context(), kyushu2026, domain.DivMakuuchi, 2); !errors.Is(err, source.ErrNotYetAvailable) {
+		t.Errorf("day 2: %v", err)
+	}
+
+	snapOnly := New(Options{Snapshot: data.Snapshot, Params: data.RatingParams, Clock: clock.NewFake(testNow)})
+	if _, err := snapOnly.Day(t.Context(), kyushu2026, domain.DivMakuuchi, 1); !errors.Is(err, source.ErrNotYetAvailable) {
+		t.Errorf("without a remote: %v", err)
+	}
+	noSnap := New(Options{Remote: fake, Clock: clock.NewFake(testNow)})
+	if res, err := noSnap.Day(t.Context(), aki2026, domain.DivMakuuchi, 1); err != nil || res.Prov.Source == SnapshotSource {
+		t.Errorf("--no-snapshot: %+v, %v", res.Prov, err)
+	}
+}
+
+type fakeGetter struct{ resp httpx.Response }
+
+func (g fakeGetter) Get(context.Context, string, httpx.Validators) (*httpx.Response, error) {
+	r := g.resp
+	return &r, nil
+}
+
+func TestProvenance(t *testing.T) {
+	old := testNow.Add(-2 * time.Hour)
+	for _, tt := range []struct {
+		name string
+		resp httpx.Response
+		want Provenance
+	}{
+		{"live", httpx.Response{Status: 200}, Provenance{Source: "sumo-api", FetchedAt: testNow}},
+		{"cached", httpx.Response{Status: 200, Cached: true, FetchedAt: old}, Provenance{Source: "cache:sumo-api", FetchedAt: old}},
+		{"stale", httpx.Response{Status: 200, Cached: true, Stale: true, FetchedAt: old}, Provenance{Source: "cache:sumo-api", FetchedAt: old, Stale: true}},
+	} {
+		g := Recording(fakeGetter{tt.resp}, func() time.Time { return testNow })
+		p, err := fromRemote(t.Context(), "sumo-api", testNow, func(ctx context.Context) error {
+			_, err := g.Get(ctx, "u", httpx.Validators{})
+			return err
+		})
+		if err != nil || p != tt.want {
+			t.Errorf("%s: %+v, want %+v", tt.name, p, tt.want)
+		}
+	}
+	snap := Provenance{Source: SnapshotSource, FetchedAt: old}
+	cached := Provenance{Source: "cache:sumo-api", FetchedAt: testNow, Stale: true}
+	if got := merge(snap, cached); got.Source != "cache:sumo-api" || !got.FetchedAt.Equal(old) || !got.Stale {
+		t.Errorf("merge %+v", got)
+	}
+	if got := merge(Provenance{}, snap); got != snap {
+		t.Errorf("merge with nothing %+v", got)
+	}
+}
+
+func TestCurrentBasho(t *testing.T) {
+	if got := embedded().CurrentBasho(); got != aki2026 {
+		t.Errorf("current on 2026-10-14: %v", got)
+	}
+}

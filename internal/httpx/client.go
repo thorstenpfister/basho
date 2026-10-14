@@ -97,7 +97,9 @@ type Response struct {
 	Body       []byte
 	Validators Validators // from this response, for the next conditional request
 	Duration   time.Duration
-	Stale      bool // served from a cache because the source could not be reached
+	Stale      bool      // served from a cache because the source could not be reached
+	Cached     bool      // served from a cache, fresh or stale
+	FetchedAt  time.Time // when a cached body was fetched or last revalidated; zero for a live answer
 }
 
 // NotModified reports a 304 answer to a conditional request.

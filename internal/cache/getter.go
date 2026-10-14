@@ -63,7 +63,8 @@ func (g *Getter) Get(ctx context.Context, url string, v httpx.Validators) (*http
 	case err != nil:
 		return nil, err
 	case resp.NotModified() && cached:
-		if err := g.Cache.Touch(url, time.Now(), keep(resp.Validators, entry.Validators)); err != nil {
+		entry.FetchedAt = time.Now()
+		if err := g.Cache.Touch(url, entry.FetchedAt, keep(resp.Validators, entry.Validators)); err != nil {
 			return nil, err
 		}
 		return fromEntry(entry, false), nil
@@ -79,7 +80,7 @@ func (g *Getter) Get(ctx context.Context, url string, v httpx.Validators) (*http
 }
 
 func fromEntry(e Entry, stale bool) *httpx.Response {
-	return &httpx.Response{Status: e.Status, Body: e.Body, Validators: e.Validators, Stale: stale}
+	return &httpx.Response{Status: e.Status, Body: e.Body, Validators: e.Validators, Stale: stale, Cached: true, FetchedAt: e.FetchedAt}
 }
 
 // keep prefers fresh validators, but a 304 may omit them.

@@ -13,12 +13,12 @@ import (
 )
 
 func TestRatingsCommand(t *testing.T) {
-	svc := service.New(
-		func() (*snapshot.Snapshot, error) { return snapshot.Open(os.DirFS("../../testdata/snapshot")) },
-		func() (rating.File, error) {
+	svc := service.New(service.Options{
+		Snapshot: func() (*snapshot.Snapshot, error) { return snapshot.Open(os.DirFS("../../testdata/snapshot")) },
+		Params: func() (rating.File, error) {
 			return rating.File{Params: rating.Params{K: 10, KNew: 24, NewBouts: 45, R: 0.3, WarmupScale: 0.5}, Show: true}, nil
 		},
-	)
+	})
 	root := NewRoot(buildinfo.Info{Version: "devel"}, svc)
 	var out bytes.Buffer
 	root.SetOut(&out)

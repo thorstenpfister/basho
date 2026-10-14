@@ -12,6 +12,6 @@ import (
 )
 
 func main() {
-	svc := service.New(data.Snapshot, data.RatingParams)
+	svc := service.New(service.Options{Snapshot: data.Snapshot, Params: data.RatingParams})
 	os.Exit(cli.Execute(cli.NewRoot(buildinfo.Get(), svc)))
 }

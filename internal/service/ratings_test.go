@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/rating"
@@ -22,10 +23,11 @@ var (
 // 202609; SPEC §13).
 func fixtureService(t *testing.T, f rating.File) *Service {
 	t.Helper()
-	return New(
-		func() (*snapshot.Snapshot, error) { return snapshot.Open(os.DirFS("../../testdata/snapshot")) },
-		func() (rating.File, error) { return f, nil },
-	)
+	return New(Options{
+		Snapshot: func() (*snapshot.Snapshot, error) { return snapshot.Open(os.DirFS("../../testdata/snapshot")) },
+		Params:   func() (rating.File, error) { return f, nil },
+		Clock:    clock.NewFake(time.Date(2026, time.October, 14, 12, 0, 0, 0, domain.JST)),
+	})
 }
 
 func TestRatings(t *testing.T) {
@@ -81,9 +83,10 @@ func TestRatings(t *testing.T) {
 	}
 }
 
-func TestTopRatings(t *testing.T) {
+func TestRatingTable(t *testing.T) {
 	s := fixtureService(t, testFile)
-	tab, err := s.TopRatings(aki2026, 5)
+	res, err := s.RatingTable(t.Context(), aki2026, 5)
+	tab := res.Value
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,15 +98,16 @@ func TestTopRatings(t *testing.T) {
 			t.Errorf("not sorted: %+v", tab.Rows)
 		}
 	}
-	all, _ := s.TopRatings(aki2026, 0)
+	allRes, _ := s.RatingTable(t.Context(), aki2026, 0)
+	all := allRes.Value
 	if len(all.Rows) != 42+28 {
 		t.Errorf("all: %d rows, want both divisions (70)", len(all.Rows))
 	}
-	if _, err := s.TopRatings(domain.BashoID{Year: 2026, Month: time.November}, 5); !errors.Is(err, source.ErrNotYetAvailable) {
+	if _, err := s.RatingTable(t.Context(), domain.BashoID{Year: 2026, Month: time.November}, 5); !errors.Is(err, source.ErrNotYetAvailable) {
 		t.Errorf("after the snapshot: %v", err)
 	}
 	hidden := fixtureService(t, rating.File{Params: testFile.Params})
-	if tab, _ := hidden.TopRatings(aki2026, 1); tab.Shown {
+	if res, _ := hidden.RatingTable(t.Context(), aki2026, 1); res.Value.Shown || res.Prov.Source != SnapshotSource {
 		t.Error("V9 failed but shown")
 	}
 	if n, err := s.Newest(); err != nil || n != aki2026 {

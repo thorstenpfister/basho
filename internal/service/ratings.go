@@ -2,6 +2,7 @@ package service
 
 import (
 	"cmp"
+	"context"
 	"slices"
 	"sync"
 
@@ -102,4 +103,30 @@ func (r *Ratings) Top(entries []domain.BanzukeEntry, c derive.AsOf, n int) []Rat
 		rows = rows[:n]
 	}
 	return rows
+}
+
+// RatingTable is the top-rated wrestlers of a tournament (`basho ratings`).
+type RatingTable struct {
+	Basho domain.BashoID
+	Shown bool // V9: false means the UI hides ratings
+	Rows  []Rated
+}
+
+// RatingTable rates both divisions' wrestlers of tournament id as of its end
+// (as far as it has been fought), highest first, and keeps the first n.
+func (s *Service) RatingTable(ctx context.Context, id domain.BashoID, n int) (Result[RatingTable], error) {
+	r, err := s.ratings()
+	if err != nil {
+		return Result[RatingTable]{}, err
+	}
+	var entries []domain.BanzukeEntry
+	var prov Provenance
+	for _, div := range []domain.Division{domain.DivMakuuchi, domain.DivJuryo} {
+		e, p, err := s.banzuke(ctx, id, div)
+		if err != nil {
+			return Result[RatingTable]{}, err
+		}
+		entries, prov = slices.Concat(entries, e), merge(prov, p)
+	}
+	return Result[RatingTable]{Value: RatingTable{Basho: id, Shown: r.Shown(), Rows: r.Top(entries, derive.EndOf(id), n)}, Prov: prov}, nil
 }

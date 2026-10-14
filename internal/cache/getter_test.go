@@ -43,19 +43,20 @@ func TestGetterFreshStaleAndRevalidate(t *testing.T) {
 			}
 			return resp
 		}
-		if r := get(); string(r.Body) != "v1" || up.calls != 1 {
-			t.Fatalf("first: %q after %d requests", r.Body, up.calls)
+		start := time.Now()
+		if r := get(); string(r.Body) != "v1" || up.calls != 1 || r.Cached {
+			t.Fatalf("first: %q after %d requests, cached %v", r.Body, up.calls, r.Cached)
 		}
 		time.Sleep(30 * time.Minute)
-		if r := get(); string(r.Body) != "v1" || up.calls != 1 {
-			t.Fatalf("fresh: %q after %d requests, want no request", r.Body, up.calls)
+		if r := get(); string(r.Body) != "v1" || up.calls != 1 || !r.Cached || !r.FetchedAt.Equal(start) {
+			t.Fatalf("fresh: %q after %d requests, cached %v at %v; want no request, fetched at the start", r.Body, up.calls, r.Cached, r.FetchedAt)
 		}
 
 		// Stale: a conditional request; a 304 keeps the body and renews it.
 		time.Sleep(time.Hour)
 		up.resp = &httpx.Response{Status: 304}
-		if r := get(); string(r.Body) != "v1" || r.Stale || up.calls != 2 || up.sent.ETag != `"1"` {
-			t.Fatalf("revalidated: %q stale=%v, %d requests, sent %+v", r.Body, r.Stale, up.calls, up.sent)
+		if r := get(); string(r.Body) != "v1" || r.Stale || up.calls != 2 || up.sent.ETag != `"1"` || !r.FetchedAt.Equal(time.Now()) {
+			t.Fatalf("revalidated: %q stale=%v, %d requests, sent %+v, fetched %v", r.Body, r.Stale, up.calls, up.sent, r.FetchedAt)
 		}
 		if get(); up.calls != 2 {
 			t.Error("a 304 did not renew the entry")
