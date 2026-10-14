@@ -479,7 +479,7 @@ The rule: **standard library first.** A third-party module is only added when it
 
 ## 6. Derived data (`derive/`)
 
-All inputs come from the bout index (§5.8). Every computation takes an **as-of cutoff** `AsOf{Day int; MatchNo int; Inclusive bool}`. This one mechanism handles three things:
+All inputs come from the bout index (§5.8). Every computation takes an **as-of cutoff** `AsOf{Basho; Day; Division; MatchNo; Playoff; Inclusive}`: a point in the order of play (tournament, day; within a day Juryo before Makuuchi, a division's playoffs after its regular bouts, then match number). `MatchNo` 0 means the whole day; constructors `BeforeDay`, `AfterDay`, `EndOf`, `BeforeBout`, `ThroughBout` and `NoCutoff` cover the uses. A banzuke day result without a bout (absence, source gap) counts once its day has started. This one mechanism handles three things:
 - the correct record and stats going into a bout
 - standings after day N
 - spoiler-free mode (§9)
