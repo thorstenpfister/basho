@@ -1410,7 +1410,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 ### Phase 7: TUI shell, picker and day view
 
 1. Theme package: adaptive palette, styles, Unicode and ASCII glyph sets, `NO_COLOR`. Done (`tui/theme`); `NO_COLOR` and `--no-color` act where Bubble Tea writes, through the colour profile.
-2. Root model: screen stack, global keys (§8.8), size breakpoints, "too small" screen, status bar with provenance and short-lived messages, help overlay.
+2. Root model: screen stack, global keys (§8.8), size breakpoints, "too small" screen, status bar with provenance and short-lived messages, help overlay. Done (`tui.Model`). Screens are values behind a `Screen` interface sharing a `Context` (service, config, theme, clock); the app starts with the picker under the day view, so `esc` pops back to it. `L` and `S` show a message until Phases 10 and 11.
 3. Basho picker built from the calendar; yusho text from the snapshot (instant for history) and the cache; `/` filter; cancelled rows.
 4. Day view:
    - day bar with status marks

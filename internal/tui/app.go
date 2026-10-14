@@ -1,0 +1,335 @@
+package tui
+
+import (
+	"fmt"
+	"strings"
+	"time"
+
+	"charm.land/bubbles/v2/help"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+
+	"github.com/thorstenpfister/basho/internal/clock"
+	"github.com/thorstenpfister/basho/internal/config"
+	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/service"
+	"github.com/thorstenpfister/basho/internal/tui/theme"
+)
+
+// Context is what every screen shares (SPEC §8.1).
+type Context struct {
+	Svc   *service.Service
+	Cfg   config.Config
+	Theme theme.Theme
+	Clock clock.Clock
+}
+
+// Layout is the breakpoint of the terminal width (SPEC §8.1).
+type Layout int
+
+const (
+	Compact Layout = iota // 60–89 columns
+	Normal                // 90–129
+	Wide                  // 130 and more
+)
+
+// Minimum terminal size.
+const (
+	MinWidth  = 60
+	MinHeight = 20
+)
+
+// LayoutOf returns the layout of a terminal width.
+func LayoutOf(width int) Layout {
+	switch {
+	case width >= 130:
+		return Wide
+	case width >= 90:
+		return Normal
+	default:
+		return Compact
+	}
+}
+
+// Screen is one entry of the screen stack. Screens are values: Update returns
+// the next state. All I/O runs in commands.
+type Screen interface {
+	Init(ctx *Context) tea.Cmd
+	Update(ctx *Context, msg tea.Msg) (Screen, tea.Cmd)
+	// View renders the screen into width×height cells (the status bar is
+	// drawn by the root).
+	View(ctx *Context, width, height int) string
+	Status(ctx *Context) Status
+	Keys() []key.Binding // for the help overlay and the footer
+}
+
+// Status is a screen's part of the status bar.
+type Status struct {
+	Left    string              // e.g. "Aki 2026 · Makuuchi · Day 13"
+	Prov    *service.Provenance // the data shown; nil while there is none
+	Loading bool                // a request is running: ↻
+}
+
+// QuitBacker is a screen on which q goes back one level instead of quitting
+// (the VS screen, SPEC §8.8).
+type QuitBacker interface{ QuitGoesBack() bool }
+
+// Messages screens send to the root.
+type (
+	// PushMsg opens a screen on top.
+	PushMsg struct{ Screen Screen }
+	// PopMsg closes the top screen.
+	PopMsg struct{}
+	// ResetMsg replaces the whole stack.
+	ResetMsg struct{ Stack []Screen }
+	// MessageMsg shows a short-lived status message (3 s).
+	MessageMsg struct{ Text string }
+	clearMsg   struct{ id int }
+)
+
+// Push, Pop and Message are the commands for those messages.
+func Push(s Screen) tea.Cmd       { return func() tea.Msg { return PushMsg{s} } }
+func Pop() tea.Cmd                { return func() tea.Msg { return PopMsg{} } }
+func Message(text string) tea.Cmd { return func() tea.Msg { return MessageMsg{text} } }
+
+// messageTTL is how long a status message stays.
+const messageTTL = 3 * time.Second
+
+// Global keys (SPEC §8.8).
+var (
+	keyQuit     = key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit"))
+	keyForce    = key.NewBinding(key.WithKeys("ctrl+c"), key.WithHelp("ctrl+c", "quit"))
+	keyHelp     = key.NewBinding(key.WithKeys("?"), key.WithHelp("?", "help"))
+	keyBack     = key.NewBinding(key.WithKeys("esc", "b"), key.WithHelp("b/esc", "back"))
+	keyLive     = key.NewBinding(key.WithKeys("L"), key.WithHelp("L", "live mode"))
+	keySpoilers = key.NewBinding(key.WithKeys("S"), key.WithHelp("S", "spoiler-free"))
+	keyToday    = key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "today"))
+)
+
+var globalKeys = []key.Binding{keyBack, keyToday, keyLive, keySpoilers, keyHelp, keyQuit, keyForce}
+
+// Model is the root: screen stack, global keys, status bar and help.
+type Model struct {
+	ctx           *Context
+	stack         []Screen
+	today         func() []Screen // the stack `t` goes to
+	width, height int
+	help          bool
+	message       string
+	messageID     int
+}
+
+// New returns the root over a starting stack (bottom first); today builds
+// the stack for `t`.
+func New(ctx *Context, stack []Screen, today func() []Screen) Model {
+	return Model{ctx: ctx, stack: stack, today: today}
+}
+
+// Init implements tea.Model.
+func (m Model) Init() tea.Cmd {
+	cmds := []tea.Cmd{m.top().Init(m.ctx)}
+	if m.ctx.Cfg.UI.Theme == "auto" {
+		cmds = append(cmds, tea.RequestBackgroundColor)
+	}
+	return tea.Batch(cmds...)
+}
+
+func (m Model) top() Screen { return m.stack[len(m.stack)-1] }
+
+// Update implements tea.Model.
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width, m.height = msg.Width, msg.Height
+		return m.forward(msg)
+	case tea.BackgroundColorMsg:
+		m.ctx.Theme = theme.New(msg.IsDark(), m.ctx.Cfg.UI.ASCII)
+		return m, nil
+	case PushMsg:
+		m.stack = append(m.stack, msg.Screen)
+		return m, msg.Screen.Init(m.ctx)
+	case PopMsg:
+		if len(m.stack) > 1 {
+			m.stack = m.stack[:len(m.stack)-1]
+		}
+		return m, nil
+	case ResetMsg:
+		m.stack = msg.Stack
+		return m, m.top().Init(m.ctx)
+	case MessageMsg:
+		m.messageID++
+		m.message = msg.Text
+		id := m.messageID
+		return m, tea.Tick(messageTTL, func(time.Time) tea.Msg { return clearMsg{id} })
+	case clearMsg:
+		if msg.id == m.messageID {
+			m.message = ""
+		}
+		return m, nil
+	case tea.KeyPressMsg:
+		return m.key(msg)
+	}
+	return m.forward(msg)
+}
+
+func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	switch {
+	case key.Matches(msg, keyForce):
+		return m, tea.Quit
+	case m.help:
+		if key.Matches(msg, keyHelp, keyBack, keyQuit) {
+			m.help = false
+		}
+		return m, nil
+	case key.Matches(msg, keyHelp):
+		m.help = true
+		return m, nil
+	case key.Matches(msg, keyQuit):
+		if b, ok := m.top().(QuitBacker); ok && b.QuitGoesBack() && len(m.stack) > 1 {
+			m.stack = m.stack[:len(m.stack)-1]
+			return m, nil
+		}
+		return m, tea.Quit
+	case key.Matches(msg, keyBack) && len(m.stack) > 1:
+		m.stack = m.stack[:len(m.stack)-1]
+		return m, nil
+	case key.Matches(msg, keyToday) && m.today != nil:
+		return m.Update(ResetMsg{Stack: m.today()})
+	case key.Matches(msg, keyLive):
+		return m.Update(MessageMsg{"Live mode comes with Phase 10"})
+	case key.Matches(msg, keySpoilers):
+		return m.Update(MessageMsg{"Spoiler-free mode comes with Phase 11"})
+	}
+	return m.forward(msg)
+}
+
+// forward hands a message to the top screen.
+func (m Model) forward(msg tea.Msg) (tea.Model, tea.Cmd) {
+	s, cmd := m.top().Update(m.ctx, msg)
+	m.stack[len(m.stack)-1] = s
+	return m, cmd
+}
+
+// View implements tea.Model.
+func (m Model) View() tea.View {
+	v := tea.NewView(m.render())
+	v.AltScreen = true
+	if m.ctx.Cfg.UI.Mouse {
+		v.MouseMode = tea.MouseModeCellMotion
+	}
+	return v
+}
+
+// render is the screen as text, for View and the tests.
+func (m Model) render() string {
+	t := m.ctx.Theme
+	if m.width < MinWidth || m.height < MinHeight {
+		msg := fmt.Sprintf("Terminal too small (need %d×%d)", MinWidth, MinHeight)
+		return lipgloss.Place(max(m.width, 1), max(m.height, 1), lipgloss.Center, lipgloss.Center, t.Dim.Render(msg))
+	}
+	body := m.height - 1
+	var content string
+	if m.help {
+		content = m.helpView(m.width, body)
+	} else {
+		content = m.top().View(m.ctx, m.width, body)
+	}
+	content = lipgloss.NewStyle().Width(m.width).Height(body).MaxHeight(body).MaxWidth(m.width).Render(content)
+	return content + "\n" + m.statusBar()
+}
+
+// statusBar is the bottom line (SPEC §8.2).
+func (m Model) statusBar() string {
+	t := m.ctx.Theme
+	st := m.top().Status(m.ctx)
+	left := st.Left
+	if m.message != "" {
+		left = t.Message.Render(m.message)
+	}
+	var right []string
+	switch {
+	case st.Loading:
+		right = append(right, t.Accent.Render(t.Refresh))
+	case st.Prov != nil && st.Prov.Stale:
+		right = append(right, t.Gold.Render(t.Stale+" stale"))
+	}
+	if st.Prov != nil && st.Prov.Source != "" {
+		right = append(right, provenance(*st.Prov, m.ctx.Clock.Now()))
+	}
+	right = append(right, t.StatusKey.Render("?")+" help")
+	r := strings.Join(right, " · ")
+	// " left rule right ": four spaces around the rule.
+	gap := m.width - lipgloss.Width(left) - lipgloss.Width(r) - 4
+	if gap < 1 {
+		left = truncate(left, max(m.width-lipgloss.Width(r)-5, 0))
+		gap = max(m.width-lipgloss.Width(left)-lipgloss.Width(r)-4, 1)
+	}
+	return t.StatusBar.Render(" " + left + " " + t.Rule.Render(strings.Repeat(t.Glyphs.Rule, gap)) + " " + r + " ")
+}
+
+// provenance is the status bar's source part: `source · updated <time> (<age>)`.
+func provenance(p service.Provenance, now time.Time) string {
+	if p.Source == service.SnapshotSource {
+		return "snapshot (" + p.FetchedAt.Format("2006-01-02") + ")"
+	}
+	at := p.FetchedAt
+	if p.SourceUpdatedAt != nil {
+		at = *p.SourceUpdatedAt
+	}
+	return fmt.Sprintf("%s · updated %s (%s)", p.Source, at.In(domain.JST).Format("15:04 JST"), age(now.Sub(at)))
+}
+
+func age(d time.Duration) string {
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	case d < 48*time.Hour:
+		return fmt.Sprintf("%dh ago", int(d.Hours()))
+	default:
+		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
+	}
+}
+
+func truncate(s string, w int) string {
+	if lipgloss.Width(s) <= w {
+		return s
+	}
+	return lipgloss.NewStyle().MaxWidth(w).Render(s)
+}
+
+// helpView is the help overlay (SPEC §8.7): the keys of this screen and the
+// global ones, the glyph legend and the data-source notes.
+func (m Model) helpView(width, height int) string {
+	t := m.ctx.Theme
+	h := help.New()
+	h.ShowAll = true
+	h.SetWidth(width - 4)
+	g := t.Glyphs
+	legend := strings.Join([]string{
+		fmt.Sprintf("%s win  %s loss  %s fusen win  %s fusen loss  %s absent  %s pending  %s kinboshi", g.Win, g.Loss, g.FusenWin, g.FusenLoss, g.Absent, g.Pending, g.Kinboshi),
+		fmt.Sprintf("Day bar: %s complete  %s in progress  %s scheduled", g.Complete, g.InProgress, g.Scheduled),
+		"KK kachi-koshi (8 wins) · MK make-koshi (8 losses and absences) · " + g.Kyujo + " kyujo (absent)",
+		"Ranks: Y yokozuna · O ozeki · S sekiwake · K komusubi · M maegashira · J juryo · Ms makushita; e/w east/west",
+	}, "\n")
+	notes := strings.Join([]string{
+		"Data: sumo-api.com (history, profiles; run by a volunteer) and osada.us (live; its policy",
+		"allows search and AI input, not AI training). Derived statistics count sekitori bouts only;",
+		"heya and hometown are today's values. The rating is an estimate, not betting advice.",
+	}, "\n")
+	body := lipgloss.JoinVertical(lipgloss.Left,
+		t.Title.Render("Keys"),
+		h.FullHelpView([][]key.Binding{m.top().Keys(), globalKeys}),
+		"",
+		t.Title.Render("Legend"),
+		legend,
+		"",
+		t.Title.Render("About the data"),
+		t.Dim.Render(notes),
+		"",
+		t.Dim.Render("? or esc to close"),
+	)
+	return lipgloss.NewStyle().Padding(1, 2).MaxHeight(height).Render(body)
+}
