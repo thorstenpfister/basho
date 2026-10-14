@@ -781,8 +781,8 @@ BASHO ─ select tournament                                            [/] filte
   - leaders after the day
   - who reached kachi-koshi or make-koshi today
   - kinboshi earned today
-  - upsets (the winner's win chance before the bout was below 35%, §6.8)
-  - technique of the day (the rarest technique used)
+  - upsets (the winner's win chance before the bout was below 35%, §6.8). Until the rating exists (Phase 5), an upset is a win by technique over a wrestler at least 6 rank levels higher, where each san'yaku title is three levels and each Maegashira or Juryo number one (`derive.IsUpset`)
+  - technique of the day (the technique of the day's bouts that is rarest over the bout index; ties go to the earlier bout)
 
 ### 8.5 VS screen ("tale of the tape")
 
