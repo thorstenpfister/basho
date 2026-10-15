@@ -288,7 +288,9 @@ func BuildPortraits(work string, sources []PortraitSource, ov PortraitOverrides,
 	}
 	var built []BuiltPortrait
 	var noFace []string
-	for _, s := range sources {
+	bar := newProgress(log, "portraits", len(sources))
+	for i, s := range sources {
+		bar.step(i+1, s.Name)
 		img, err := readImage(filepath.Join(work, s.Image))
 		if err != nil {
 			return built, fmt.Errorf("%s (%d): %w", s.Name, s.RikishiID, err)
@@ -304,6 +306,7 @@ func BuildPortraits(work string, sources []PortraitSource, ov PortraitOverrides,
 		}
 		built = append(built, BuiltPortrait{s, p})
 	}
+	bar.done()
 	if err := writePNG(filepath.Join(work, "sheet.png"), sheet(built, work)); err != nil {
 		return built, err
 	}

@@ -117,7 +117,7 @@ func FetchPortraits(ctx context.Context, g httpx.Getter, rs []domain.Rikishi, cf
 	if cfg.Limit > 0 && len(want) > cfg.Limit {
 		want = want[:cfg.Limit]
 	}
-	_, _ = fmt.Fprintf(log, "%d wrestlers with an image on Wikidata; %d more requests, about %s\n",
+	_, _ = fmt.Fprintf(log, "%d wrestlers with an image on Wikidata; up to %d more requests, about %s (the work cache answers what an earlier run fetched)\n",
 		len(want), PortraitRequests(len(want))-1, time.Duration(PortraitRequests(len(want))-1)*time.Second)
 	if cfg.DryRun {
 		return PortraitSet{Sources: want}, nil
@@ -127,16 +127,20 @@ func FetchPortraits(ctx context.Context, g httpx.Getter, rs []domain.Rikishi, cf
 	for i, w := range want {
 		files[i] = w.File
 	}
-	infos, err := commonsInfos(ctx, g, files)
+	infos, err := commonsInfos(ctx, g, files, log)
 	if err != nil {
 		return PortraitSet{}, err
 	}
 	if err := os.MkdirAll(filepath.Join(cfg.Work, "images"), 0o755); err != nil {
 		return PortraitSet{}, err
 	}
-	for _, w := range want {
+	bar := newProgress(log, "thumbnails", len(want))
+	defer bar.done()
+	for i, w := range want {
+		bar.step(i+1, w.Name)
 		skip := func(reason string) {
 			set.Skipped = append(set.Skipped, PortraitSkip{RikishiID: w.RikishiID, Name: w.Name, File: w.File, Reason: reason})
+			bar.done()
 			_, _ = fmt.Fprintf(log, "skip %d %s: %s\n", w.RikishiID, w.Name, reason)
 		}
 		info, ok := infos[w.File]
@@ -178,6 +182,7 @@ func FetchPortraits(ctx context.Context, g httpx.Getter, rs []domain.Rikishi, cf
 			return set, err
 		}
 	}
+	bar.done()
 	_, _ = fmt.Fprintf(log, "%d portraits fetched, %d skipped (%s)\n", len(set.Sources), len(set.Skipped), cfg.Work)
 	return set, nil
 }
@@ -252,9 +257,14 @@ type commonsInfo struct {
 
 // commonsInfos returns the Commons metadata of files, by file name, in
 // batches.
-func commonsInfos(ctx context.Context, g httpx.Getter, files []string) (map[string]commonsInfo, error) {
+func commonsInfos(ctx context.Context, g httpx.Getter, files []string, log io.Writer) (map[string]commonsInfo, error) {
 	out := map[string]commonsInfo{}
+	bar := newProgress(log, "metadata", (len(files)+commonsBatch-1)/commonsBatch)
+	defer bar.done()
+	n := 0
 	for batch := range slices.Chunk(files, commonsBatch) {
+		n++
+		bar.step(n, "")
 		titles := make([]string, len(batch))
 		for i, f := range batch {
 			titles[i] = "File:" + f

@@ -199,7 +199,7 @@ Finished tournaments never change. Instead of every user fetching them, a separa
   - **Updates:** the tool reads the manifest and only fetches tournaments that are finished (rule in §7.2) and not yet included. That is about 34 requests per new tournament, plus the wrestler index, which is rewritten whenever a tournament is added, including one older than the newest.
   - **Resumable:** requests go through the normal `httpx` client (§7.1) and a work cache (`.cache/basho-data/`, ignored by git), so an interrupted run continues without fetching anything twice.
   - **Verification:** `basho-data snapshot verify` checks that each wrestler's bouts match their banzuke record and totals, that every bout appears for both wrestlers, that the schema is valid and that the checksums match. The builder runs the bout-against-record checks on the fetched data before encoding (where every check is meaningful) and logs oddities without stopping. Accepted oddities in the source data go in `data/snapshot/known-issues.txt`, one exact problem line each with a `#` reason; `verify` subtracts them and flags entries that no longer occur.
-- **Update flow:** `make snapshot` (update and verify), commit `data: snapshot through 202611`, then tag a patch release. There is no fixed schedule: the app works with a snapshot of any age, because it fetches whatever came later (§5.8).
+- **Update flow:** a few days after each tournament, `make snapshot` (update and verify) and `make portraits` (new wrestlers and photos; the work cache in `.cache/basho-data` makes the rest free, so keep it between runs). Commit `data: snapshot through 202611`, then tag a patch release. Shipping fresh data keeps what every installed basho asks of sumo-api, the volunteer-run source, low. The app still works with a snapshot of any age, because it fetches whatever came later (§5.8).
 - **Licence:** sumo-api.com publishes no terms beyond asking for responsible use. We stay within that through the limits above and credit sumo-api.com in the README, in `basho credits` and in the manifest (D24).
 
 ### 4.4 Wikimedia Commons and Wikidata (portraits, build time only)
@@ -1709,6 +1709,8 @@ AC status: met, by `TestNameModes`.
    - **Caching:** each portrait's text is rendered once and kept for the screen, since the VS screen redraws on every animation frame.
    - **Tests:** goldens at 200×50 (32 px) and 125×40 (20 px) use a generated test image, so no photo goes into the repository. Every gate and breakpoint is tested.
 6. Manual review of all generated portraits for current Makuuchi and Juryo wrestlers, and fix crops via overrides.
+
+   - **Progress** (after the first full run, which said nothing for 6 minutes): each phase reports its count, metadata 3/8, thumbnails 37/360, portraits 120/360, on one rewritten line in a terminal and every 25 items in a log. A rerun from the work cache takes about 30 s, mostly face detection.
 
    Open: needs the owner's full run (`make portraits CONTACT=…`, about 370 requests, 6 minutes). Review `sheet.png` in the work directory and the "no face found" list, fix crops or exclude images in `overrides.toml`, run again (it fetches nothing twice), and decide on `--dither`.
 7. Golden tests (§13).
