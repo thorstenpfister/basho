@@ -39,7 +39,7 @@ Settings for single items go in `/tmp/basho-qa/config/basho/config.toml`; `basho
 - [ ] `enter` slides it in (animation); `ui.animations = false` and the compact layout show it without.
 - [ ] Tale of the tape: height and weight as plain text, STYLE bars (textures █ ▓ ▒ ░ ▚ in colour), SIGNATURE, RATING with ▲/▼, WIN CHANCE.
 - [ ] Portraits: 20 px above the names, East's right-aligned and West's left-aligned with their columns, "photo 2024" under each. A silhouette for a wrestler without a photo, nothing when neither has one.
-- [ ] Portraits need about 40 rows: shrink the terminal below that and they go, grow it and they come back. Never in the compact layout, with `--ascii`, without colours or with `ui.portraits = false`.
+- [ ] Portraits need about 40 rows: shrink the terminal below that and they go, grow it and they come back. Never in the compact layout, with `--ascii`, without colours, with `ui.portraits = false` or with `--no-portraits` (the wrestler screen too); the help's Data page says how.
 - [ ] A portrait never appears and then vanishes while the bout loads.
 - [ ] `[`/`]` step through bouts and across days; the first and last bout say so.
 - [ ] `m` moveset panel, `w` cycles its window; `v` head-to-head history.

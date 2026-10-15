@@ -1083,6 +1083,7 @@ Global flags:
 | `--json` | Machine-readable output |
 | `--source auto\|sumoapi\|osada` | Force a data source |
 | `--no-color`, `--ascii` | Plain output |
+| `--no-portraits` | No wrestler portraits (also `ui.portraits = false`) |
 | `--config PATH` | Alternative config file |
 | `--debug` | Debug log |
 | `--offline` | Snapshot and cache only, never touch the network |
@@ -1142,7 +1143,7 @@ mouse         = true
 theme         = "auto"        # auto | dark | light
 win_chance    = true          # RATING and WIN CHANCE rows on the VS screen (D26)
 win_chance_column = false     # day view column (toggle: p)
-portraits     = true          # only once portraits ship (phase 14)
+portraits     = true          # wrestler portraits on the VS and wrestler screens; --no-portraits for one session
 
 [spoilers]
 mode          = "show"        # show | hide
@@ -1825,6 +1826,8 @@ AC status: met.
 2. The owner's four runs: Ghostty and one other terminal, light and dark. Live mode is checked during a tournament if one falls in the window.
 3. Findings are fixed one commit each and written into the spec.
 4. Record the README GIF (`make vhs`) and embed it in the README.
+
+   - **Portraits off:** `ui.portraits = false` hid them from the start. It now has a session flag, `--no-portraits`, and the help's Data page names both, since nothing pointed to the setting before.
 
    Prepared: the tape now also shows Onosato's career page (`1` on the VS screen, a scroll down the table, `esc`), about 5 s more. Recording and the README embed wait for the owner's run.
 

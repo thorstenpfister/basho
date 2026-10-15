@@ -284,3 +284,19 @@ func TestWrestlerCommand(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 }
+
+// --no-portraits turns ui.portraits off for the session, for the TUI.
+func TestNoPortraitsFlag(t *testing.T) {
+	deps := fixtureDeps(t)
+	var portraits bool
+	deps.TUI = func(cfg config.Config, _ *service.Service, _ bool, _ *spoiler.State) error {
+		portraits = cfg.UI.Portraits
+		return nil
+	}
+	if _, code := run(t, deps); code != exitOK || !portraits {
+		t.Errorf("default: exit %d, portraits %v", code, portraits)
+	}
+	if _, code := run(t, deps, "--no-portraits"); code != exitOK || portraits {
+		t.Errorf("--no-portraits: exit %d, portraits %v", code, portraits)
+	}
+}

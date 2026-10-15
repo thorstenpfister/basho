@@ -96,7 +96,8 @@ func dataPage(t theme.Theme, photos, width int) string {
 	}
 	if photos > 0 {
 		rows = append(rows, [2]string{"Portraits", fmt.Sprintf("%d photos from Wikimedia Commons, %s, each under its own licence "+
-			"(mostly CC BY-SA). basho credits --portraits lists every photo's author, licence and source.", photos, portrait.Changes)})
+			"(mostly CC BY-SA). basho credits --portraits lists every photo's author, licence and source. "+
+			"To hide them: ui.portraits = false in the config, or --no-portraits.", photos, portrait.Changes)})
 	}
 	return defs(t, width, rows) + "\n\n" + paragraphs(width,
 		service.CreditsNote,

@@ -39,6 +39,7 @@ type app struct {
 
 	// global flags (SPEC §11)
 	json, noColor, ascii, debug, offline, noSnapshot bool
+	noPortraits                                      bool
 	source, configPath                               string
 	noSpoilers                                       bool
 	revealTo                                         string
@@ -67,6 +68,7 @@ func (a *app) flags(root *cobra.Command) {
 	f.StringVar(&a.source, "source", "", "force a data source: auto, sumoapi, osada")
 	f.BoolVar(&a.noColor, "no-color", false, "plain output without colour")
 	f.BoolVar(&a.ascii, "ascii", false, "ASCII instead of symbols")
+	f.BoolVar(&a.noPortraits, "no-portraits", false, "no wrestler portraits (also ui.portraits = false)")
 	f.StringVar(&a.configPath, "config", "", "alternative config file")
 	f.BoolVar(&a.debug, "debug", false, "write a debug log")
 	f.BoolVar(&a.offline, "offline", false, "snapshot and cache only, never the network")
@@ -112,6 +114,9 @@ func (a *app) setup(cmd *cobra.Command) error {
 	}
 	if f.Changed("ascii") {
 		cfg.UI.ASCII = a.ascii
+	}
+	if a.noPortraits {
+		cfg.UI.Portraits = false
 	}
 	// NO_COLOR counts with any value (no-color.org); colorprofile only
 	// takes the ones strconv.ParseBool reads, so NO_COLOR=yes slipped by.

@@ -122,3 +122,17 @@ func TestNavigation(t *testing.T) {
 		t.Errorf("enter opens Nagoya 2026 on his last bout's day:\n%s", v)
 	}
 }
+
+// ui.portraits = false (or --no-portraits) hides the portrait; the facts
+// stay.
+func TestNoPortrait(t *testing.T) {
+	d, ctx := open(t, onosato, 160, 50)
+	if v := d.View(); !strings.Contains(v, "▀") {
+		t.Fatal("no portrait to begin with")
+	}
+	ctx.Cfg.UI.Portraits = false
+	d = tuitest.New(tui.New(ctx, []tui.Screen{New(onosato, aki2026)}, nil), 160, 50)
+	if v := d.View(); strings.ContainsAny(v, "▀▄") || !strings.Contains(v, "RANK       Yokozuna 1 East") {
+		t.Errorf("with ui.portraits = false:\n%s", v)
+	}
+}
