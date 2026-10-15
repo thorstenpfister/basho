@@ -1,0 +1,8 @@
+The images in this directory are adaptations of photos from Wikimedia
+Commons: cropped, downscaled, colour-reduced. Each keeps the licence of the photo it
+comes from, mostly Creative Commons Attribution-ShareAlike (CC BY-SA); a few
+are CC BY, CC0 or in the public domain. CREDITS.md and credits.json list every
+photo with its author, licence and source; `basho credits --portraits` prints
+the same list.
+
+This licence covers the images only. basho's code has its own licence.
