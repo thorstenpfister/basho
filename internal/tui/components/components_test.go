@@ -95,6 +95,10 @@ func TestStyleBar(t *testing.T) {
 	if left := plain(StyleBar(ascii, s, StyleCells, true)); left != "LLTTBBBBPPPPPPPPPPPP" {
 		t.Errorf("left %q", left)
 	}
+	// With colours, each category has its own texture too: never colour alone.
+	if got := plain(StyleBar(uni, s, StyleCells, false)); got != "████████████▓▓▓▓▒▒░░" {
+		t.Errorf("textures %q", got)
+	}
 	if got := ansi.StringWidth(StyleBar(uni, s, StyleCells, true)); got != StyleCells {
 		t.Errorf("width %d", got)
 	}

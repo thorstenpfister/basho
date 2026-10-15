@@ -1,5 +1,5 @@
                                                                                 
-  Keys   Legend   Rating   Data   Limitations                                   
+   Keys  [Legend]  Rating   Data   Limitations                                  
                                                                                 
   Results   ○ win  ● loss  □ fusen win  ■ fusen loss  – absent  · pending  △    
             draw  ? hidden (spoiler-free)                                       
@@ -9,7 +9,7 @@
   Ranks     Y yokozuna, O ozeki, S sekiwake, K komusubi, M maegashira, J        
             juryo, Ms makushita; e/w east/west                                  
   Day bar   ✓ complete  ● in progress  · scheduled                              
-  STYLE     █ push  █ belt  █ throw  █ pull  █ other: how a wrestler wins       
+  STYLE     █ push  ▓ belt  ▒ throw  ░ pull  ▚ other: how a wrestler wins       
   Names     ≈ transliterated from kana: a wrestler sumo-api does not know yet   
   Body      height and weight are the latest known; * marks them on other       
             tournaments                                                         

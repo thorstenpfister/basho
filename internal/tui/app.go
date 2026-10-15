@@ -541,9 +541,9 @@ func (m Model) helpView(width, height int) string {
 	pages, rows := m.helpPages(width, height)
 	tabs := make([]string, len(pages))
 	for i, p := range pages {
-		tabs[i] = t.Dim.Render(p.Title)
+		tabs[i] = t.Dim.Render(" " + p.Title + " ")
 		if i == m.helpPage {
-			tabs[i] = t.Selected.Render(p.Title)
+			tabs[i] = t.Selected.Render("[" + p.Title + "]") // not by colour alone
 		}
 	}
 	page := pages[m.helpPage]
@@ -554,7 +554,7 @@ func (m Model) helpView(width, height int) string {
 	if len(lines) > rows {
 		keys = fmt.Sprintf("←/→ page · j/k scroll (%d–%d of %d) · ? or esc close", top+1, top+len(shown), len(lines))
 	}
-	body := strings.Join(tabs, "   ") + "\n\n" + strings.Join(shown, "\n") +
+	body := strings.Join(tabs, " ") + "\n\n" + strings.Join(shown, "\n") +
 		strings.Repeat("\n", rows-len(shown)+1) + "\n" + t.Dim.Render(keys)
 	return lipgloss.NewStyle().Padding(1, 2, 0).Render(body)
 }

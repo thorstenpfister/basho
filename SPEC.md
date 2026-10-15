@@ -818,7 +818,7 @@ BASHO ─ select tournament                                            [/] filte
    [ ] prev/next · space reveal · v head-to-head · m moveset · esc back
 ```
 
-(The values in the mockup are illustrative. In the STYLE bars, each segment has its own colour; the shading only stands in for colour here. See §6.7.)
+(The values in the mockup are illustrative. In the STYLE bars, each segment has its own colour and texture. See §6.7.)
 
 - Layout: mirrored columns around a centre column of labels. The left column is right-aligned towards the centre and the right column left-aligned (both "face" the middle).
 - **Bars:** height and weight are the latest values (§6.6), scaled to the minimum–maximum of the wrestlers in that tournament's division, so differences are visible. Each pair's bars point outwards from the labels.
@@ -831,7 +831,7 @@ BASHO ─ select tournament                                            [/] filte
 - **RATING and WIN CHANCE** (§6.8): ratings before the bout. The win-chance bar is drawn from the centre outwards on both sides, so the favourite's bar is longer. Hidden if the rating didn't pass calibration (V9).
 - **Fighter type and STYLE:**
   - The fighter type (§6.7) is shown dimmed under the kanji name, like a character class.
-  - The STYLE row is a 20-cell stacked bar per wrestler, coloured by category, in a fixed order (PUSH, BELT, THROW, PULL, OTHER). On the left side the order is reversed so that PUSH sits next to the centre label on both sides.
+  - The STYLE row is a 20-cell stacked bar per wrestler, coloured and textured by category (█ ▓ ▒ ░ ▚; letters P B T L O without colours or in ASCII), in a fixed order (PUSH, BELT, THROW, PULL, OTHER). On the left side the order is reversed so that PUSH sits next to the centre label on both sides.
   - SIGNATURE shows the most frequent winning technique and its share.
   - When fewer than 10 wins are in the sample, both rows show `— not enough data —`.
 - **Moveset panel (`m`):** an overlay with the full technique profile for both wrestlers side by side:
@@ -1608,6 +1608,11 @@ AC status: met, by `TestWalkDay13` and `TestNoLeaks` (step 6).
    - **Grid:** `BenchmarkGrid` draws the whole frame with the Makuuchi grid after day 15 at 130×50 in 1.3 ms.
    - **Memory:** peak RSS is about 150 MB, also for `basho day`. It comes from decoding every tournament into the bout index (about 195,000 bouts) and replaying the ratings. Pre-sizing the per-tournament day index saved 4% of the allocations and nothing in RSS, so it was left out.
 5. Accessibility: never rely on colour alone (glyphs and KK/MK text always shown).
+
+   Done: every use of a meaningful colour was checked.
+   - **Already fine:** results, records, kinboshi and rating changes carry glyphs or text (○ ● ★ ▲ ▼, KK/MK), and the live status a glyph and words. Every list marks its selection with ▶ or brackets. Leaders, wrestlers out of contention and the current window differ by weight (bold, faint), which `NO_COLOR` keeps.
+   - **STYLE bar:** with colours on, all five categories were the same █, told apart by hue alone, and red and green are belt and pull. Each category now has a texture too (PUSH █, BELT ▓, THROW ▒, PULL ░, OTHER ▚), as the §8.5 mockup drew them; without colours or in ASCII, letters (step 1). The help legend uses the same marks.
+   - **Help tabs:** the current page is in brackets, like the day bar's `[13]`.
 6. VHS tape and GIF for the README.
 
 **AC:** a full manual test pass (checklist in `docs/qa.md`) in Ghostty and one other terminal, in light and dark themes.

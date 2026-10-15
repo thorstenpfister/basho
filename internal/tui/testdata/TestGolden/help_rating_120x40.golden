@@ -1,5 +1,5 @@
                                                                                                                         
-  Keys   Legend   Rating   Data   Limitations                                                                           
+   Keys   Legend  [Rating]  Data   Limitations                                                                          
                                                                                                                         
   RATING is basho's own Elo-style estimate of strength, built from every sekitori bout since 1960, one after another.   
   A win against a stronger opponent gains more than one against a weaker. Newcomers start at the average of             

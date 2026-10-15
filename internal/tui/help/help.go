@@ -44,12 +44,9 @@ func keysPage(keys [][]key.Binding, width int) string {
 func legend(t theme.Theme, width int) string {
 	g := t.Glyphs
 	var style []string
+	marks := components.StyleMarks(t)
 	for _, c := range components.Categories {
-		mark := "█"
-		if t.ASCII || t.Mono {
-			mark = components.StyleLetters[c]
-		}
-		style = append(style, lipgloss.NewStyle().Foreground(t.Colors.Categories[c]).Render(mark)+" "+c.String())
+		style = append(style, lipgloss.NewStyle().Foreground(t.Colors.Categories[c]).Render(marks[c])+" "+c.String())
 	}
 	return defs(t, width, [][2]string{
 		{"Results", fmt.Sprintf("%s win  %s loss  %s fusen win  %s fusen loss  %s absent  %s pending  %s draw  %s hidden (spoiler-free)",

@@ -130,24 +130,28 @@ const StyleCells = 20
 // Categories is the STYLE bar's order from the centre outwards.
 var Categories = []domain.KimariteCategory{domain.Push, domain.Belt, domain.Throw, domain.Pull, domain.Other}
 
-// StyleLetters draw the STYLE bar without colours or in ASCII.
-var StyleLetters = map[domain.KimariteCategory]string{domain.Push: "P", domain.Belt: "B", domain.Throw: "T", domain.Pull: "L", domain.Other: "O"}
+// StyleMarks are the STYLE bar's cells: a texture per category beside its
+// colour, so the categories never differ by colour alone (red and green
+// are belt and pull); letters without colours or in ASCII.
+func StyleMarks(t theme.Theme) map[domain.KimariteCategory]string {
+	if t.ASCII || t.Mono {
+		return map[domain.KimariteCategory]string{domain.Push: "P", domain.Belt: "B", domain.Throw: "T", domain.Pull: "L", domain.Other: "O"}
+	}
+	return map[domain.KimariteCategory]string{domain.Push: "█", domain.Belt: "▓", domain.Throw: "▒", domain.Pull: "░", domain.Other: "▚"}
+}
 
-// StyleBar draws the win shares as a stacked bar of cells, one colour per
-// category in the order PUSH, BELT, THROW, PULL, OTHER; reversed on the left
+// StyleBar draws the win shares as a stacked bar of cells, one colour and
+// texture per category in the order PUSH, BELT, THROW, PULL, OTHER; reversed on the left
 // side so that PUSH sits next to the centre label on both sides (SPEC §8.5).
 func StyleBar(t theme.Theme, s derive.Shares, cells int, left bool) string {
 	n := apportion(s, cells)
+	marks := StyleMarks(t)
 	var parts []string
 	for _, c := range Categories {
 		if n[c] == 0 {
 			continue
 		}
-		glyph := "█"
-		if t.ASCII || t.Mono {
-			glyph = StyleLetters[c]
-		}
-		parts = append(parts, lipgloss.NewStyle().Foreground(t.Colors.Categories[c]).Render(strings.Repeat(glyph, n[c])))
+		parts = append(parts, lipgloss.NewStyle().Foreground(t.Colors.Categories[c]).Render(strings.Repeat(marks[c], n[c])))
 	}
 	if left {
 		for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
