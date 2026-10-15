@@ -472,7 +472,7 @@ The rule: **standard library first.** A third-party module is only added when it
 | `golangci-lint` | Linting | Homebrew (already installed; the project advises against building it from source) |
 | `goreleaser` | Release builds (Phase 17) | Homebrew; `make tools` reports if missing |
 
-**Portraits (Phase 14):** `github.com/esimov/pigo` (face detection), `golang.org/x/image/draw` (scaling), `github.com/charmbracelet/x/mosaic` (half-block rendering, or our own renderer), and `vhs` (Homebrew) for the README GIF.
+**Portraits (Phase 14):** `github.com/esimov/pigo` (face detection, `basho-data` only; scaling is our own area averaging), `github.com/charmbracelet/x/mosaic` (half-block rendering, or our own renderer), and `vhs` (Homebrew) for the README GIF.
 
 **Charm v2 API facts and import-path rules:** `docs/charm-v2-notes.md`. Versions: `go.mod`.
 
@@ -948,7 +948,7 @@ Pixel-art portraits beside the tale of the tape, facing each other like a fighti
 1. Query Wikidata for wrestlers in the snapshot's index with P6652 or P3385, and P18 (§4.4). Fetch the licence, author and source URL from the Commons API and drop anything not on the allow-list.
 2. Fetch a 500 px thumbnail.
 3. Crop to head and shoulders. Face detection uses `github.com/esimov/pigo` (pure Go) and crops a square about 2.2× the face box. Manual overrides in `data/portraits/overrides.toml` can set the crop box, exclude an image or pick a different file.
-4. Downscale with area averaging to 32×32 (wide) and 20×20 (normal), then reduce colours to the theme palette (default: a 32-colour "arcade" palette) with optional ordered dithering.
+4. Downscale with area averaging to 32×32 (wide) and 20×20 (normal), then reduce colours to a 32-colour palette (DawnBringer's DB32) by the nearest colour in CIELAB, with optional ordered dithering.
 5. Store as PNG (about 1 KB each, about 300 KB in total) in `data/portraits/`, together with `credits.json` and a generated `CREDITS.md` (file, author, licence, source URL, and the changes made: "cropped, downscaled, colour-reduced").
 
 **Licensing:** the derived images are adaptations, so they keep the source licence (mostly CC BY-SA). `data/portraits/LICENSE` says so. Attribution is shown by `basho credits`, on the help overlay's Data page, and in the README.
@@ -1677,6 +1677,13 @@ AC status: met, by `TestNameModes`.
    - **User-Agent:** `basho-data/<version> (<contact>)`. Wikimedia asks for a contact; the default is the repository URL, and `--contact` takes an email.
    - **Found on the smoke run** (3 wrestlers, 5 requests): thumbnails come from `thumb.wikimedia.org`, which now gets the same limit and caching.
 2. Face crop with `pigo` and the `overrides.toml` mechanism; downscale to 32 and 20 px; palette quantization with optional dithering.
+
+   Done:
+   - **Crop:** pigo's face cascade (copied into `internal/datatool/cascade/` with its MIT origin noted; `basho-data` only) finds faces with confidence 5 or more, and the largest one counts. The crop is a square of 2.2 face widths with the face's centre 40% from the top, moved, and if need be shrunk, to stay inside the photo. Without a face, it is a top-centred square, and the run lists the wrestler for review.
+   - **Overrides:** `data/portraits/overrides.toml` has `[[portrait]]` entries: `id`, `crop = [x0, y0, x1, y1]` in the thumbnail's pixels, `exclude`, `file` (another Commons file) and `note`. Bad crops, duplicates and unknown keys are errors. The fetch honours `exclude` and `file`.
+   - **Scale:** our own area averaging: each pixel is the mean of the area it covers, partly covered pixels by their share. No `x/image` dependency.
+   - **Palette:** DB32, mapped by the nearest colour in CIELAB. The first try used the redmean RGB distance, which turned shaded skin into the palette's greys and blues. `--dither` adds 4×4 ordered dithering; it is off by default, and the review decides.
+   - **Output:** `work/out/<id>-32.png` and `-20.png`, and `work/sheet.png` with every crop next to its portrait enlarged 4 times, for the review (step 6).
 3. `data/portraits/` with PNGs, `credits.json`, generated `CREDITS.md` and `LICENSE`; `basho credits` and the help overlay's Data page.
 4. Half-block renderer with mirroring and the 256-colour fallback; procedural silhouette for wrestlers without a photo.
 5. VS screen integration at the size breakpoints (§8.9), photo-year caption, `ui.portraits` toggle.

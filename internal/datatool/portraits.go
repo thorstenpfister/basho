@@ -74,6 +74,8 @@ type PortraitConfig struct {
 	Only   []domain.RikishiID // just these wrestlers; empty: all
 	Limit  int                // at most this many images, for a smoke run; zero: all
 	DryRun bool               // the Wikidata query only, then the plan
+	// Overrides exclude wrestlers or pick another file (overrides.toml).
+	Overrides PortraitOverrides
 }
 
 // PortraitSet is what a fetch found.
@@ -95,9 +97,18 @@ func FetchPortraits(ctx context.Context, g httpx.Getter, rs []domain.Rikishi, cf
 		return PortraitSet{}, err
 	}
 	var want []PortraitSource
+	var set PortraitSet
 	for _, r := range rs {
 		img, ok := images.of(r)
+		o := cfg.Overrides[r.ID]
+		if o.File != "" {
+			img.file, ok = o.File, true
+		}
 		if !ok || len(cfg.Only) > 0 && !slices.Contains(cfg.Only, r.ID) {
+			continue
+		}
+		if o.Exclude {
+			set.Skipped = append(set.Skipped, PortraitSkip{RikishiID: r.ID, Name: r.Name.En, File: img.file, Reason: "excluded in overrides.toml: " + o.Note})
 			continue
 		}
 		want = append(want, PortraitSource{RikishiID: r.ID, Name: r.Name.En, Item: img.item, File: img.file})
@@ -123,7 +134,6 @@ func FetchPortraits(ctx context.Context, g httpx.Getter, rs []domain.Rikishi, cf
 	if err := os.MkdirAll(filepath.Join(cfg.Work, "images"), 0o755); err != nil {
 		return PortraitSet{}, err
 	}
-	var set PortraitSet
 	for _, w := range want {
 		skip := func(reason string) {
 			set.Skipped = append(set.Skipped, PortraitSkip{RikishiID: w.RikishiID, Name: w.Name, File: w.File, Reason: reason})

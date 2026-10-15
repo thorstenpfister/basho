@@ -18,13 +18,16 @@ import (
 
 func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 	var cfg PortraitConfig
-	var only, snapDir, workCache, contact string
+	var only, snapDir, workCache, contact, overrides string
+	var dither bool
 	update := &cobra.Command{
 		Use:   "update",
 		Short: "Fetch wrestler portraits from Wikimedia Commons (about one request per image)",
 		Long: "update finds the snapshot's wrestlers on Wikidata (JSA ID, P3385) with an image\n" +
 			"(P18), keeps the images whose licence is on the allow-list, and fetches 500 px\n" +
 			"thumbnails into --work, one request per second per host (SPEC §4.4, §8.9).\n" +
+			"Then it crops each to head and shoulders around the face, reduces it to 32 and\n" +
+			"20 px in the portrait palette, and writes them with a review sheet (sheet.png).\n" +
 			"Responses go through a work cache, so a second run fetches nothing again.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -49,8 +52,15 @@ func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if cfg.Overrides, err = LoadPortraitOverrides(overrides); err != nil {
+				return err
+			}
 			g := &cache.Getter{Cache: c, Next: newWikimediaClient(info, contact), Policy: wikimediaPolicy}
-			_, err = FetchPortraits(cmd.Context(), g, rs, cfg, cmd.ErrOrStderr())
+			set, err := FetchPortraits(cmd.Context(), g, rs, cfg, cmd.ErrOrStderr())
+			if err != nil || cfg.DryRun {
+				return err
+			}
+			_, err = BuildPortraits(cfg.Work, set.Sources, cfg.Overrides, dither, cmd.ErrOrStderr())
 			return err
 		},
 	}
@@ -61,6 +71,8 @@ func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 	f.StringVar(&only, "only", "", "only these wrestler IDs, comma separated")
 	f.IntVar(&cfg.Limit, "limit", 0, "at most this many images, for a smoke run")
 	f.BoolVar(&cfg.DryRun, "dry-run", false, "run the Wikidata query (one request) and print the plan")
+	f.StringVar(&overrides, "overrides", "data/portraits/overrides.toml", "manual crops, exclusions and other files")
+	f.BoolVar(&dither, "dither", false, "ordered dithering when reducing to the palette")
 	f.StringVar(&contact, "contact", "https://github.com/thorstenpfister/basho",
 		"contact for the User-Agent, as Wikimedia's policy asks: a URL or an email address")
 	portraits := &cobra.Command{Use: "portraits", Short: "Wrestler portraits from Wikimedia Commons (SPEC §8.9)"}
