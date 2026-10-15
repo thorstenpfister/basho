@@ -1627,6 +1627,8 @@ AC status: met, by `TestWalkDay13` and `TestNoLeaks` (step 6).
 
 **AC:** a full manual test pass (checklist in `docs/qa.md`) in Ghostty and one other terminal, in light and dark themes.
 
+AC status: open. The checklist is written (`docs/qa.md`); the four runs are the owner's.
+
 ### Phase 13: v1.0 release (private)
 
 1. `make install` with the ldflags; `basho version` shows the snapshot date from the manifest.
