@@ -133,3 +133,25 @@ func (s *Service) RatingTable(ctx context.Context, id domain.BashoID, n int) (Re
 	}
 	return Result[RatingTable]{Value: RatingTable{Basho: id, Shown: r.Shown(), Rows: r.Top(entries, limit(ctx, derive.EndOf(id)), n)}, Prov: prov}, nil
 }
+
+// RatingModel is how the rating did in calibration (SPEC §6.8), for the help
+// screen: on the evaluation years, against "the higher rank wins".
+type RatingModel struct {
+	Shown             bool // passed calibration (V9)
+	EvalFrom, Through domain.BashoID
+	Bouts             int
+	LogLoss, RankLogLoss,
+	Accuracy, RankAccuracy float64
+}
+
+// RatingModel reads the calibration result without computing any ratings.
+func (s *Service) RatingModel() (RatingModel, error) {
+	f, err := s.params()
+	if err != nil {
+		return RatingModel{}, err
+	}
+	return RatingModel{
+		Shown: f.Show, EvalFrom: f.Split.EvalFrom, Through: f.Split.Through, Bouts: f.Eval.Bouts,
+		LogLoss: f.Eval.LogLoss, RankLogLoss: f.RankEval.LogLoss, Accuracy: f.Eval.Accuracy, RankAccuracy: f.RankEval.Accuracy,
+	}, nil
+}

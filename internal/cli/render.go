@@ -9,6 +9,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	ltable "charm.land/lipgloss/v2/table"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
@@ -587,19 +588,26 @@ func renderRatings(g glyphs, t service.RatingTable, p service.Provenance) string
 	return b.String()
 }
 
-// credits is `basho credits` (SPEC §4, §14.4).
-const credits = `basho uses data from:
+// credits is `basho credits` (SPEC §4, §14.4): each source with its notes
+// in a column beside it.
+func credits() string {
+	var b strings.Builder
+	b.WriteString("basho uses data from:\n\n")
+	for _, c := range service.Credits {
+		for i, line := range strings.Split(wrap(c.About, 60), "\n") {
+			name := ""
+			if i == 0 {
+				name = c.Source
+			}
+			fmt.Fprintf(&b, "  %-12s  %s\n", name, line)
+		}
+	}
+	b.WriteString("\n" + wrap(service.CreditsNote, 74) + "\n")
+	return b.String()
+}
 
-  sumo-api.com  History, profiles and statistics since 1960. basho keeps to
-                its request for responsible use: at most one request per
-                second, and finished tournaments ship inside basho.
-  osada.us      Live results of the current tournament, scraped from the
-                Japan Sumo Association's official pages and run by one
-                person on a best-effort basis. Its usage policy allows
-                search and AI input, not AI training; basho shows the
-                source and time of its data.
-
-The embedded snapshot of finished tournaments is built from sumo-api.com.
-Ratings are basho's own Elo-style estimate from past results, not an
-official ranking and not betting advice.
-`
+// wrap wraps at spaces only: ansi.Wordwrap also breaks after any hyphen
+// (sumo-|api), so hyphens go in non-breaking for the wrap.
+func wrap(s string, width int) string {
+	return strings.ReplaceAll(ansi.Wordwrap(strings.ReplaceAll(s, "-", "\u2011"), width, ""), "\u2011", "-")
+}

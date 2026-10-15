@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -19,6 +18,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/spoiler"
+	"github.com/thorstenpfister/basho/internal/tui/help"
 	"github.com/thorstenpfister/basho/internal/tui/theme"
 )
 
@@ -166,6 +166,14 @@ var (
 
 var globalKeys = []key.Binding{keyBack, keyToday, keyLive, keySpoilers, keyHelp, keyQuit, keyForce}
 
+// The help overlay's own keys, named in its footer.
+var (
+	keyPageNext = key.NewBinding(key.WithKeys("tab", "right", "l"))
+	keyPagePrev = key.NewBinding(key.WithKeys("shift+tab", "left", "h"))
+	keyLineDown = key.NewBinding(key.WithKeys("down", "j"))
+	keyLineUp   = key.NewBinding(key.WithKeys("up", "k"))
+)
+
 // Model is the root: screen stack, global keys, status bar and help.
 type Model struct {
 	ctx           *Context
@@ -173,6 +181,9 @@ type Model struct {
 	today         func() []Screen // the stack `t` goes to
 	width, height int
 	help          bool
+	helpPage      int
+	helpTop       int                  // the first line shown of a long page
+	helpRating    *service.RatingModel // for the rating page, loaded when help opens
 	message       string
 	messageID     int
 	live          liveState
@@ -235,6 +246,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = msg.Text
 		id := m.messageID
 		return m, m.ctx.After(messageTTL, func(time.Time) tea.Msg { return clearMsg{id} })
+	case ratingModelMsg:
+		m.helpRating = &msg.model
+		return m, nil
 	case clearMsg:
 		if msg.id == m.messageID {
 			m.message = ""
@@ -268,13 +282,10 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, keyForce):
 		return m, tea.Quit
 	case m.help:
-		if key.Matches(msg, keyHelp, keyBack, keyQuit) {
-			m.help = false
-		}
-		return m, nil
+		return m.helpKey(msg), nil
 	case key.Matches(msg, keyHelp):
-		m.help = true
-		return m, nil
+		m.help, m.helpPage, m.helpTop = true, 0, 0
+		return m, m.loadRatingModel()
 	case key.Matches(msg, keyQuit):
 		if b, ok := m.top().(QuitBacker); ok && b.QuitGoesBack() && len(m.stack) > 1 {
 			return m.pop()
@@ -462,38 +473,73 @@ func ErrorText(err error) string {
 	}
 }
 
-// helpView is the help overlay (SPEC §8.7): the keys of this screen and the
-// global ones, the glyph legend and the data-source notes.
+// ratingModelMsg carries the rating's calibration to the help overlay.
+type ratingModelMsg struct{ model service.RatingModel }
+
+func (m Model) loadRatingModel() tea.Cmd {
+	svc := m.ctx.Svc
+	if svc == nil || m.helpRating != nil {
+		return nil
+	}
+	return func() tea.Msg {
+		r, err := svc.RatingModel()
+		if err != nil {
+			return nil // the page explains the rating without the numbers
+		}
+		return ratingModelMsg{r}
+	}
+}
+
+// helpKey handles a key while the help overlay is open: it takes them all.
+func (m Model) helpKey(msg tea.KeyPressMsg) Model {
+	pages, rows := m.helpPages(m.width, m.height-1)
+	switch {
+	case key.Matches(msg, keyHelp, keyBack, keyQuit):
+		m.help = false
+	case key.Matches(msg, keyPageNext):
+		m.helpPage, m.helpTop = (m.helpPage+1)%len(pages), 0
+	case key.Matches(msg, keyPagePrev):
+		m.helpPage, m.helpTop = (m.helpPage+len(pages)-1)%len(pages), 0
+	case key.Matches(msg, keyLineDown):
+		m.helpTop = min(m.helpTop+1, helpMaxTop(pages[m.helpPage], rows))
+	case key.Matches(msg, keyLineUp):
+		m.helpTop = max(m.helpTop-1, 0)
+	}
+	return m
+}
+
+// helpPages are the overlay's pages for a body of width×height, and how
+// many of a page's lines fit.
+func (m Model) helpPages(width, height int) ([]help.Page, int) {
+	keys := [][]key.Binding{m.top().Keys(), globalKeys}
+	return help.Pages(m.ctx.Theme, keys, m.helpRating, width-4), max(height-5, 1)
+}
+
+func helpMaxTop(p help.Page, rows int) int {
+	return max(strings.Count(p.Body, "\n")+1-rows, 0)
+}
+
+// helpView is the help overlay (SPEC §8.7): page tabs, the page, scrolled
+// to helpTop, and the overlay's keys.
 func (m Model) helpView(width, height int) string {
 	t := m.ctx.Theme
-	h := help.New()
-	h.ShowAll = true
-	h.SetWidth(width - 4)
-	g := t.Glyphs
-	legend := strings.Join([]string{
-		fmt.Sprintf("%s win  %s loss  %s fusen win  %s fusen loss  %s absent  %s pending  %s kinboshi", g.Win, g.Loss, g.FusenWin, g.FusenLoss, g.Absent, g.Pending, g.Kinboshi),
-		fmt.Sprintf("Day bar: %s complete  %s in progress  %s scheduled", g.Complete, g.InProgress, g.Scheduled),
-		fmt.Sprintf("LIVE: %s polling  %s waiting  %s day complete · NEW: decided since the last poll", g.Live, g.LiveWait, g.Complete),
-		"KK kachi-koshi (8 wins) · MK make-koshi (8 losses and absences) · " + g.Kyujo + " kyujo (absent)",
-		"Ranks: Y yokozuna · O ozeki · S sekiwake · K komusubi · M maegashira · J juryo · Ms makushita; e/w east/west",
-		"Height and weight are the latest known; * marks them on tournaments other than the current one",
-	}, "\n")
-	notes := strings.Join([]string{
-		"Data: sumo-api.com (history, profiles; run by a volunteer) and osada.us (live; its policy",
-		"allows search and AI input, not AI training). Derived statistics count sekitori bouts only;",
-		"heya and hometown are today's values. The rating is an estimate, not betting advice.",
-	}, "\n")
-	body := lipgloss.JoinVertical(lipgloss.Left,
-		t.Title.Render("Keys"),
-		h.FullHelpView([][]key.Binding{m.top().Keys(), globalKeys}),
-		"",
-		t.Title.Render("Legend"),
-		legend,
-		"",
-		t.Title.Render("About the data"),
-		t.Dim.Render(notes),
-		"",
-		t.Dim.Render("? or esc to close"),
-	)
-	return lipgloss.NewStyle().Padding(1, 2).MaxHeight(height).Render(body)
+	pages, rows := m.helpPages(width, height)
+	tabs := make([]string, len(pages))
+	for i, p := range pages {
+		tabs[i] = t.Dim.Render(p.Title)
+		if i == m.helpPage {
+			tabs[i] = t.Selected.Render(p.Title)
+		}
+	}
+	page := pages[m.helpPage]
+	lines := strings.Split(page.Body, "\n")
+	top := min(m.helpTop, helpMaxTop(page, rows))
+	shown := lines[top:min(top+rows, len(lines))]
+	keys := "←/→ page · ? or esc close"
+	if len(lines) > rows {
+		keys = fmt.Sprintf("←/→ page · j/k scroll (%d–%d of %d) · ? or esc close", top+1, top+len(shown), len(lines))
+	}
+	body := strings.Join(tabs, "   ") + "\n\n" + strings.Join(shown, "\n") +
+		strings.Repeat("\n", rows-len(shown)+1) + "\n" + t.Dim.Render(keys)
+	return lipgloss.NewStyle().Padding(1, 2, 0).Render(body)
 }

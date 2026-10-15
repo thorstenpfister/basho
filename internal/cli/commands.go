@@ -206,7 +206,7 @@ func (a *app) commands() []*cobra.Command {
 		Use: "credits", Short: "Data sources", Args: usageArgs(cobra.NoArgs),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			p := service.Provenance{Source: "basho"}
-			return a.emit(cmd, "credits", p, func() string { return credits }, func() any { return map[string]string{"text": credits} })
+			return a.emit(cmd, "credits", p, credits, func() any { return map[string]string{"text": credits()} })
 		},
 	}
 	return []*cobra.Command{list, info, day, bout, standings, a.watchCommand(), ratings, creditsCmd}

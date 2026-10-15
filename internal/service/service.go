@@ -45,6 +45,7 @@ type Service struct {
 	opts     Options
 	snapshot func() (*snapshot.Snapshot, error)
 	index    func() (*snapshot.Index, error)
+	params   func() (rating.File, error)
 	ratings  func() (*Ratings, error)
 	profiles func() (*profiles, error)
 
@@ -86,16 +87,20 @@ func New(opts Options) *Service {
 		}
 		return sn.BuildIndex()
 	})
+	s.params = sync.OnceValues(func() (rating.File, error) {
+		if opts.Params == nil {
+			return rating.File{}, nil
+		}
+		return opts.Params()
+	})
 	s.ratings = sync.OnceValues(func() (*Ratings, error) {
 		x, err := s.index()
 		if err != nil {
 			return nil, err
 		}
-		f := rating.File{}
-		if opts.Params != nil {
-			if f, err = opts.Params(); err != nil {
-				return nil, err
-			}
+		f, err := s.params()
+		if err != nil {
+			return nil, err
 		}
 		return NewRatings(x, f)
 	})

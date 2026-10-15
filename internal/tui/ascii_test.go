@@ -1,6 +1,7 @@
 package tui_test
 
 import (
+	"fmt"
 	"testing"
 	"unicode"
 
@@ -27,7 +28,10 @@ func TestASCIIScreens(t *testing.T) {
 	open := func(id domain.BashoID) tui.Screen { return day.New(ctx, id, 0) }
 	d := tuitest.New(tui.New(ctx, []tui.Screen{picker.New(ctx, open), day.New(ctx, aki2026, 13)}, nil), 140, 44)
 	d.Keys("?")
-	shown["help"] = d.View()
+	for i := range 5 {
+		shown[fmt.Sprintf("help page %d", i+1)] = d.View()
+		d.Keys("tab")
+	}
 	for name, view := range shown {
 		for _, r := range view {
 			if r > unicode.MaxASCII && !unicode.IsLetter(r) {

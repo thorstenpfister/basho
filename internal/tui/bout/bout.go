@@ -657,8 +657,6 @@ func signature(ctx *tui.Context, p derive.Profile) string {
 	return fmt.Sprintf("%s %.0f%%", p.Signature.Kimarite, 100*p.SignatureShare)
 }
 
-var categories = []domain.KimariteCategory{domain.Push, domain.Belt, domain.Throw, domain.Pull, domain.Other}
-
 // movesetPanel is the m overlay: both technique profiles side by side in
 // the chosen window, the matchup line and the window switch (SPEC §8.5).
 func (v VS) movesetPanel(ctx *tui.Context, l layout) string {
@@ -671,7 +669,7 @@ func (v VS) movesetPanel(ctx *tui.Context, l layout) string {
 			t.Dim.Render(orDash(p.Type.String())),
 		}
 		cells := min(20, col-16)
-		for _, c := range categories {
+		for _, c := range components.Categories {
 			n := int(p.WinShare[c]*float64(cells) + 0.5)
 			bar := lipgloss.NewStyle().Foreground(t.Colors.Categories[c]).Render(strings.Repeat("█", n)) + t.Dim.Render(strings.Repeat("░", cells-n))
 			if t.ASCII {

@@ -127,23 +127,25 @@ func WinChance(t theme.Theme, east float64, cells int) (left, right string) {
 // StyleCells is the width of the STYLE bar.
 const StyleCells = 20
 
-// categories is the STYLE bar's order from the centre outwards.
-var categories = []domain.KimariteCategory{domain.Push, domain.Belt, domain.Throw, domain.Pull, domain.Other}
+// Categories is the STYLE bar's order from the centre outwards.
+var Categories = []domain.KimariteCategory{domain.Push, domain.Belt, domain.Throw, domain.Pull, domain.Other}
+
+// StyleLetters draw the STYLE bar without colours or in ASCII.
+var StyleLetters = map[domain.KimariteCategory]string{domain.Push: "P", domain.Belt: "B", domain.Throw: "T", domain.Pull: "L", domain.Other: "O"}
 
 // StyleBar draws the win shares as a stacked bar of cells, one colour per
 // category in the order PUSH, BELT, THROW, PULL, OTHER; reversed on the left
 // side so that PUSH sits next to the centre label on both sides (SPEC §8.5).
 func StyleBar(t theme.Theme, s derive.Shares, cells int, left bool) string {
 	n := apportion(s, cells)
-	ascii := map[domain.KimariteCategory]string{domain.Push: "P", domain.Belt: "B", domain.Throw: "T", domain.Pull: "L", domain.Other: "O"}
 	var parts []string
-	for _, c := range categories {
+	for _, c := range Categories {
 		if n[c] == 0 {
 			continue
 		}
 		glyph := "█"
 		if t.ASCII || t.Mono {
-			glyph = ascii[c]
+			glyph = StyleLetters[c]
 		}
 		parts = append(parts, lipgloss.NewStyle().Foreground(t.Colors.Categories[c]).Render(strings.Repeat(glyph, n[c])))
 	}
@@ -160,7 +162,7 @@ func StyleBar(t theme.Theme, s derive.Shares, cells int, left bool) string {
 func apportion(s derive.Shares, cells int) [domain.Other + 1]int {
 	var n [domain.Other + 1]int
 	var total float64
-	for _, c := range categories {
+	for _, c := range Categories {
 		total += s[c]
 	}
 	if total == 0 {
@@ -168,15 +170,15 @@ func apportion(s derive.Shares, cells int) [domain.Other + 1]int {
 	}
 	used := 0
 	rem := map[domain.KimariteCategory]float64{}
-	for _, c := range categories {
+	for _, c := range Categories {
 		exact := s[c] / total * float64(cells)
 		n[c] = int(exact)
 		used += n[c]
 		rem[c] = exact - float64(n[c])
 	}
 	for used < cells {
-		best := categories[0]
-		for _, c := range categories {
+		best := Categories[0]
+		for _, c := range Categories {
 			if rem[c] > rem[best] {
 				best = c
 			}

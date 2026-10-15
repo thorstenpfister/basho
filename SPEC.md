@@ -891,7 +891,13 @@ Two tabs (`tab` switches between them):
 
 ### 8.7 Help overlay (`?`)
 
-A full key list grouped by screen (Bubbles `help` in full mode), plus a legend for the glyphs and abbreviations and the data-source notes (osada AI-use policy, sumo-api is run by a volunteer).
+Pages, switched with `←`/`→` or `tab` and scrolled with `j`/`k` or the wheel when longer than the screen:
+
+- **Keys:** the screen's keys, then the global ones (Bubbles `help` in full mode).
+- **Legend:** the glyphs and abbreviations, the STYLE bar's categories, `≈` names and the status bar's marks.
+- **Rating:** what the rating and win chance are, that they never use the bout shown or anything after it, and how they did in calibration (from `params.json`).
+- **Data:** the sources and their notes (osada's AI-use policy; sumo-api is run by a volunteer), shared with `basho credits`.
+- **Limitations:** today's heya and hometown, latest height and weight, sekitori bouts only, early ratings, live delay, transliterated names, the three days missing from sumo-api.
 
 ### 8.8 Keybindings
 
@@ -916,7 +922,7 @@ A full key list grouped by screen (Bubbles `help` in full mode), plus a legend f
 | `S` | anywhere | toggle spoiler-free mode |
 | `t` | anywhere | jump to today (current tournament) |
 | `b` / `esc` | anywhere | back; picker from the day view |
-| `?` | anywhere | help |
+| `?` | anywhere | help; inside it `←`/`→` or `tab` switch pages, `j`/`k` scroll |
 | `q`, `ctrl+c` | anywhere | quit (from the VS screen `q` goes back one level; `ctrl+c` always quits) |
 
 *Note:* `h`/`l` always mean left/right (previous/next) on every screen; head-to-head uses `v` (D16).
@@ -1576,6 +1582,13 @@ AC status: met, by `TestWalkDay13` and `TestNoLeaks` (step 6).
    - **`NO_COLOR`:** colorprofile honours only values that `strconv.ParseBool` reads, so `NO_COLOR=yes` kept the colours. Any non-empty value now counts, as no-color.org says, in the TUI and the CLI. The TUI reads the colour profile (`tea.ColorProfileMsg`), and without colours `Theme.Mono` draws the STYLE bar in letters, as `--ascii` does. Auditing everything else that relies on colour alone is step 5.
    - **Mouse:** with `ui.mouse` (the default), the wheel scrolls as `↑` and `↓` do, through the root's key handling, so lists, overlays and focused inputs behave as they do with the keys.
 2. Help overlay content: legend, data source notes, credits page, an explanation of the rating, known limitations (historical heya; sekitori bouts only).
+
+   Done:
+   - **Pages** (§8.7): Keys, Legend, Rating, Data, Limitations. At 80×24 the old single page cut off the data notes, and a legend line wrapped outside the padding.
+   - **Rating page:** takes its numbers from the calibration file through `service.RatingModel`, which reads `params.json` without computing any ratings. It loads in a command when help opens, and the page reads well without the numbers.
+   - **Credits:** `service.Credits` and `CreditsNote` are the one copy, shared by the Data page and `basho credits`; they gained "run by a volunteer". `--json` still gives the formatted text.
+   - **Wrapping:** `ansi.Wordwrap` always breaks after a hyphen (head-/to-head, sumo-/api), so text wraps with non-breaking hyphens that are swapped back afterwards.
+   - **Shared:** the STYLE categories and their letters now live in `components` only (the VS screen kept a copy).
 3. `basho config path|show`; friendlier first-run messages.
 4. Performance: hoshitori grid renders in under 16 ms at 130×50; snapshot and bout index load fast enough for an instant start (target under 300 ms to first screen).
 5. Accessibility: never rely on colour alone (glyphs and KK/MK text always shown).

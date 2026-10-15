@@ -65,6 +65,9 @@ func Key(k string) tea.KeyPressMsg {
 	if c, ok := strings.CutPrefix(k, "ctrl+"); ok && len(c) == 1 {
 		return tea.KeyPressMsg{Code: rune(c[0]), Mod: tea.ModCtrl}
 	}
+	if k == "shift+tab" {
+		return tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}
+	}
 	if c, ok := special[k]; ok {
 		return tea.KeyPressMsg{Code: c}
 	}

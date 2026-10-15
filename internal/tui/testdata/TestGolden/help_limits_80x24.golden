@@ -1,0 +1,24 @@
+                                                                                
+  Keys   Legend   Rating   Data   Limitations                                   
+                                                                                
+  - Heya and hometown are today's values: stable closures and moves don't show  
+    in past tournaments.                                                        
+  - Height and weight are the latest known, not those of the tournament shown   
+    (marked *).                                                                 
+  - Only sekitori bouts count (Makuuchi and Juryo, from 1960). Records,         
+    head-to-head, movesets and ratings leave out the lower divisions, so a      
+    wrestler's history starts at their first sekitori bout.                     
+  - Ratings start from nothing in 1960 and from an estimate by rank for each    
+    newcomer, so early values are rough.                                        
+  - Live results come from osada.us, which copies the Japan Sumo Association's  
+    pages, and show minutes after the bout: basho checks every few minutes.     
+  - A wrestler new to sumo-api is named from osada.us's kana (≈) until          
+    sumo-api lists them.                                                        
+  - sumo-api has no bouts for three days: Haru 1965 day 7, Natsu 1965 day 6     
+    and Kyushu 1978 day 5.                                                      
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+  ←/→ page · ? or esc close                                                     
+ Aki 2026 · Makuuchi · Day 15 ─────────────────────────────── snapshot · ? help 

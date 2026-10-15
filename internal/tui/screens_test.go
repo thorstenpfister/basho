@@ -71,6 +71,10 @@ func TestGolden(t *testing.T) {
 			{"picker", []string{"esc"}},
 			{"picker_filter", []string{"esc", "/", "a", "k", "i", "enter"}},
 			{"help", []string{"?"}},
+			{"help_legend", []string{"?", "tab"}},
+			{"help_rating", []string{"?", "tab", "tab"}},
+			{"help_data", []string{"?", "tab", "tab", "tab"}},
+			{"help_limits", []string{"?", "shift+tab"}},
 		} {
 			t.Run(fmt.Sprintf("%s_%dx%d", tt.name, size.w, size.h), func(t *testing.T) {
 				d := tuitest.New(app(fixtureService()), size.w, size.h)
@@ -175,5 +179,31 @@ func TestResize(t *testing.T) {
 		d.Keys("esc", "esc") // back to a known state: close help, filters
 		d.Send(tea.WindowSizeMsg{Width: 100, Height: 30})
 		d = tuitest.New(app(embedded()), 100, 30)
+	}
+}
+
+// The help overlay pages with ←/→ and scrolls a page longer than the
+// screen with j/k and the wheel, never past its end.
+func TestHelpPages(t *testing.T) {
+	d := tuitest.New(app(fixtureService()), 80, 20)
+	d.Keys("?", "left") // Limitations, 15 lines in 14 rows
+	if v := d.View(); !strings.Contains(v, "j/k scroll (1–14 of 15)") || !strings.Contains(v, "- Heya and hometown") {
+		t.Fatalf("limitations:\n%s", v)
+	}
+	d.Keys("j", "j", "j", "j", "j")
+	if v := d.View(); !strings.Contains(v, "(2–15 of 15)") || strings.Contains(v, "Heya") {
+		t.Errorf("scrolled past the end:\n%s", v)
+	}
+	d.Send(tea.MouseWheelMsg{Button: tea.MouseWheelUp})
+	if v := d.View(); !strings.Contains(v, "(1–14 of 15)") {
+		t.Errorf("wheel up:\n%s", v)
+	}
+	d.Keys("right") // around to Keys, from the top
+	if v := d.View(); !strings.Contains(v, "previous day") || strings.Contains(v, "scroll") {
+		t.Errorf("keys page:\n%s", v)
+	}
+	d.Keys("esc")
+	if v := d.View(); strings.Contains(v, "Limitations") {
+		t.Errorf("esc kept the overlay:\n%s", v)
 	}
 }

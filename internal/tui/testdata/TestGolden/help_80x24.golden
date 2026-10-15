@@ -1,5 +1,6 @@
                                                                                 
-  Keys                                                                          
+  Keys   Legend   Rating   Data   Limitations                                   
+                                                                                
   ←/h     previous day               b/esc  back                                
   →/l     next day                   t      today                               
   ↑/k     previous bout              L      live mode                           
@@ -14,11 +15,10 @@
   R       refresh (30 s cooldown)                                               
   ctrl+r  reveal up to here                                                     
                                                                                 
-  Legend                                                                        
-  ○ win  ● loss  □ fusen win  ■ fusen loss  – absent  · pending  ★ kinboshi     
-  Day bar: ✓ complete  ● in progress  · scheduled                               
-  LIVE: ● polling  ◌ waiting  ✓ day complete · NEW: decided since the last poll 
-  KK kachi-koshi (8 wins) · MK make-koshi (8 losses and absences) · 休 kyujo    
-(absent)                                                                        
-  Ranks: Y yokozuna · O ozeki · S sekiwake · K komusubi · M maegashira · J juryo
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+  ←/→ page · ? or esc close                                                     
  Aki 2026 · Makuuchi · Day 15 ─────────────────────────────── snapshot · ? help 

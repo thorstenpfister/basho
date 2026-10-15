@@ -435,3 +435,15 @@ func (f *revalidated) ActiveRikishi(ctx context.Context) ([]domain.Rikishi, erro
 	f.revalidate = cache.Revalidating(ctx)
 	return []domain.Rikishi{{ID: 9100, NSKID: 9999, Name: domain.Name{En: "Shinjin"}, Heya: "Newheya"}}, nil
 }
+
+// The help screen's rating numbers come from params.json without computing
+// a single rating.
+func TestRatingModel(t *testing.T) {
+	m, err := embedded().RatingModel()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !m.Shown || m.Bouts < 30000 || m.EvalFrom.Year != 2015 || m.Accuracy <= m.RankAccuracy || m.LogLoss >= m.RankLogLoss {
+		t.Errorf("%+v", m)
+	}
+}
