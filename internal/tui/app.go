@@ -222,9 +222,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		return m.forward(msg)
 	case tea.BackgroundColorMsg:
-		mono := m.ctx.Theme.Mono
-		m.ctx.Theme = theme.New(msg.IsDark(), m.ctx.Theme.ASCII)
-		m.ctx.Theme.Mono = mono
+		m.ctx.Theme = m.ctx.Theme.Rebuild(msg.IsDark())
 		return m, nil
 	case tea.ColorProfileMsg:
 		m.ctx.Theme.Mono = msg.Profile <= colorprofile.ASCII
@@ -452,6 +450,12 @@ func Truncate(s string, w int) string {
 		return ansi.Truncate(s, w, "")
 	}
 	return ansi.Truncate(s, w, "…")
+}
+
+// PadRight pads s with spaces to w cells; wide characters (kanji) count
+// two, where fmt's %-*s counts runes.
+func PadRight(s string, w int) string {
+	return s + strings.Repeat(" ", max(w-ansi.StringWidth(s), 0))
 }
 
 // Spread puts left and right at the ends of a width, a cell in from each

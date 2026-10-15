@@ -294,7 +294,7 @@ func (p Picker) rowView(ctx *tui.Context, i int) string {
 		fallthrough
 	default:
 		if y := r.yusho; y != nil {
-			note = "Yusho: " + t.Gold.Render(y.Shikona.Romaji())
+			note = "Yusho: " + t.Gold.Render(t.Name(y.Shikona))
 			if y.Record != nil {
 				note += " (" + y.Record.String() + ")"
 			}

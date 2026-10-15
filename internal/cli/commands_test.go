@@ -195,3 +195,37 @@ func TestConfigReachesTheService(t *testing.T) {
 		t.Errorf("exit %d, offline %v, division %q\n%s", code, got.Offline, got.UI.Division, out)
 	}
 }
+
+// ui.names (Phase 13): en drops every kanji, jp leads with them.
+func TestNameModes(t *testing.T) {
+	for _, tt := range []struct {
+		mode     string
+		has, not []string
+	}{
+		{"en", []string{"ONOSATO", "musubi", "Hoshoryu (Y1w)"}, []string{"大の里", "下手投げ", "結び", "休"}},
+		{"jp", []string{"大の里", "Onosato", "霧島 wins by SHITATENAGE  下手投げ"}, nil},
+		{"both", []string{"ONOSATO", "大の里", "下手投げ"}, nil},
+	} {
+		deps := fixtureDeps(t)
+		env := deps.Env
+		deps.Env = func(k string) (string, bool) {
+			if k == "BASHO_UI_NAMES" {
+				return tt.mode, true
+			}
+			return env(k)
+		}
+		out, _ := run(t, deps, "bout", "13", "19", "-t", "202609")
+		day, _ := run(t, deps, "day", "13", "-t", "202609")
+		out += day
+		for _, s := range tt.has {
+			if !strings.Contains(out, s) {
+				t.Errorf("%s: lacks %q", tt.mode, s)
+			}
+		}
+		for _, s := range tt.not {
+			if strings.Contains(out, s) {
+				t.Errorf("%s: shows %q", tt.mode, s)
+			}
+		}
+	}
+}

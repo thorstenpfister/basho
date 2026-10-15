@@ -365,7 +365,10 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 		// Progressive loading (SPEC §8.5): what the day view knew at once,
 		// placeholders for the rest.
 		wait := t.Dim.Render("…")
-		lines = append(lines, row(east.Shikona.Jp, "", west.Shikona.Jp), " "+t.Rule.Render(strings.Repeat(t.Line, l.width-2)))
+		if alt := [2]string{t.AltName(east.Shikona), t.AltName(west.Shikona)}; alt != [2]string{} {
+			lines = append(lines, row(alt[0], "", alt[1]))
+		}
+		lines = append(lines, " "+t.Rule.Render(strings.Repeat(t.Line, l.width-2)))
 		lines = append(lines, row(east.Rank.String(), "RANK", west.Rank.String()))
 		for _, label := range []string{"HEYA", "FROM", "AGE"} {
 			lines = append(lines, row(wait, label, wait))
@@ -378,8 +381,8 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 		return strings.Join(lines, "\n")
 	}
 	e, w := v.tale.East, v.tale.West
-	if e.Shikona.Jp != "" || w.Shikona.Jp != "" {
-		lines = append(lines, row(e.Shikona.Jp, "", w.Shikona.Jp))
+	if alt := [2]string{t.AltName(e.Shikona), t.AltName(w.Shikona)}; alt != [2]string{} {
+		lines = append(lines, row(alt[0], "", alt[1]))
 	}
 	if et, wt := e.Moveset().Type.String(), w.Moveset().Type.String(); et != "" || wt != "" {
 		lines = append(lines, row(t.Dim.Render(et), "", t.Dim.Render(wt)))
@@ -480,9 +483,9 @@ func (v VS) historyView(ctx *tui.Context, width int, column bool) string {
 		n = min(n, 3)
 	}
 	for _, m := range h.Meetings[:n] {
-		who := v.tale.East.Shikona.Romaji()
+		who := t.Name(v.tale.East.Shikona)
 		if m.Winner == v.tale.West.RikishiID {
-			who = v.tale.West.Shikona.Romaji()
+			who = t.Name(v.tale.West.Shikona)
 		}
 		line := fmt.Sprintf(" %s %2d %-4s %-4s %s %s", m.Basho, m.Day, m.RankA.Short(), m.RankB.Short(), t.Bold.Render(who), t.Dim.Render(string(m.Kimarite)))
 		lines = append(lines, tui.Truncate(line, width))
@@ -561,14 +564,14 @@ func (v VS) resultPanel(ctx *tui.Context, l layout) string {
 	case r == nil:
 		lines = []string{t.Dim.Render(v.undecided(ctx))}
 	default:
-		e, w := v.row.East.Shikona.Romaji(), v.row.West.Shikona.Romaji()
+		e, w := t.Name(v.row.East.Shikona), t.Name(v.row.West.Shikona)
 		winner := e
 		if r.Winner == domain.West {
 			winner = w
 		}
 		head := t.Bold.Render(strings.ToUpper(winner)) + " wins by " + t.Bold.Render(strings.ToUpper(string(r.Technique.Kimarite)))
-		if r.Technique.Kanji != "" {
-			head += "  " + r.Technique.Kanji
+		if k := t.Kanji(r.Technique.Kanji); k != "" {
+			head += "  " + k
 		}
 		lines = append(lines, head)
 		if r.Technique.English != "" {
@@ -668,7 +671,7 @@ func (v VS) movesetPanel(ctx *tui.Context, l layout) string {
 	side := func(s service.TaleSide) string {
 		p := s.Movesets[v.window]
 		lines := []string{
-			t.Bold.Render(strings.ToUpper(s.Shikona.Romaji())) + t.Dim.Render(fmt.Sprintf("   %d W · %d L", p.Wins, p.Losses)),
+			t.Bold.Render(strings.ToUpper(t.Name(s.Shikona))) + t.Dim.Render(fmt.Sprintf("   %d W · %d L", p.Wins, p.Losses)),
 			t.Dim.Render(orDash(p.Type.String())),
 		}
 		cells := min(20, col-16)
@@ -706,7 +709,7 @@ func (v VS) movesetPanel(ctx *tui.Context, l layout) string {
 		" " + t.Rule.Render(strings.Repeat(t.Line, l.width-2)),
 	}
 	if m := v.tale.Matchups[v.window]; m != nil {
-		att, def := v.tale.East.Shikona.Romaji(), v.tale.West.Shikona.Romaji()
+		att, def := t.Name(v.tale.East.Shikona), t.Name(v.tale.West.Shikona)
 		if !m.AttackerIsA {
 			att, def = def, att
 		}
@@ -758,7 +761,7 @@ func (v VS) rating(ctx *tui.Context, l layout, row func(string, string, string) 
 // runs, and VS goes from dim to bright.
 func (v VS) names(ctx *tui.Context, l layout, east, west service.BoutSide) string {
 	t := ctx.Theme
-	e, w := strings.ToUpper(east.Shikona.Romaji()), strings.ToUpper(west.Shikona.Romaji())
+	e, w := strings.ToUpper(t.Name(east.Shikona)), strings.ToUpper(t.Name(west.Shikona))
 	shift := 0
 	if v.sliding {
 		shift = int((1 - math.Min(math.Max(v.slide, 0), 1)) * float64(max(l.side-lipgloss.Width(e), 0)))

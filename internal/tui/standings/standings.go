@@ -311,11 +311,11 @@ func yusho(ctx *tui.Context, s service.Standings) string {
 	t := ctx.Theme
 	switch {
 	case s.Yusho != nil && s.Playoff:
-		return t.Gold.Render("Yusho: " + s.Yusho.Shikona.Romaji() + " (playoff)")
+		return t.Gold.Render("Yusho: " + t.Name(s.Yusho.Shikona) + " (playoff)")
 	case s.Yusho != nil:
-		return t.Gold.Render("Yusho: " + s.Yusho.Shikona.Romaji())
+		return t.Gold.Render("Yusho: " + t.Name(s.Yusho.Shikona))
 	case s.YushoDecided:
-		return t.Gold.Render("✓ yusho " + s.Rows[0].Shikona.Romaji())
+		return t.Gold.Render("✓ yusho " + t.Name(s.Rows[0].Shikona))
 	case s.Playoff:
 		return t.Accent.Render("Playoff")
 	default:
@@ -411,7 +411,7 @@ func (v View) tailLine(ctx *tui.Context, tail []derive.Standing) string {
 // entry is one wrestler of a race line; wrestlers out of contention are dim.
 func (v View) entry(ctx *tui.Context, r derive.Standing, width int) string {
 	t := ctx.Theme
-	name := fmt.Sprintf("%-*s %-4s", maxName, tui.Truncate(r.Shikona.Romaji(), maxName), r.Rank.Short())
+	name := tui.PadRight(tui.Truncate(t.Name(r.Shikona), maxName), maxName) + fmt.Sprintf(" %-4s", r.Rank.Short())
 	if !r.InContention {
 		name = t.Dim.Render(name)
 	} else if r.Band == derive.Leaders {
@@ -465,7 +465,7 @@ func (v View) grid(ctx *tui.Context, width int) (string, []string) {
 	for i, r := range s.ByBanzuke() {
 		var row strings.Builder
 		cursor := "  "
-		rank, n := fmt.Sprintf("%-4s", r.Rank.Short()), fmt.Sprintf("%-*s", name, tui.Truncate(r.Shikona.Romaji(), name))
+		rank, n := fmt.Sprintf("%-4s", r.Rank.Short()), tui.PadRight(tui.Truncate(t.Name(r.Shikona), name), name)
 		if i == v.cursor {
 			cursor = t.Selected.Render(t.Cursor) + " "
 			rank, n = t.Selected.Render(rank), t.Selected.Render(n)
@@ -501,7 +501,7 @@ func (v View) popupView(ctx *tui.Context, r derive.Standing) string {
 	for _, row := range s.Rows {
 		ranks[row.RikishiID] = row.Rank
 	}
-	lines := []string{t.Title.Render(fmt.Sprintf("%s · %s · %s", r.Shikona.Romaji(), r.Rank.Short(), r.Record.String())), ""}
+	lines := []string{t.Title.Render(fmt.Sprintf("%s · %s · %s", t.Name(r.Shikona), r.Rank.Short(), r.Record.String())), ""}
 	for d := 1; d <= domain.BashoDays; d++ {
 		res := r.Results[d-1]
 		var what string
@@ -513,7 +513,7 @@ func (v View) popupView(ctx *tui.Context, r derive.Standing) string {
 		case res.OpponentID == 0:
 			what = t.Dim.Render("no bout")
 		default:
-			opp := s.Opponents[res.OpponentID].Romaji()
+			opp := t.Name(s.Opponents[res.OpponentID])
 			if opp == "" {
 				opp = fmt.Sprintf("#%d", res.OpponentID)
 			}

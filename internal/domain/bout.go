@@ -71,6 +71,50 @@ func (n Name) Romaji() string {
 	return n.En
 }
 
+// NameMode is how names show (ui.names, SPEC D5).
+type NameMode int
+
+const (
+	NamesBoth NameMode = iota // romaji first, kanji alongside
+	NamesEn                   // romaji only
+	NamesJp                   // kanji first, romaji alongside
+)
+
+// ParseNameMode reads ui.names: "en", "jp", anything else is both.
+func ParseNameMode(s string) NameMode {
+	switch s {
+	case "en":
+		return NamesEn
+	case "jp":
+		return NamesJp
+	default:
+		return NamesBoth
+	}
+}
+
+// Show returns the name to lead with: the kanji in NamesJp when known,
+// otherwise Romaji.
+func (n Name) Show(m NameMode) string {
+	if m == NamesJp && n.Jp != "" {
+		return n.Jp
+	}
+	return n.Romaji()
+}
+
+// Alt returns the name shown beside Show, or "" when there is none.
+func (n Name) Alt(m NameMode) string {
+	switch {
+	case m == NamesEn:
+		return ""
+	case m == NamesJp && n.Jp != "":
+		return n.Romaji()
+	case m == NamesJp:
+		return "" // Show is already the romaji
+	default:
+		return n.Jp
+	}
+}
+
 // DayResult is one day of a wrestler's banzuke record.
 type DayResult struct {
 	Outcome    Outcome

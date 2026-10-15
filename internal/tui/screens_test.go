@@ -51,10 +51,13 @@ var embedded = sync.OnceValue(func() *service.Service {
 // app builds the model like cmd/basho: the picker under the current
 // tournament's latest day.
 func app(svc *service.Service) tui.Model {
-	ctx := &tui.Context{Svc: svc, Cfg: config.Default(), Theme: theme.New(true, false), Clock: clock.NewFake(testNow), Tick: tui.NoTimers}
+	return appWith(&tui.Context{Svc: svc, Cfg: config.Default(), Theme: theme.New(true, false), Clock: clock.NewFake(testNow), Tick: tui.NoTimers})
+}
+
+func appWith(ctx *tui.Context) tui.Model {
 	open := func(id domain.BashoID) tui.Screen { return day.New(ctx, id, 0) }
 	today := func() []tui.Screen {
-		return []tui.Screen{picker.New(ctx, open), day.New(ctx, svc.CurrentBasho(), 0)}
+		return []tui.Screen{picker.New(ctx, open), day.New(ctx, ctx.Svc.CurrentBasho(), 0)}
 	}
 	return tui.New(ctx, today(), today)
 }

@@ -47,3 +47,23 @@ func TestOutcomeText(t *testing.T) {
 		t.Error("unknown outcome accepted")
 	}
 }
+
+func TestNameModes(t *testing.T) {
+	n := Name{En: "Onosato", Jp: "大の里"}
+	approx := Name{En: "Shonannomi", Approx: true}
+	for _, tt := range []struct {
+		mode                       NameMode
+		show, alt, showNew, altNew string
+	}{
+		{NamesBoth, "Onosato", "大の里", "≈Shonannomi", ""},
+		{NamesEn, "Onosato", "", "≈Shonannomi", ""},
+		{NamesJp, "大の里", "Onosato", "≈Shonannomi", ""},
+	} {
+		if n.Show(tt.mode) != tt.show || n.Alt(tt.mode) != tt.alt || approx.Show(tt.mode) != tt.showNew || approx.Alt(tt.mode) != tt.altNew {
+			t.Errorf("mode %d: %q %q %q %q", tt.mode, n.Show(tt.mode), n.Alt(tt.mode), approx.Show(tt.mode), approx.Alt(tt.mode))
+		}
+	}
+	if ParseNameMode("jp") != NamesJp || ParseNameMode("en") != NamesEn || ParseNameMode("both") != NamesBoth {
+		t.Error("ParseNameMode")
+	}
+}

@@ -106,6 +106,8 @@ type Theme struct {
 	// Mono is set when the terminal shows no colours (NO_COLOR, --no-color):
 	// whatever only colour told apart needs letters, like the STYLE bar.
 	Mono bool
+	// Names is how wrestlers' names show (ui.names).
+	Names domain.NameMode
 
 	Text, Dim, Bold, Title, Accent, Gold, GoldDim, Green, Red lipgloss.Style
 	Selected, Header, Rule, StatusBar, StatusKey              lipgloss.Style
@@ -139,6 +141,37 @@ func New(dark, ascii bool) Theme {
 		Error:     lipgloss.NewStyle().Foreground(p.Red).Bold(true),
 		Message:   lipgloss.NewStyle().Foreground(p.Accent),
 	}
+}
+
+// WithNames sets how names show. NamesEn means no kanji at all, so the
+// musubi and kyujo marks become words, as in the ASCII set.
+func (t Theme) WithNames(m domain.NameMode) Theme {
+	t.Names = m
+	if m == domain.NamesEn {
+		t.Musubi, t.Kyujo = ASCII.Musubi, ASCII.Kyujo
+	}
+	return t
+}
+
+// Rebuild returns the theme for another background, keeping the rest.
+func (t Theme) Rebuild(dark bool) Theme {
+	n := New(dark, t.ASCII).WithNames(t.Names)
+	n.Mono = t.Mono
+	return n
+}
+
+// Name is a wrestler's name to lead with (ui.names).
+func (t Theme) Name(n domain.Name) string { return n.Show(t.Names) }
+
+// AltName is the name beside it, or "".
+func (t Theme) AltName(n domain.Name) string { return n.Alt(t.Names) }
+
+// Kanji is a technique's kanji, or "" when names show no kanji.
+func (t Theme) Kanji(kanji string) string {
+	if t.Names == domain.NamesEn {
+		return ""
+	}
+	return kanji
 }
 
 // Record colours a record by kachi-koshi (green) or make-koshi (red).

@@ -17,6 +17,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/tui"
 	"github.com/thorstenpfister/basho/internal/tui/bout"
 	"github.com/thorstenpfister/basho/internal/tui/standings"
+	"github.com/thorstenpfister/basho/internal/tui/theme"
 )
 
 // Day is the day view (SPEC §8.4): one division's bouts of one day.
@@ -599,7 +600,7 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 		b.WriteString(t.Dim.Render(fmt.Sprintf(" No bouts published for day %d yet.", data.Day)) + "\n")
 		return b.String()
 	}
-	cols := columns(d.rows(), tui.LayoutOf(width) == tui.Compact, d.winChance)
+	cols := columns(t, d.rows(), tui.LayoutOf(width) == tui.Compact, d.winChance)
 	var table strings.Builder
 	table.WriteString(t.Header.Render(cols.header()) + "\n")
 	rows := d.rows()
@@ -617,7 +618,7 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 		b.WriteString(table.String())
 	}
 	b.WriteString(t.Rule.Render(" "+strings.Repeat(t.Line, max(width-2, 1))) + "\n")
-	b.WriteString(kyujo(d, width) + "\n")
+	b.WriteString(kyujo(t, d, width) + "\n")
 	if c := d.confirm; c != nil {
 		b.WriteString(t.Gold.Render(fmt.Sprintf(" Reveal every result up to Day %d bout %d? [y/N]", c.Day, c.MatchNo)))
 		return b.String()
@@ -677,13 +678,13 @@ func (d Day) dayBar(ctx *tui.Context) string {
 	return nums.String() + "\n" + t.Dim.Render(marks.String())
 }
 
-func kyujo(d Day, width int) string {
+func kyujo(t theme.Theme, d Day, width int) string {
 	if d.data == nil || len(d.data.Kyujo) == 0 {
 		return ""
 	}
 	names := make([]string, len(d.data.Kyujo))
 	for i, w := range d.data.Kyujo {
-		names[i] = fmt.Sprintf("%s (%s)", w.Shikona.Romaji(), w.Rank.Short())
+		names[i] = fmt.Sprintf("%s (%s)", t.Name(w.Shikona), w.Rank.Short())
 	}
 	return tui.Truncate(" Kyujo: "+strings.Join(names, ", "), width)
 }
@@ -725,7 +726,7 @@ func racePanel(ctx *tui.Context, s service.Standings, height int) string {
 				lines = append(lines, t.Dim.Render(t.Line+t.Line+" −1 "+t.Line+t.Line))
 			}
 		}
-		lines = append(lines, fmt.Sprintf("%5s  %-4s %s", r.Record.String(), r.Rank.Short(), tui.Truncate(r.Shikona.Romaji(), panelWidth-16)))
+		lines = append(lines, fmt.Sprintf("%5s  %-4s %s", r.Record.String(), r.Rank.Short(), tui.Truncate(t.Name(r.Shikona), panelWidth-16)))
 	}
 	if s.YushoDecided {
 		lines = append(lines, t.Gold.Render("✓ yusho"))

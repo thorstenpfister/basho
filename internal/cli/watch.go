@@ -167,7 +167,7 @@ func (w *watcher) line(now time.Time, div domain.Division, r service.BoutRow, pl
 		tag = "  " + w.g.star + " kinboshi"
 	}
 	return strings.TrimRight(fmt.Sprintf("%s  %-8s %-4s  %s %s  %s %s %s  %s %s%s", jstClock(now), div, no,
-		r.East.Rank.Short(), r.East.Shikona.Romaji(), eg, r.Kimarite.Kimarite, wg, r.West.Rank.Short(), r.West.Shikona.Romaji(), tag), " ")
+		r.East.Rank.Short(), w.g.name(r.East.Shikona), eg, r.Kimarite.Kimarite, wg, r.West.Rank.Short(), w.g.name(r.West.Shikona), tag), " ")
 }
 
 func (w *watcher) event(now time.Time, kind, text string) error {

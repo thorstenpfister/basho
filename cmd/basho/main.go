@@ -37,7 +37,7 @@ func main() {
 // with the picker underneath (SPEC §8.3).
 func runTUI(cfg config.Config, svc *service.Service, noColor bool, st *spoiler.State) error {
 	ctx := &tui.Context{
-		Svc: svc, Cfg: cfg, Theme: theme.New(cfg.UI.Theme != "light", cfg.UI.ASCII), Clock: clock.Real{},
+		Svc: svc, Cfg: cfg, Theme: theme.New(cfg.UI.Theme != "light", cfg.UI.ASCII).WithNames(domain.ParseNameMode(cfg.UI.Names)), Clock: clock.Real{},
 		TTY:      term.IsTerminal(os.Stdout.Fd()),
 		Spoilers: st, Hide: cfg.Spoilers.Mode == "hide",
 	}

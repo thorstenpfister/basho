@@ -11,6 +11,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/tui"
+	"github.com/thorstenpfister/basho/internal/tui/theme"
 )
 
 // recapMsg answers loadRecap.
@@ -79,30 +80,30 @@ func recapBody(ctx *tui.Context, r service.Recap, width int) string {
 			}
 		}
 	}
-	add("Leaders", leaders(r.Leaders), "—")
-	add("Kachi-koshi", standingNames(r.KachiKoshi, false), "nobody today")
-	add("Make-koshi", standingNames(r.MakeKoshi, false), "nobody today")
+	add("Leaders", leaders(t, r.Leaders), "—")
+	add("Kachi-koshi", standingNames(t, r.KachiKoshi, false), "nobody today")
+	add("Make-koshi", standingNames(t, r.MakeKoshi, false), "nobody today")
 	var kinboshi []string
 	for _, b := range r.Kinboshi {
-		kinboshi = append(kinboshi, t.Gold.Render(t.Kinboshi)+" "+over(b))
+		kinboshi = append(kinboshi, t.Gold.Render(t.Kinboshi)+" "+over(t, b))
 	}
 	add("Kinboshi", kinboshi, "none")
 	var upsets []string
 	for _, b := range r.Upsets {
-		upsets = append(upsets, over(b))
+		upsets = append(upsets, over(t, b))
 	}
 	add("Upsets", upsets, "none")
 	technique := []string{}
 	if b, tech := r.Recap.Technique, r.Technique; b != nil && tech != nil {
 		winner, _, _ := b.Result()
 		name := string(tech.Kimarite)
-		if tech.Kanji != "" {
-			name += " " + tech.Kanji
+		if k := t.Kanji(tech.Kanji); k != "" {
+			name += " " + k
 		}
 		if tech.English != "" {
 			name += " (" + tech.English + ")"
 		}
-		technique = append(technique, t.Bold.Render(name)+" by "+winner.Shikona.Romaji(), times(r.TechniqueCount))
+		technique = append(technique, t.Bold.Render(name)+" by "+t.Name(winner.Shikona), times(r.TechniqueCount))
 	}
 	add("Technique", technique, "—", " ·")
 	return strings.Join(lines, "\n")
@@ -120,10 +121,10 @@ func times(n int) string {
 	}
 }
 
-func standingNames(rows []derive.Standing, withRecord bool) []string {
+func standingNames(t theme.Theme, rows []derive.Standing, withRecord bool) []string {
 	names := make([]string, len(rows))
 	for i, r := range rows {
-		names[i] = fmt.Sprintf("%s (%s)", r.Shikona.Romaji(), r.Rank.Short())
+		names[i] = fmt.Sprintf("%s (%s)", t.Name(r.Shikona), r.Rank.Short())
 		if withRecord {
 			names[i] += " " + r.Record.String()
 		}
@@ -135,11 +136,11 @@ func standingNames(rows []derive.Standing, withRecord bool) []string {
 // half the division may share the lead.
 const maxLeaders = 6
 
-func leaders(rows []derive.Standing) []string {
+func leaders(t theme.Theme, rows []derive.Standing) []string {
 	if len(rows) <= maxLeaders {
-		return standingNames(rows, true)
+		return standingNames(t, rows, true)
 	}
-	names := standingNames(rows[:maxLeaders], true)
+	names := standingNames(t, rows[:maxLeaders], true)
 	return append(names, fmt.Sprintf("and %d more", len(rows)-maxLeaders))
 }
 
@@ -166,7 +167,7 @@ func pack(items []string, width int, sep string) []string {
 }
 
 // over is "Winner (M9e) over Loser (Y1e) · technique".
-func over(b domain.Bout) string {
+func over(t theme.Theme, b domain.Bout) string {
 	w, l, _ := b.Result()
-	return fmt.Sprintf("%s (%s) over %s (%s) · %s", w.Shikona.Romaji(), w.Rank.Short(), l.Shikona.Romaji(), l.Rank.Short(), b.Kimarite)
+	return fmt.Sprintf("%s (%s) over %s (%s) · %s", t.Name(w.Shikona), w.Rank.Short(), t.Name(l.Shikona), l.Rank.Short(), b.Kimarite)
 }

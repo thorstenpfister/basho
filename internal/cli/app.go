@@ -233,16 +233,36 @@ func (a *app) out(cmd *cobra.Command) *colorprofile.Writer {
 type glyphs struct {
 	win, loss, fusenWin, fusenLoss, absent, pending string
 	star, up, down, none, divider, musubi, kyujo    string
+	names                                           domain.NameMode // ui.names
+}
+
+// name is a wrestler's name to lead with (ui.names).
+func (g glyphs) name(n domain.Name) string { return n.Show(g.names) }
+
+// alt is the name beside it, or "".
+func (g glyphs) alt(n domain.Name) string { return n.Alt(g.names) }
+
+// kanji is a technique's kanji, or "" when names show no kanji.
+func (g glyphs) kanji(k string) string {
+	if g.names == domain.NamesEn {
+		return ""
+	}
+	return k
 }
 
 var (
-	unicodeGlyphs = glyphs{"○", "●", "□", "■", "–", "·", "★", "▲", "▼", "–", "│", "結び", "休"}
-	asciiGlyphs   = glyphs{"o", "x", "O", "X", "-", ".", "*", "+", "-", "-", "|", "musubi", "kyujo"}
+	unicodeGlyphs = glyphs{"○", "●", "□", "■", "–", "·", "★", "▲", "▼", "–", "│", "結び", "休", domain.NamesBoth}
+	asciiGlyphs   = glyphs{"o", "x", "O", "X", "-", ".", "*", "+", "-", "-", "|", "musubi", "kyujo", domain.NamesBoth}
 )
 
 func (a *app) glyphs() glyphs {
+	g := unicodeGlyphs
 	if a.cfg.UI.ASCII {
-		return asciiGlyphs
+		g = asciiGlyphs
 	}
-	return unicodeGlyphs
+	g.names = domain.ParseNameMode(a.cfg.UI.Names)
+	if g.names == domain.NamesEn { // no kanji at all
+		g.musubi, g.kyujo = asciiGlyphs.musubi, asciiGlyphs.kyujo
+	}
+	return g
 }

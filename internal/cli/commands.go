@@ -77,7 +77,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			return a.emit(cmd, "list", res.Prov, func() string { return renderList(res.Value, res.Prov) }, func() any { return listJSON(res.Value) })
+			return a.emit(cmd, "list", res.Prov, func() string { return renderList(a.glyphs(), res.Value, res.Prov) }, func() any { return listJSON(res.Value) })
 		}),
 	}
 	list.Flags().IntVar(&from, "from", 0, "first year")
@@ -98,7 +98,7 @@ func (a *app) commands() []*cobra.Command {
 			if err != nil {
 				return err
 			}
-			return a.emit(cmd, "info", res.Prov, func() string { return renderInfo(res.Value, res.Prov) }, func() any { return infoJSON(res.Value) })
+			return a.emit(cmd, "info", res.Prov, func() string { return renderInfo(a.glyphs(), res.Value, res.Prov) }, func() any { return infoJSON(res.Value) })
 		}),
 	}
 

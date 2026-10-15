@@ -48,7 +48,7 @@ Not in v1 (possible later, §15):
 | D2 | VS screen layout | "Tale of the tape": mirrored fighters around a centre column of stat labels |
 | D3 | Divisions | Makuuchi and Juryo, toggled in the UI |
 | D4 | Spoilers | Results shown by default; spoiler-free mode can be configured |
-| D5 | Names | Romaji shown prominently, kanji alongside |
+| D5 | Names | Romaji shown prominently, kanji alongside; `ui.names` switches to romaji only (`en`) or kanji first (`jp`) |
 | D6 | History | Every tournament since 1960-01, fetched only when needed and cached |
 | D7 | Non-TUI interface | Plain-text subcommands and `--json` |
 | D8 | Favourites | None in v1 |
@@ -1104,7 +1104,7 @@ Output rules:
 ```toml
 [ui]
 division      = "makuuchi"    # start division
-names         = "both"        # both | en | jp   (D5; Phase 13)
+names         = "both"        # both: romaji, kanji beside | en: no kanji | jp: kanji, romaji beside
 ascii         = false
 animations    = true
 mouse         = true
@@ -1192,7 +1192,7 @@ adjacent_days = false
 | `run` | `go run ./cmd/basho $(ARGS)` | 0 |
 | `test` | `go test ./...` | 0 |
 | `test-race` | `go test -race ./...` | 0 |
-| `test-leaks` | The screen walks (spoiler leaks, `--ascii`) without the race detector, under which they skip (single-threaded, ten times slower there) | 11 |
+| `test-leaks` | The screen walks (spoiler leaks, `--ascii`, `ui.names`) without the race detector, under which they skip (single-threaded, ten times slower there) | 11 |
 | `test-live` | `go test -tags live ./...`: real API smoke tests, manual only | 1 |
 | `golden` | Re-runs tests with `-update` to rewrite golden files (review the diff afterwards) | 6 |
 | `bench` | The performance budgets: first screen under 300 ms, grid frame under 16 ms (§17 Phase 12) | 12 |
@@ -1645,9 +1645,23 @@ AC status: moved to the QA pass (Phase 16), which runs after the phases added be
    - `jp`: kanji first, romaji alongside; romaji alone where no kanji is known.
 
    JSON always carries both.
-3. Tests: the rating regression test with the new `scale`, goldens in the three name modes, and the CLI.
+
+   Done:
+   - **Where:** `domain.Name.Show` and `Alt` hold the rule. The TUI reaches it through the theme (`Theme.Name`, `AltName`, `Kanji`, set by `WithNames`), the CLI through its glyphs. All 39 places that printed `Romaji()` go through it.
+   - **`en`:** besides the names, it drops the techniques' kanji (VS result panel, recap, `basho bout`) and turns 結び and 休 into "musubi" and "kyujo", as in ASCII mode.
+   - **`jp`:** kanji names are two cells per character, where the day table measured bytes and fmt pads by runes. Names are now measured and padded by width (`tui.PadRight`). The VS screen's second line holds the romaji, and is left out when neither side has anything for it.
+   - **JSON:** unchanged.
+   - **Kept:** `Theme.Rebuild` keeps the mode, and mono, when the terminal reports its background.
+3. Tests: goldens in the three name modes, and the CLI.
+
+   Done:
+   - **`TestNameModes`** walks every screen. In `en`, days 1, 13 and 15 must show no kanji or kana; in `jp`, day 13 must lead with kanji, keep the romaji on the VS screen, and fit 140 columns. `make test-leaks` runs it.
+   - **Goldens:** day 13 and the musubi-no-ichiban in `en` and `jp`, at 80×24 and 120×40.
+   - **CLI:** `bout` and `day` in all three modes.
 
 **AC:** with `ui.names = en`, a walk over every screen finds no kanji. (The first half, a better calibrated chance, fell with step 1.)
+
+AC status: met, by `TestNameModes`.
 
 ### Phase 14: Portraits
 
