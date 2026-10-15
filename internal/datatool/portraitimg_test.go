@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/thorstenpfister/basho/internal/buildinfo"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/portrait"
 )
@@ -169,6 +170,37 @@ func TestBuildPortraits(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(work, f)); err != nil {
 			t.Error(err)
 		}
+	}
+	// One row: the cells and the label strip with the ID under them.
+	sheet, err := readImage(filepath.Join(work, "sheet.png"))
+	if err != nil || sheet.Bounds().Dy() != sheetCell+sheetLabel {
+		t.Errorf("sheet %v, %v", sheet.Bounds(), err)
+	}
+	lit := 0
+	for x := range 60 {
+		if r, _, _, _ := sheet.At(x, sheetCell+8).RGBA(); r > 0xc000 {
+			lit++
+		}
+	}
+	if lit == 0 {
+		t.Error("no label under the cell")
+	}
+}
+
+// --overrides-only rebuilds just the wrestlers in overrides.toml, and says
+// so when there are none.
+func TestOverridesOnly(t *testing.T) {
+	dir := t.TempDir()
+	empty := filepath.Join(dir, "overrides.toml")
+	if err := os.WriteFile(empty, []byte("# nothing yet\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cmd := newPortraitsCmd(buildinfo.Info{Version: "test"})
+	cmd.SetArgs([]string{"update", "--overrides-only", "--overrides", empty, "--snapshot", "../../testdata/snapshot", "--work", dir, "--cache", filepath.Join(dir, "cache")})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	if err := cmd.Execute(); err == nil || !strings.Contains(err.Error(), "has no overrides") {
+		t.Errorf("%v", err)
 	}
 }
 

@@ -6,3 +6,384 @@
 # exclude = true               # no portrait for this wrestler
 # file = "Other photo.jpg"     # another Commons file than Wikidata's
 # note = "why"
+
+# First review, 2026-10-15 (basho-data portraits update; sheet.png).
+
+# Not a photo of the wrestler.
+
+[[portrait]]
+id = 1010 # Takanosato
+exclude = true
+note = "a handprint, not a photo of him"
+
+[[portrait]]
+id = 1033 # Wakanohana
+exclude = true
+note = "a handprint, not a photo of him"
+
+[[portrait]]
+id = 1216 # Futatsuryu
+exclude = true
+note = "a wide shot of the arena"
+
+[[portrait]]
+id = 1275 # Futahaguro
+exclude = true
+note = "a handprint, not a photo of him"
+
+[[portrait]]
+id = 2079 # Kotozakura
+exclude = true
+note = "a statue in a park"
+
+# Crops by hand: the face detector missed the face or found another.
+
+[[portrait]]
+id = 7 # Kirishima
+crop = [160, 40, 320, 200]
+note = "face found on a spectator"
+
+[[portrait]]
+id = 28 # Ura
+crop = [140, 40, 300, 200]
+note = "full body"
+
+[[portrait]]
+id = 34 # Midorifuji
+crop = [125, 20, 285, 180]
+note = "full body, no face found"
+
+[[portrait]]
+id = 36 # Myogiryu
+crop = [60, 80, 240, 260]
+note = "face found on a spectator"
+
+[[portrait]]
+id = 37 # Takanosho
+crop = [210, 60, 390, 240]
+note = "full body, no face found"
+
+[[portrait]]
+id = 41 # Oho
+crop = [160, 35, 310, 185]
+note = "face found on the belly"
+
+[[portrait]]
+id = 44 # Takayasu
+crop = [190, 0, 350, 160]
+note = "face found on a spectator"
+
+[[portrait]]
+id = 47 # Okinoumi
+crop = [210, 0, 390, 180]
+note = "no face found"
+
+[[portrait]]
+id = 60 # Hidenoumi
+crop = [140, 10, 300, 170]
+note = "full body, no face found"
+
+[[portrait]]
+id = 63 # Takakento
+crop = [250, 20, 430, 200]
+note = "profile, no face found"
+
+[[portrait]]
+id = 70 # Kotokuzan
+crop = [160, 35, 330, 205]
+note = "no face found"
+
+[[portrait]]
+id = 86 # Shishi
+crop = [95, 0, 235, 140]
+note = "face found on a spectator"
+
+[[portrait]]
+id = 97 # Asagyokusei
+crop = [200, 15, 365, 180]
+note = "face found on a towel"
+
+[[portrait]]
+id = 104 # Chiyonoumi
+crop = [175, 15, 340, 180]
+note = "no face found"
+
+[[portrait]]
+id = 109 # Akiseyama
+crop = [145, 10, 325, 190]
+note = "face found on a spectator"
+
+[[portrait]]
+id = 168 # Daishomaru
+crop = [180, 90, 340, 250]
+note = "crop on the apron"
+
+[[portrait]]
+id = 368 # Ishiura
+crop = [190, 70, 370, 250]
+note = "face found on a spectator"
+
+[[portrait]]
+id = 671 # Jokoryu
+crop = [110, 0, 290, 180]
+note = "no face found"
+
+[[portrait]]
+id = 904 # Onokuni
+crop = [100, 30, 300, 230]
+note = "face cut at the edge"
+
+[[portrait]]
+id = 980 # Wakashimazu
+crop = [160, 15, 360, 215]
+note = "no face found"
+
+[[portrait]]
+id = 1034 # Kurosegawa
+crop = [220, 20, 420, 220]
+note = "no face found"
+
+[[portrait]]
+id = 1196 # Koboyama
+crop = [180, 60, 460, 340]
+note = "face cut at the edge"
+
+[[portrait]]
+id = 1319 # Kashiwado
+crop = [90, 40, 330, 280]
+note = "crop on the chest"
+
+[[portrait]]
+id = 1368 # Mitsuneyama
+exclude = true
+note = "an action shot; no usable face even cropped"
+
+[[portrait]]
+id = 1398 # Ohikari
+crop = [130, 50, 330, 250]
+note = "crop on the apron"
+
+[[portrait]]
+id = 1405 # Kotogahama
+crop = [205, 15, 365, 175]
+note = "full body, no face found"
+
+[[portrait]]
+id = 1702 # Shinkawa
+crop = [110, 145, 270, 305]
+note = "full body, no face found"
+
+[[portrait]]
+id = 3076 # Sagatsukasa
+crop = [130, 0, 320, 190]
+note = "no face found"
+
+[[portrait]]
+id = 3080 # Takagenji
+crop = [35, 0, 125, 90]
+note = "full body, small image"
+
+[[portrait]]
+id = 3140 # Toyohibiki
+crop = [165, 0, 335, 170]
+note = "no face found"
+
+[[portrait]]
+id = 3158 # Kotoyuki
+crop = [215, 70, 335, 190]
+note = "crop on the thrown salt"
+
+[[portrait]]
+id = 3175 # Masunoyama
+crop = [150, 40, 330, 220]
+note = "crop on the arm"
+
+[[portrait]]
+id = 3181 # Kakuryu
+crop = [110, 10, 270, 170]
+note = "crop on the robe's lettering"
+
+[[portrait]]
+id = 3248 # Yoshikaze
+crop = [65, 35, 245, 215]
+note = "no face found"
+
+[[portrait]]
+id = 3252 # Homarefuji
+crop = [150, 60, 350, 260]
+note = "crop on the taped hand"
+
+[[portrait]]
+id = 3255 # Takanoiwa
+crop = [100, 15, 280, 195]
+note = "crop on the dark background"
+
+[[portrait]]
+id = 3285 # Kisenosato
+crop = [205, 0, 335, 130]
+note = "full body, no face found"
+
+[[portrait]]
+id = 3346 # Osunaarashi
+crop = [130, 60, 270, 200]
+note = "full body, no face found"
+
+[[portrait]]
+id = 3352 # Kitataiki
+crop = [110, 40, 330, 260]
+note = "crop on a blur"
+
+[[portrait]]
+id = 3395 # Shotenro
+crop = [130, 10, 270, 150]
+note = "no face found"
+
+[[portrait]]
+id = 3648 # Ryuo
+crop = [110, 30, 330, 250]
+note = "no face found"
+
+[[portrait]]
+id = 3663 # Kirinowaka
+crop = [170, 5, 360, 195]
+note = "face found on a spectator"
+
+[[portrait]]
+id = 3718 # Daimanazuru
+crop = [190, 35, 390, 235]
+note = "no face found"
+
+[[portrait]]
+id = 3728 # Kasugao
+crop = [140, 15, 300, 175]
+note = "no face found"
+
+[[portrait]]
+id = 3730 # Hoshitango
+crop = [215, 0, 375, 160]
+note = "no face found"
+
+[[portrait]]
+id = 3739 # Kasuganishiki
+crop = [140, 15, 350, 225]
+note = "face found on a spectator"
+
+[[portrait]]
+id = 3742 # Shimotori
+crop = [125, 25, 325, 225]
+note = "no face found"
+
+[[portrait]]
+id = 3745 # Oikari
+crop = [80, 10, 360, 290]
+note = "profile, no face found"
+
+[[portrait]]
+id = 3747 # Asanowaka
+crop = [50, 40, 340, 330]
+note = "profile, no face found"
+
+[[portrait]]
+id = 3832 # Hamanishiki
+crop = [170, 170, 360, 360]
+note = "arms raised, no face found"
+
+[[portrait]]
+id = 3834 # Otsukasa
+crop = [115, 25, 295, 205]
+note = "profile, no face found"
+
+[[portrait]]
+id = 3859 # Musashimaru
+crop = [250, 115, 450, 315]
+note = "no face found"
+
+[[portrait]]
+id = 3886 # Bushuyama
+crop = [120, 20, 360, 260]
+note = "no face found"
+
+[[portrait]]
+id = 4015 # Wakakirin
+crop = [115, 25, 250, 160]
+note = "full body, no face found"
+
+[[portrait]]
+id = 4063 # Ushiomaru
+crop = [180, 30, 340, 190]
+note = "full body, no face found"
+
+[[portrait]]
+id = 4089 # Tosayutaka
+crop = [120, 10, 320, 210]
+note = "profile, no face found"
+
+[[portrait]]
+id = 4125 # Daido
+crop = [140, 25, 330, 215]
+note = "crop on the apron"
+
+[[portrait]]
+id = 4126 # Tokitenku
+crop = [145, 15, 305, 175]
+note = "face cut at the edge"
+
+[[portrait]]
+id = 4165 # Tochinowaka
+crop = [160, 15, 340, 195]
+note = "no face found"
+
+[[portrait]]
+id = 4225 # Aran
+crop = [55, 15, 235, 195]
+note = "profile, no face found"
+
+[[portrait]]
+id = 4266 # Masuraumi
+crop = [250, 100, 460, 310]
+note = "face found on a spectator"
+
+[[portrait]]
+id = 4306 # Nakanokuni
+crop = [220, 20, 420, 220]
+note = "no face found"
+
+[[portrait]]
+id = 4364 # Kiyoseumi
+exclude = true
+note = "bent over at the ring; no usable face even cropped"
+
+[[portrait]]
+id = 4380 # Shirononami
+crop = [140, 5, 345, 210]
+note = "no face found"
+
+[[portrait]]
+id = 4404 # Yamamotoyama
+crop = [165, 0, 360, 195]
+note = "no face found"
+
+[[portrait]]
+id = 4501 # Katayama
+crop = [340, 110, 480, 250]
+note = "leg raised, no face found"
+
+[[portrait]]
+id = 4789 # Takanohana
+crop = [120, 140, 450, 470]
+note = "crop on the hair"
+
+[[portrait]]
+id = 4912 # Kotonishiki
+crop = [175, 15, 355, 195]
+note = "no face found"
+
+[[portrait]]
+id = 5308 # Konishiki
+crop = [30, 0, 135, 105]
+note = "small image, no face found"
+
+[[portrait]]
+id = 6373 # Takamishu
+crop = [60, 0, 280, 220]
+note = "crop on a blur"

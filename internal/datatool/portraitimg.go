@@ -21,6 +21,9 @@ import (
 
 	"github.com/BurntSushi/toml"
 	pigo "github.com/esimov/pigo/core"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/basicfont"
+	"golang.org/x/image/math/fixed"
 
 	"github.com/thorstenpfister/basho/internal/atomicfile"
 	"github.com/thorstenpfister/basho/internal/domain"
@@ -379,7 +382,7 @@ func BuildPortraits(work string, sources []PortraitSource, ov PortraitOverrides,
 		built = append(built, BuiltPortrait{s, p})
 	}
 	bar.done()
-	if err := writePNG(filepath.Join(work, "sheet.png"), sheet(built, work)); err != nil {
+	if err := writePNG(filepath.Join(work, "sheet.png"), sheet(built, work, ov)); err != nil {
 		return built, err
 	}
 	_, _ = fmt.Fprintf(log, "%d portraits built; no face found, cropped from the top: %d\n", len(built), len(noFace))
@@ -393,14 +396,21 @@ func BuildPortraits(work string, sources []PortraitSource, ov PortraitOverrides,
 // the largest portrait, both 144 px.
 const sheetCell = 144
 
+// sheetLabel is the strip under each cell: the wrestler's ID and name, as
+// overrides.toml needs them.
+const sheetLabel = 16
+
 // sheet lays the portraits out for review, 8 a row: the crop of the photo,
-// then the largest pixel portrait enlarged.
-func sheet(built []BuiltPortrait, work string) image.Image {
+// then the largest pixel portrait enlarged, over a label with the ID and
+// name; "no face" marks a crop from the top, "override" a manual one.
+func sheet(built []BuiltPortrait, work string, ov PortraitOverrides) image.Image {
 	const perRow = 8
+	rowH := sheetCell + sheetLabel
 	rows := max((len(built)+perRow-1)/perRow, 1)
-	out := image.NewNRGBA(image.Rect(0, 0, perRow*2*sheetCell, rows*sheetCell))
+	out := image.NewNRGBA(image.Rect(0, 0, perRow*2*sheetCell, rows*rowH))
+	draw.Draw(out, out.Bounds(), image.NewUniform(color.NRGBA{24, 24, 28, 255}), image.Point{}, draw.Src)
 	for i, b := range built {
-		x, y := (i%perRow)*2*sheetCell, (i/perRow)*sheetCell
+		x, y := (i%perRow)*2*sheetCell, (i/perRow)*rowH
 		if img, err := readImage(filepath.Join(work, b.Image)); err == nil {
 			crop := AreaScale(img, b.Crop, sheetCell)
 			draw.Draw(out, image.Rect(x, y, x+sheetCell, y+sheetCell), crop, image.Point{}, draw.Src)
@@ -413,6 +423,18 @@ func sheet(built []BuiltPortrait, work string) image.Image {
 				draw.Draw(out, image.Rect(x+sheetCell+px*scale, y+py*scale, x+sheetCell+(px+1)*scale, y+(py+1)*scale), image.NewUniform(c), image.Point{}, draw.Src)
 			}
 		}
+		label := fmt.Sprintf("%d %s", b.RikishiID, b.Name)
+		switch _, manual := ov[b.RikishiID]; {
+		case manual:
+			label += " (override)"
+		case !b.Face:
+			label += " (no face)"
+		}
+		d := font.Drawer{
+			Dst: out, Src: image.NewUniform(color.White), Face: basicfont.Face7x13,
+			Dot: fixed.P(x+4, y+sheetCell+12),
+		}
+		d.DrawString(label)
 	}
 	return out
 }

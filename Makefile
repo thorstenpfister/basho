@@ -123,3 +123,6 @@ portraits: build ## Fetch and build the pixel portraits, ARGS passed on (SPEC §
 	$(BIN)/basho-data portraits update --dry-run $(ARGS)
 	$(call confirm,basho-data portraits update fetches the images above from Wikimedia at 1 request per second.)
 	$(BIN)/basho-data portraits update $(if $(CONTACT),--contact "$(CONTACT)") $(ARGS)
+
+portraits-preview: build ## Rebuild only the wrestlers in overrides.toml: .cache/basho-data/portraits-preview/sheet.png
+	$(BIN)/basho-data portraits update --overrides-only --work .cache/basho-data/portraits-preview $(if $(CONTACT),--contact "$(CONTACT)") $(ARGS)

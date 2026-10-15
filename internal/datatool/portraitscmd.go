@@ -2,7 +2,9 @@ package datatool
 
 import (
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +22,7 @@ func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 	var cfg PortraitConfig
 	var only, snapDir, workCache, contact, overrides, out string
 	var img ImageConfig
+	var overridesOnly bool
 	update := &cobra.Command{
 		Use:   "update",
 		Short: "Fetch wrestler portraits from Wikimedia Commons (about one request per image)",
@@ -59,6 +62,12 @@ func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 			if cfg.Overrides, err = LoadPortraitOverrides(overrides); err != nil {
 				return err
 			}
+			if overridesOnly {
+				if len(cfg.Overrides) == 0 {
+					return fmt.Errorf("--overrides-only: %s has no overrides", overrides)
+				}
+				cfg.Only = slices.Sorted(maps.Keys(cfg.Overrides))
+			}
 			g := &cache.Getter{Cache: c, Next: newWikimediaClient(info, contact), Policy: wikimediaPolicy}
 			set, err := FetchPortraits(cmd.Context(), g, rs, cfg, cmd.ErrOrStderr())
 			if err != nil || cfg.DryRun {
@@ -84,6 +93,7 @@ func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 	f.BoolVar(&cfg.DryRun, "dry-run", false, "run the Wikidata query (one request) and print the plan")
 	f.StringVar(&overrides, "overrides", "data/portraits/overrides.toml", "manual crops, exclusions and other files")
 	f.StringVar(&out, "out", "data/portraits", "where the portraits and credits go (not with --only or --limit)")
+	f.BoolVar(&overridesOnly, "overrides-only", false, "only the wrestlers in --overrides, for a quick look at them (use another --work)")
 	f.IntVar(&img.Colours, "colours", DefaultColours, "colours per portrait")
 	f.BoolVar(&img.Dither, "dither", false, "ordered dithering when reducing the colours")
 	f.StringVar(&contact, "contact", "https://github.com/thorstenpfister/basho",

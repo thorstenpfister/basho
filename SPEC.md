@@ -1214,6 +1214,7 @@ adjacent_days = false
 | `vhs` | Renders the README GIF from `docs/demo.tape` (needs VHS: `brew install vhs`) | 12 |
 | `release-snapshot` | `goreleaser release --snapshot --clean` into `dist/` | 17 |
 | `portraits` | `basho-data portraits update` | 14 |
+| `portraits-preview` | Rebuilds only the wrestlers in `overrides.toml` into a preview sheet, from the work cache | 14 |
 | `clean` | Removes `bin/`, `dist/` and coverage files; never the work cache or `data/` | 0 |
 
 - **Placeholders:** every target exists from Phase 0. Targets whose phase hasn't arrived yet print "not implemented yet (phase N)", so `make help` shows the whole picture from the start.
@@ -1712,6 +1713,9 @@ AC status: met, by `TestNameModes`.
 
    - **Look, after the first full run:** with DB32's 32 colours the photos turned to soup, the old sepia and black-and-white ones especially, and the wrestlers were hard to tell apart. A comparison over the cached thumbnails showed that the palette was the main loss, then the crop, then the size. Now each portrait gets a palette of its own 16 colours (median cut; `--colours` 2–256 tries others from the cache), the crop is 1.7 face widths with the face 45% down, and a 48 px size joins 32 and 20 for wide terminals. It stays pixel art, with crisp blocks and few colours, and DB32 is gone.
    - **Progress** (after the first full run, which said nothing for 6 minutes): each phase reports its count, metadata 3/8, thumbnails 37/360, portraits 120/360, on one rewritten line in a terminal and every 25 items in a log. A rerun from the work cache takes about 30 s, mostly face detection.
+
+   - **Review tools:** each cell of `sheet.png` has a label with the ID and name, marked "(override)" or "(no face)". `basho-data portraits update --overrides-only`, or `make portraits-preview`, rebuilds only the wrestlers in `overrides.toml`, into `.cache/basho-data/portraits-preview/sheet.png`, from the work cache in seconds. It never writes `data/portraits`.
+   - **First review** (2026-10-15, all 360): `overrides.toml` excludes 7 images (three handprints, a statue, an arena wide shot, and two action shots without a usable face) and crops 68 by hand. Of those, 35 were full-body or profile shots where no face was found; the others caught a spectator, a towel, the belly, an apron or a banner. Each crop was checked with the preview, and the coordinates were read off the thumbnails with a 50 px grid.
 
    Open: needs the owner's full run (`make portraits CONTACT=…`, about 370 requests, 6 minutes). Review `sheet.png` in the work directory and the "no face found" list, fix crops or exclude images in `overrides.toml`, run again (it fetches nothing twice), and decide on `--dither`.
 7. Golden tests (§13).
