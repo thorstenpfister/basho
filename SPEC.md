@@ -1069,9 +1069,10 @@ basho info [YYYYMM]                     # metadata, yusho, sansho
 basho day [N] [--tournament] [--division]    # bout list
 basho bout <day> <matchNo> [--tournament]    # tale of the tape as text
 basho standings [--day N] [--grid] [--tournament] [--division]
+basho wrestler NAME|ID [--tournament]  # a career up to the tournament (phase 15)
 basho watch [--division]                # live line stream (phase 11)
 basho ratings [-t] [--top N]            # top-rated wrestlers as of a tournament (phase 5)
-basho credits                           # data sources and portrait attributions
+basho credits [--portraits]             # data sources and portrait attributions
 basho version
 ```
 
@@ -1789,6 +1790,13 @@ AC status: met.
    - **`--ascii`:** the sparkline heights fold to a `_ . - = #` ramp.
    - **Tests:** goldens at 80×24, 120×40 and 160×50 over the fixture snapshot with a generated portrait, navigation and `enter`, and the keys on the VS and standings screens.
 3. **CLI:** `basho wrestler NAME|ID`, text and `--json`. NAME is a shikona from any era, matched exactly and ignoring case. A name several wrestlers used lists them and exits 2. This is not a search screen (§1.2).
+
+   Done:
+   - **Lookup** (`service.FindWrestlers`): every shikona in the placements, in any case, and today's name in romaji or kanji; a number is an ID. Several wrestlers with the name, Takanohana for one (father and son), list their IDs, first and last years and last rank, and exit 2. An unknown name exits 3.
+   - **Output:** text shows the profile, totals and fighting style, then the tournaments newest first, as on the screen. JSON has kind `wrestler` (docs/json.md).
+   - **`-t`:** sets the tournament the career is seen from, `current` by default; spoiler-free mode cuts it at that tournament's horizon.
+   - **Kanji:** sumo-api has none for many older wrestlers (Hakuho among them), so they are found by romaji only.
+   - **Shared:** the moveset JSON moved into `movesetJSON`, which the tale's JSON uses too.
 4. **Spoiler-free:** everything stops at the horizon, ratings included; `TestNoLeaks` and `TestASCIIScreens` walk the new screen.
 5. Tests: goldens at the three widths, the CLI, and spot checks against the snapshot (Taiho, Hakuho, Onosato).
 

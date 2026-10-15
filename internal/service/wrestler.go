@@ -1,9 +1,12 @@
 package service
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
@@ -151,4 +154,61 @@ func (s *Service) Wrestler(ctx context.Context, id domain.RikishiID, through dom
 		car.Tournaments = append(car.Tournaments, cb)
 	}
 	return Result[Career]{Value: car, Prov: prov}, nil
+}
+
+// Match is a wrestler a name found.
+type Match struct {
+	Wrestler                   // today's name
+	Shikona     domain.Name    // the name that matched
+	First, Last domain.BashoID // their first and last sekitori tournaments
+}
+
+// FindWrestlers returns the wrestlers who fought under name in any
+// tournament or carry it today, matched exactly but for case; ordered by
+// their first tournament. A number is taken as a wrestler ID. No match is
+// a NotFound error.
+func (s *Service) FindWrestlers(name string) ([]Match, error) {
+	x, err := s.index()
+	if err != nil {
+		return nil, err
+	}
+	profiles, err := s.wrestlers()
+	if err != nil {
+		return nil, err
+	}
+	if id, err := strconv.Atoi(name); err == nil {
+		name = ""
+		if ps := x.Placements(domain.RikishiID(id)); len(ps) > 0 {
+			return []Match{match(domain.RikishiID(id), ps, ps[len(ps)-1].Shikona, profiles)}, nil
+		}
+		return nil, fmt.Errorf("no sekitori wrestler has the ID %d: %w", id, source.ErrNotFound)
+	}
+	var out []Match
+	x.EachPlaced(func(id domain.RikishiID, ps []snapshot.Placement) {
+		for _, p := range ps {
+			if strings.EqualFold(p.Shikona.En, name) || p.Shikona.Jp != "" && p.Shikona.Jp == name {
+				out = append(out, match(id, ps, p.Shikona, profiles))
+				return
+			}
+		}
+		if p, ok := profiles[id]; ok && (strings.EqualFold(p.Name.En, name) || p.Name.Jp != "" && p.Name.Jp == name) {
+			out = append(out, match(id, ps, p.Name, profiles))
+		}
+	})
+	if len(out) == 0 {
+		return nil, fmt.Errorf("no sekitori wrestler is or was called %q: %w", name, source.ErrNotFound)
+	}
+	slices.SortFunc(out, func(a, b Match) int {
+		return cmp.Or(a.First.Compare(b.First), cmp.Compare(a.RikishiID, b.RikishiID))
+	})
+	return out, nil
+}
+
+func match(id domain.RikishiID, ps []snapshot.Placement, matched domain.Name, profiles map[domain.RikishiID]domain.Rikishi) Match {
+	last := ps[len(ps)-1]
+	name := last.Shikona
+	if p, ok := profiles[id]; ok {
+		name = p.Name
+	}
+	return Match{Wrestler: Wrestler{RikishiID: id, Shikona: name, Rank: last.Rank}, Shikona: matched, First: ps[0].Basho, Last: last.Basho}
 }

@@ -337,15 +337,7 @@ func taleSideJSON(t service.TaleSide) jsonTaleSide {
 	for _, r := range t.Last5.Results {
 		last.Results = append(last.Results, jsonResult{Basho: r.Basho, Day: r.Day, Opponent: r.Opponent, Won: r.Won, Fusen: r.Fusen, Kimarite: string(r.Kimarite)})
 	}
-	m := t.Moveset()
-	mv := jsonMoveset{
-		Window: m.Window.String(), Tournaments: m.Tournaments, Wins: m.Wins, Losses: m.Losses,
-		WinShare: shares(m.WinShare), LossShare: shares(m.LossShare), TopWins: countsJSON(m.TopWins), TopLosses: countsJSON(m.TopLosses),
-		SignatureShare: roundTo(m.SignatureShare, 4), FighterType: m.Type.String(), Enough: m.Enough(),
-	}
-	if m.Signature.Count > 0 {
-		mv.Signature = &jsonCount{Kimarite: string(m.Signature.Kimarite), Count: m.Signature.Count}
-	}
+	mv := movesetJSON(t.Moveset())
 	out := jsonTaleSide{
 		jsonWrestler: wrestlerJSON(t.Wrestler), Heya: t.Heya, Shusshin: t.Shusshin, Profile: t.Profile,
 		Age: t.Career.Age, Height: t.Career.Height, Weight: t.Career.Weight, Latest: t.Career.Latest, Now: t.Career.Now,
@@ -537,4 +529,76 @@ func ratingsJSON(t service.RatingTable) jsonRatings {
 type creditsJSON struct {
 	Text      string            `json:"text"`
 	Portraits []portrait.Credit `json:"portraits"`
+}
+
+func movesetJSON(m derive.Profile) jsonMoveset {
+	mv := jsonMoveset{
+		Window: m.Window.String(), Tournaments: m.Tournaments, Wins: m.Wins, Losses: m.Losses,
+		WinShare: shares(m.WinShare), LossShare: shares(m.LossShare), TopWins: countsJSON(m.TopWins), TopLosses: countsJSON(m.TopLosses),
+		SignatureShare: roundTo(m.SignatureShare, 4), FighterType: m.Type.String(), Enough: m.Enough(),
+	}
+	if m.Signature.Count > 0 {
+		mv.Signature = &jsonCount{Kimarite: string(m.Signature.Kimarite), Count: m.Signature.Count}
+	}
+	return mv
+}
+
+// jsonCareer is `basho wrestler --json` (docs/json.md).
+type jsonCareer struct {
+	jsonWrestler
+	Through     domain.BashoID    `json:"through"`
+	Heya        string            `json:"heya"`
+	Shusshin    string            `json:"shusshin"`
+	Profile     bool              `json:"profile"`
+	Age         int               `json:"age"`
+	Height      float64           `json:"height"`
+	Weight      float64           `json:"weight"`
+	Yusho       map[string]int    `json:"yusho"`
+	Sansho      map[string]int    `json:"sansho"`
+	Kinboshi    int               `json:"kinboshi"`
+	Movesets    []jsonMoveset     `json:"movesets"` // last 6 basho, career, this basho
+	RatingShown bool              `json:"ratingShown"`
+	Tournaments []jsonCareerBasho `json:"tournaments"` // oldest first
+}
+
+type jsonCareerBasho struct {
+	Basho   domain.BashoID `json:"basho"`
+	Shikona jsonName       `json:"shikona"`
+	Rank    *jsonRank      `json:"rank"`
+	Record  jsonRecord     `json:"record"`
+	Partial bool           `json:"partial"`
+	Yusho   bool           `json:"yusho"`
+	Prizes  []string       `json:"prizes"`
+	Rating  *float64       `json:"rating"` // null when the rating is hidden
+	LastDay int            `json:"lastDay"`
+}
+
+func careerJSON(c service.Career) jsonCareer {
+	out := jsonCareer{
+		jsonWrestler: wrestlerJSON(c.Wrestler), Through: c.Through,
+		Heya: c.Profile.Heya, Shusshin: c.Profile.Shusshin, Profile: c.HasProfile,
+		Age: c.Stats.Age, Height: c.Stats.Height, Weight: c.Stats.Weight,
+		Yusho: map[string]int{}, Sansho: c.Stats.Sansho, Kinboshi: c.Kinboshi.Count, RatingShown: c.RatingShown,
+	}
+	for d, n := range c.Stats.Yusho {
+		out.Yusho[lower(d.String())] = n
+	}
+	for _, m := range c.Movesets {
+		out.Movesets = append(out.Movesets, movesetJSON(m))
+	}
+	for _, b := range c.Tournaments {
+		jb := jsonCareerBasho{
+			Basho: b.Basho, Shikona: jsonName{En: b.Shikona.En, Jp: b.Shikona.Jp, Approx: b.Shikona.Approx}, Rank: rankJSON(b.Rank),
+			Record: recordJSON(b.Record), Partial: b.Partial, Yusho: b.Yusho, Prizes: b.Prizes, LastDay: b.LastDay,
+		}
+		if jb.Prizes == nil {
+			jb.Prizes = []string{}
+		}
+		if c.RatingShown {
+			r := roundTo(b.Rating, 2)
+			jb.Rating = &r
+		}
+		out.Tournaments = append(out.Tournaments, jb)
+	}
+	return out
 }

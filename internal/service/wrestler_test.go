@@ -93,3 +93,17 @@ func TestWrestlerHorizon(t *testing.T) {
 		t.Errorf("rating %v (full %v), yusho %v (full %v)", hidden.Rating, all.Rating, res.Value.Stats.Yusho, full.Value.Stats.Yusho)
 	}
 }
+
+func TestFindWrestlers(t *testing.T) {
+	s := embedded()
+	for name, want := range map[string]int{"Hakuho": 1, "hakuho": 1, "大の里": 1, "3081": 1, "Takanohana": 2, "Nobody": 0, "99999999": 0} {
+		got, err := s.FindWrestlers(name)
+		if len(got) != want || (want == 0) != NotFound(err) {
+			t.Errorf("%q: %d matches, want %d (%v)", name, len(got), want, err)
+		}
+	}
+	got, _ := s.FindWrestlers("Takanohana")
+	if len(got) == 2 && (got[0].First.Compare(got[1].First) >= 0 || got[1].Shikona.En != "Takanohana") {
+		t.Errorf("Takanohana: %+v", got)
+	}
+}

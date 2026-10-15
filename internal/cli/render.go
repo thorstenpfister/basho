@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"regexp"
 	"slices"
@@ -634,4 +635,89 @@ func orElse(s, fallback string) string {
 // (sumo-|api), so hyphens go in non-breaking for the wrap.
 func wrap(s string, width int) string {
 	return strings.ReplaceAll(ansi.Wordwrap(strings.ReplaceAll(s, "-", "\u2011"), width, ""), "\u2011", "-")
+}
+
+// renderCareer is `basho wrestler`: the profile and totals, then every
+// tournament, newest first, as on the wrestler screen (SPEC §8.10).
+func renderCareer(g glyphs, c service.Career, p service.Provenance) string {
+	var b strings.Builder
+	name := bold.Render(strings.ToUpper(g.name(c.Shikona)))
+	if alt := g.alt(c.Shikona); alt != "" {
+		name += "  " + alt
+	}
+	fmt.Fprintf(&b, "%s · %s\n", name, c.Rank)
+	var profile []string
+	if c.HasProfile {
+		profile = append(profile, orElse(c.Profile.Heya, "—"), orElse(c.Profile.Shusshin, "—"))
+	}
+	if c.Stats.Age > 0 {
+		profile = append(profile, fmt.Sprintf("age %d", c.Stats.Age))
+	}
+	if c.Stats.Height > 0 {
+		profile = append(profile, fmt.Sprintf("%.0fcm", c.Stats.Height), fmt.Sprintf("%.0fkg", c.Stats.Weight))
+	}
+	if len(profile) > 0 {
+		b.WriteString(strings.Join(profile, " · ") + "\n")
+	}
+	var totals []string
+	for _, div := range []domain.Division{domain.DivMakuuchi, domain.DivJuryo} {
+		if n := c.Stats.Yusho[div]; n > 0 {
+			totals = append(totals, gold.Render(fmt.Sprintf("Yusho %d", n))+" "+div.String())
+		}
+	}
+	for _, prize := range slices.Sorted(maps.Keys(c.Stats.Sansho)) {
+		totals = append(totals, fmt.Sprintf("%s %d", prize, c.Stats.Sansho[prize]))
+	}
+	if c.Kinboshi.Count > 0 {
+		totals = append(totals, fmt.Sprintf("%s kinboshi %d", g.star, c.Kinboshi.Count))
+	}
+	if len(totals) > 0 {
+		b.WriteString(strings.Join(totals, " · ") + "\n")
+	}
+	m := c.Movesets[derive.Career]
+	if m.Enough() {
+		fmt.Fprintf(&b, "%s · signature %s %.0f%%\n", m.Type, m.Signature.Kimarite, 100*m.SignatureShare)
+	}
+	b.WriteString("\n")
+	var rows [][]string
+	for i := len(c.Tournaments) - 1; i >= 0; i-- {
+		t := c.Tournaments[i]
+		record := t.Record.String()
+		if t.Partial {
+			record += " (so far)"
+		}
+		rating := ""
+		if c.RatingShown {
+			rating = fmt.Sprintf("%.0f", t.Rating)
+		}
+		var marks []string
+		if t.Yusho {
+			marks = append(marks, gold.Render("YUSHO"))
+		}
+		marks = append(marks, t.Prizes...)
+		if t.Shikona.En != c.Shikona.En {
+			marks = append(marks, dim.Render("as "+g.name(t.Shikona)))
+		}
+		rows = append(rows, []string{fmt.Sprintf("%s %d", t.Basho.Name(), t.Basho.Year), t.Rank.Short(), record, rating, strings.Join(marks, " ")})
+	}
+	headers := []string{"Basho", "Rank", "Record", "Rating", ""}
+	if !c.RatingShown {
+		headers[3] = ""
+	}
+	b.WriteString(table(headers, rows, 3) + "\n")
+	b.WriteString("\n" + provenance(p) + "\n")
+	return b.String()
+}
+
+// ambiguous lists the wrestlers a name found, to choose one by ID.
+func ambiguous(name string, ms []service.Match) error {
+	var lines []string
+	for _, m := range ms {
+		years := fmt.Sprint(m.First.Year)
+		if m.Last.Year != m.First.Year {
+			years += "–" + fmt.Sprint(m.Last.Year)
+		}
+		lines = append(lines, fmt.Sprintf("  %d  %s (%s, last %s)", m.RikishiID, m.Shikona.En, years, m.Rank.Short()))
+	}
+	return usage(fmt.Errorf("%q matches %d wrestlers; give the ID:\n%s", name, len(ms), strings.Join(lines, "\n")))
 }

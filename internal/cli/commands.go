@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -212,6 +213,34 @@ func (a *app) commands() []*cobra.Command {
 	tFlag(ratings)
 	ratings.Flags().IntVar(&top, "top", 20, "number of wrestlers (0: all)")
 
+	wrestlerCmd := &cobra.Command{
+		Use: "wrestler NAME|ID", Short: "A wrestler's career, as seen from a tournament", Args: usageArgs(cobra.MinimumNArgs(1)),
+		Long: "wrestler prints a wrestler's career up to the tournament given with -t (default: the\n" +
+			"current one): rank, record, rating, yusho and special prizes for every sekitori\n" +
+			"tournament. NAME is a shikona from any era, exactly, in any case; a name several\n" +
+			"wrestlers used lists them, to choose one by ID.",
+		RunE: a.data(func(cmd *cobra.Command, svc *service.Service, args []string) error {
+			id, err := a.tournament(tournament)
+			if err != nil {
+				return err
+			}
+			name := strings.Join(args, " ")
+			ms, err := svc.FindWrestlers(name)
+			switch {
+			case err != nil:
+				return err
+			case len(ms) > 1:
+				return ambiguous(name, ms)
+			}
+			res, err := svc.Wrestler(a.dataCtx(cmd), ms[0].RikishiID, id)
+			if err != nil {
+				return err
+			}
+			return a.emit(cmd, "wrestler", res.Prov, func() string { return renderCareer(a.glyphs(), res.Value, res.Prov) }, func() any { return careerJSON(res.Value) })
+		}),
+	}
+	tFlag(wrestlerCmd)
+
 	var photos bool
 	creditsCmd := &cobra.Command{
 		Use: "credits", Short: "Data sources and portrait credits", Args: usageArgs(cobra.NoArgs),
@@ -226,7 +255,7 @@ func (a *app) commands() []*cobra.Command {
 		}),
 	}
 	creditsCmd.Flags().BoolVar(&photos, "portraits", false, "list every portrait's photo, author and licence")
-	return []*cobra.Command{list, info, day, bout, standings, a.watchCommand(), ratings, creditsCmd, a.configCommand()}
+	return []*cobra.Command{list, info, day, bout, standings, wrestlerCmd, a.watchCommand(), ratings, creditsCmd, a.configCommand()}
 }
 
 // dayArg is the day given, or the default (SPEC §11).

@@ -171,6 +171,16 @@ func PlacementOf(basho domain.BashoID, e domain.BanzukeEntry) Placement {
 	return p
 }
 
+// EachPlaced calls fn with every wrestler on the snapshot's banzuke and
+// their placements, oldest first, in no particular order of wrestlers.
+func (x *Index) EachPlaced(fn func(domain.RikishiID, []Placement)) {
+	x.mu.RLock()
+	defer x.mu.RUnlock()
+	for id, ps := range x.placed {
+		fn(id, ps)
+	}
+}
+
 // Placements returns a wrestler's places on the snapshot's banzuke,
 // oldest first. Tournaments after the snapshot are not in it: the service
 // reads their banzuke.

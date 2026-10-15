@@ -263,3 +263,24 @@ func TestPortraitCredits(t *testing.T) {
 		t.Errorf("no portraits:\n%s", out)
 	}
 }
+
+// basho wrestler finds a wrestler by any shikona, in any case, or by ID.
+func TestWrestlerCommand(t *testing.T) {
+	deps := fixtureDeps(t)
+	for _, args := range [][]string{{"wrestler", "onosato", "-t", "202609"}, {"wrestler", "8850", "-t", "202609"}, {"wrestler", "大の里", "-t", "202609"}} {
+		out, code := run(t, deps, args...)
+		if code != exitOK || !strings.Contains(out, "ONOSATO") || !strings.Contains(out, "YUSHO") {
+			t.Errorf("%v: exit %d\n%s", args, code, out)
+		}
+	}
+	if _, code := run(t, deps, "wrestler", "Nobody"); code != exitNotFound {
+		t.Errorf("an unknown name: exit %d", code)
+	}
+	err := ambiguous("Takanohana", []service.Match{
+		{Wrestler: service.Wrestler{RikishiID: 1345, Rank: domain.Rank{Title: domain.Ozeki, Number: 1, Side: domain.East}}, Shikona: domain.Name{En: "Takanohana"}, First: domain.BashoID{Year: 1972, Month: 1}, Last: domain.BashoID{Year: 1981, Month: 1}},
+		{Wrestler: service.Wrestler{RikishiID: 4789}, Shikona: domain.Name{En: "Takanohana"}, First: domain.BashoID{Year: 1994, Month: 11}, Last: domain.BashoID{Year: 2003, Month: 1}},
+	})
+	if exitCode(err) != exitUsage || !strings.Contains(err.Error(), "1345  Takanohana (1972–1981, last O1e)") || !strings.Contains(err.Error(), "4789  Takanohana (1994–2003") {
+		t.Errorf("%v", err)
+	}
+}

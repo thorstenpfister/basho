@@ -21,7 +21,7 @@ Every data command takes `--json` and prints one JSON document to stdout (SPEC Â
 | Field | Meaning |
 |---|---|
 | `schemaVersion` | `1`. Raised on any incompatible change. |
-| `kind` | `list`, `info`, `day`, `bout`, `standings`, `ratings`, `credits`, `config` or `config_path`: says what `data` is. |
+| `kind` | `list`, `info`, `day`, `bout`, `standings`, `wrestler`, `ratings`, `credits`, `config` or `config_path`: says what `data` is. |
 | `provenance.source` | `snapshot` (embedded data), `sumo-api` (any part came from the network), `cache:sumo-api` (all from the disk cache), `calendar` (no data needed, e.g. a cancelled tournament), `basho` (static text). |
 | `provenance.fetchedAt` | UTC. The snapshot's build time, or the oldest response used. |
 | `provenance.sourceUpdatedAt` | The source's own update time when it gives one (osada.us, Phase 9); otherwise `null`. |
@@ -94,6 +94,10 @@ A TaleSide is a Wrestler with:
 ### `ratings`
 
 `{"basho", "shown", "rows"}`: each row is a Wrestler with `value`, `change` and `provisional`, highest first. `shown` is `false` when the rating did not pass calibration.
+
+### `wrestler`
+
+`basho wrestler NAME|ID --json`: a Wrestler (today's name, the last rank) with `through` (the tournament seen from), `heya`, `shusshin`, `profile` (false: none known), `age`, `height`, `weight`, `yusho` by division, `sansho` by prize, `kinboshi`, `movesets` (last 6 basho, career, this basho; each as in `bout`), `ratingShown`, and `tournaments`, oldest first: `{"basho", "shikona", "rank", "record", "partial", "yusho", "prizes", "rating", "lastDay"}`. `partial` marks the tournament seen from while it runs or behind a spoiler horizon; `yusho` and `prizes` stay false and empty until it is over; `rating` is null when hidden.
 
 ### `credits`
 

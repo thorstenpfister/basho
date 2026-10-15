@@ -24,6 +24,7 @@ func TestGolden(t *testing.T) {
 		{"info", []string{"info", "202609"}},
 		{"list", []string{"list", "--from", "2026"}},
 		{"ratings", []string{"ratings", "-t", "202609", "--top", "10"}},
+		{"wrestler", []string{"wrestler", "Onosato", "-t", "202609"}},
 	} {
 		for _, format := range []string{"text", "json"} {
 			t.Run(tt.name+"_"+format, func(t *testing.T) {
