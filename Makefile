@@ -53,6 +53,10 @@ test-live: ## Real API smoke tests, manual only (phase 1)
 golden: ## Rewrite golden files with -update; review the diff (phase 6)
 	$(todo)
 
+demo: build ## Record docs/demo.gif from docs/demo.tape (needs VHS: brew install vhs)
+	@command -v vhs >/dev/null || { echo "make demo: needs vhs (brew install vhs)" >&2; exit 2; }
+	vhs docs/demo.tape
+
 bench: ## The performance budgets: first screen under 300 ms, grid frame under 16 ms
 	$(GO) test -run '^$$' -bench 'BenchmarkStart|BenchmarkGrid' -benchmem ./internal/tui/...
 

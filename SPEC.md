@@ -1195,6 +1195,7 @@ adjacent_days = false
 | `test-leaks` | The screen walks (spoiler leaks, `--ascii`) without the race detector, under which they skip (single-threaded, ten times slower there) | 11 |
 | `test-live` | `go test -tags live ./...`: real API smoke tests, manual only | 1 |
 | `golden` | Re-runs tests with `-update` to rewrite golden files (review the diff afterwards) | 6 |
+| `demo` | Records `docs/demo.gif` from `docs/demo.tape` with VHS | 12 |
 | `bench` | The performance budgets: first screen under 300 ms, grid frame under 16 ms (§17 Phase 12) | 12 |
 | `cover` | Coverage profile and HTML report (`coverage.html`) | 0 |
 | `fmt` | `go tool gofumpt -w .` | 0 |
@@ -1614,6 +1615,15 @@ AC status: met, by `TestWalkDay13` and `TestNoLeaks` (step 6).
    - **STYLE bar:** with colours on, all five categories were the same █, told apart by hue alone, and red and green are belt and pull. Each category now has a texture too (PUSH █, BELT ▓, THROW ▒, PULL ░, OTHER ▚), as the §8.5 mockup drew them; without colours or in ASCII, letters (step 1). The help legend uses the same marks.
    - **Help tabs:** the current page is in brackets, like the day bar's `[13]`.
 6. VHS tape and GIF for the README.
+
+   Partly done: `docs/demo.tape` and `make demo` (needs VHS) are in. The GIF is recorded on the owner's machine, and the README embeds it in the same commit. The tape runs `bin/basho --offline` on its own XDG directories, opens Aki 2026 through the picker behind `Hide`, and shows the following, about 35 s:
+   - day 13 with the yusho race
+   - the musubi-no-ichiban's VS screen, its moveset, and the bout before
+   - the standings race and grid
+   - spoiler-free mode on and off
+   - two help pages
+
+   The key sequence was checked against the app in the test driver.
 
 **AC:** a full manual test pass (checklist in `docs/qa.md`) in Ghostty and one other terminal, in light and dark themes.
 
