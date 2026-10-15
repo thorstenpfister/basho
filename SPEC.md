@@ -958,7 +958,7 @@ Pixel-art portraits beside the tale of the tape, facing each other like a fighti
 - Half-block characters (`▀`): the foreground colour is the upper pixel, the background colour the lower one. This is pure text, so it fits into Bubble Tea and Lip Gloss layouts and works in any truecolor terminal (Ghostty included). `github.com/charmbracelet/x/mosaic` (experimental) or a small renderer of our own.
 - The West portrait is mirrored horizontally so the fighters face each other.
 - On 256-colour terminals, colours map to the nearest palette entry. Portraits are hidden with `NO_COLOR`, `--ascii`, in compact layout and with `ui.portraits = false`.
-- Size: 32 px portraits at ≥ 140 columns, 20 px at 110–139, none below that.
+- Size: by the width left beside the wide layout's history column, so that the tape keeps 80 columns: 32 px when 146 or more are left (from 189 terminal columns in the wide layout), 20 px from 122 (122–129 columns in the normal layout, 165 in the wide), none below. The first plan, 32 px from 140 columns, predates the 42-column history column and does not fit beside it.
 - Below each portrait a dim caption gives the photo year ("photo 2014"), because some photos are old.
 - **No photo:** a procedurally generated silhouette sprite, shaped by height and weight, with a mawashi colour derived from the wrestler ID. It is clearly not a likeness.
 - Full-resolution images via terminal graphics protocols (Kitty, iTerm2, Sixel) are not used: they conflict with Bubble Tea's renderer (§15).
@@ -1701,6 +1701,13 @@ AC status: met, by `TestNameModes`.
    - **Silhouette:** a head with a topknot over broad shoulders, drawn at any size in one colour on a transparent ground, and symmetric, so mirroring leaves it as it is.
    - **Speed:** a 32 px portrait renders in 0.5 ms (`BenchmarkRender`).
 5. VS screen integration at the size breakpoints (§8.9), photo-year caption, `ui.portraits` toggle.
+
+   Done:
+   - **Placement:** the portraits stand beside the tape, East on the left facing right, West mirrored on the right, each with "photo 2024" under it when the year is known. The tape narrows to make room, and the result panel and the history column go beside or under all of it.
+   - **Sizes:** chosen by width, as §8.9 now says. Not shown with `ui.portraits = false`, `--ascii`, without colours, or in the compact layout.
+   - **Without a photo:** a silhouette in the rules' colour.
+   - **Caching:** each portrait's text is rendered once and kept for the screen, since the VS screen redraws on every animation frame.
+   - **Tests:** goldens at 200×50 (32 px) and 125×40 (20 px) use a generated test image, so no photo goes into the repository. Every gate and breakpoint is tested.
 6. Manual review of all generated portraits for current Makuuchi and Juryo wrestlers, and fix crops via overrides.
 7. Golden tests (§13).
 

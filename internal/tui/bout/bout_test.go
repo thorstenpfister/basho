@@ -158,12 +158,12 @@ func TestUndecided(t *testing.T) {
 	row := service.BoutRow{MatchNo: 3, East: service.BoutSide{Wrestler: service.Wrestler{Shikona: domain.Name{En: "A"}}}, West: service.BoutSide{Wrestler: service.Wrestler{Shikona: domain.Name{En: "B"}}}}
 	later := New(aki2026, domain.DivMakuuchi, 13, domain.NewDate(2026, time.September, 25), []service.BoutRow{row}, 0)
 	later.tale = &service.Tale{}
-	if v := ansi.Strip(later.resultPanel(ctx, measure(100))); !strings.Contains(v, "Scheduled — Day 13") {
+	if v := ansi.Strip(later.resultPanel(ctx, measure(ctx, 100))); !strings.Contains(v, "Scheduled — Day 13") {
 		t.Errorf("scheduled:\n%s", v)
 	}
 	today := New(aki2026, domain.DivMakuuchi, 13, domain.DateOf(testNow), []service.BoutRow{row}, 0)
 	today.tale = &service.Tale{}
-	if v := ansi.Strip(today.resultPanel(ctx, measure(100))); !strings.Contains(v, "Waiting for result…") {
+	if v := ansi.Strip(today.resultPanel(ctx, measure(ctx, 100))); !strings.Contains(v, "Waiting for result…") {
 		t.Errorf("waiting:\n%s", v)
 	}
 }

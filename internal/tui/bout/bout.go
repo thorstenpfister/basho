@@ -40,6 +40,7 @@ type VS struct {
 	flash           bool // the result panel's reveal flash
 	revealing       bool // space: flash once the revealed tale is in
 
+	pics          pictures      // rendered portraits, shared by the copies
 	history       bool          // v: the last 10 meetings
 	moveset       bool          // m: the moveset overlay
 	window        derive.Window // w: its sample window
@@ -59,7 +60,7 @@ var (
 // New returns the VS screen of bout index of a day's rows (regular bouts,
 // then playoffs) dated date.
 func New(id domain.BashoID, div domain.Division, day int, date domain.Date, rows []service.BoutRow, index int) VS {
-	v := VS{id: id, div: div, rows: rows}
+	v := VS{id: id, div: div, rows: rows, pics: pictures{}}
 	return v.show(day, date, rows, index)
 }
 
@@ -288,18 +289,24 @@ func (v VS) QuitGoesBack() bool { return true }
 // layout is the measures of one render.
 type layout struct {
 	tui.Layout
-	width  int // of the tape, without the wide history column
-	side   int // each value column
-	middle int // the label column
+	width    int // of the tape, without the wide history column and portraits
+	side     int // each value column
+	middle   int // the label column
+	portrait int // the portraits' size in pixels (and columns), 0 for none
 }
 
 // historyWidth is the wide layout's head-to-head column.
 const historyWidth = 42
 
-func measure(width int) layout {
+func measure(ctx *tui.Context, width int) layout {
 	l := layout{Layout: tui.LayoutOf(width), width: width}
 	if l.Layout == tui.Wide {
 		l.width = width - historyWidth - 1
+	}
+	if l.Layout != tui.Compact {
+		if l.portrait = portraitSize(ctx, l.width); l.portrait > 0 {
+			l.width -= 2 * (l.portrait + 1)
+		}
 	}
 	l.width = min(l.width, 110)
 	l.middle = 14
@@ -310,7 +317,7 @@ func measure(width int) layout {
 // View implements tui.Screen.
 func (v VS) View(ctx *tui.Context, width, height int) string {
 	t := ctx.Theme
-	l := measure(width)
+	l := measure(ctx, width)
 	var b strings.Builder
 	b.WriteString(" " + t.Title.Render(v.heading()) + "\n")
 	if v.err != nil && v.tale == nil {
@@ -323,6 +330,10 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 	tape := v.tape(ctx, l)
 	if v.moveset && v.tale != nil {
 		tape = v.movesetPanel(ctx, l)
+	}
+	if l.portrait > 0 {
+		tape = v.withPortraits(ctx, lipgloss.NewStyle().Width(l.width).Render(tape), l.portrait)
+		l.width += 2*(l.portrait+1) - 1 // the history column goes beside all of it
 	}
 	if l.Layout == tui.Wide && v.tale != nil {
 		col := lipgloss.NewStyle().Width(historyWidth).PaddingLeft(1).
