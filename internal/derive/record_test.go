@@ -94,3 +94,30 @@ func TestRecordAt(t *testing.T) {
 		t.Error("playoffs are not day bouts")
 	}
 }
+
+// RecordThrough counts the days a cutoff includes: a bout's day by the bout,
+// a day without one (absent) by the day.
+func TestRecordThrough(t *testing.T) {
+	id := domain.BashoID{Year: 2026, Month: 9}
+	var outcomes [domain.BashoDays]domain.Outcome
+	outcomes[0], outcomes[1], outcomes[2] = domain.Win, domain.Loss, domain.Absent
+	bouts := map[int]*domain.Bout{
+		1: {Basho: id, Day: 1, Division: domain.DivMakuuchi, MatchNo: 3},
+		2: {Basho: id, Day: 2, Division: domain.DivMakuuchi, MatchNo: 7},
+	}
+	boutOf := func(day int) *domain.Bout { return bouts[day] }
+	for _, tt := range []struct {
+		c    AsOf
+		want string
+	}{
+		{BeforeDay(id, 1), "0-0"},
+		{AsOf{Basho: id, Day: 2, Division: domain.DivMakuuchi, MatchNo: 5, Inclusive: true}, "1-0"}, // before day 2's bout
+		{AfterDay(id, 2), "1-1"},
+		{AfterDay(id, 3), "1-1-1"},
+		{EndOf(id), "1-1-1"},
+	} {
+		if got := RecordThrough(id, outcomes, boutOf, tt.c).String(); got != tt.want {
+			t.Errorf("%+v: %s, want %s", tt.c, got, tt.want)
+		}
+	}
+}

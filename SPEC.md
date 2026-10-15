@@ -966,6 +966,23 @@ Pixel-art portraits above the wrestlers' names, facing each other like a fightin
 
 ---
 
+### 8.10 Wrestler screen (Phase 15)
+
+A wrestler's career as seen from one tournament, the one it opens from: every sekitori tournament up to that tournament's end, or up to its spoiler horizon in spoiler-free mode, so nothing later is told.
+
+**Data** (`service.Wrestler`):
+- **Profile:** heya, hometown, age, height and weight; today's shikona and the last rank.
+- **Each tournament:** rank, the shikona of the time, record, yusho and special prizes, and the rating after it. The yusho and prizes only show once the cutoff has passed the whole tournament; the tournament seen from is partial while it runs or behind a horizon.
+- **Totals:** yusho and special prizes by kind, kinboshi, and the technique profile for the career, the last 6 tournaments and the tournament seen from.
+
+**Where it comes from:**
+- **The snapshot's tournaments:** placements kept with the bout index: per wrestler and tournament, the rank, the shikona and the 15 day outcomes, collected in the same pass. That is about 3 MB and 2 ms of the start.
+- **Later tournaments:** their banzuke from the remote layers.
+- **Records:** counted from the day outcomes up to the cutoff (`derive.RecordThrough`): a day with a bout counts when the cutoff includes the bout, a day without one once the cutoff has reached it.
+- **Ratings:** the rating after each tournament, or at the cutoff.
+
+Records follow the source. For the two days sumo-api lacks (Haru 1965 day 7, Natsu 1965 day 6), Taiho's record is a win and a loss short of the official one, and the source counts some withdrawals as more absences than the official total does.
+
 ## 9. Spoiler-free mode
 
 - **Reveal horizon** per tournament and division: `AsOf{Day, MatchNo}` = the last bout the user has seen.
@@ -1738,6 +1755,12 @@ AC status: met.
    - the rating after each tournament
    - kinboshi
    - the technique profile over the career and the last 6 tournaments (§6.7)
+
+   Done (§8.10):
+   - **The cutoff** is a tournament, `through`: a career opened from a bout of Aki 2024 must not tell what came after it. The CLI defaults to the latest tournament.
+   - **Records:** the index keeps each wrestler's placements, rank, shikona and day outcomes, from the pass that builds it. Records are counted to the cutoff from them (`derive.RecordThrough`), and tournaments after the snapshot come from the remote banzuke.
+   - **Spot checks:** Hakuho matches his official Makuuchi record, 1093–199–253, with 45 yusho. Taiho has 32 yusho, but his record is a win and a loss short because of the two days missing from the source. Onosato's career ends at Aki 2026 with its yusho, 12–3. In spoiler-free mode with the horizon after Makuuchi bout 5 of day 13, that tournament stops after 12 days, its yusho stays unknown, and the rating freezes.
+
 2. **TUI** (`tui/wrestler`):
    - a header with the names, heya, hometown, age, height, weight and the portrait (Phase 14)
    - sparklines of rank and rating over the career

@@ -22,6 +22,16 @@ type Index struct {
 	basho     map[domain.BashoID]domain.Basho
 	byBasho   map[domain.BashoID][]domain.Bout
 	byRikishi map[domain.RikishiID][]*domain.Bout // chronological
+	placed    map[domain.RikishiID][]Placement    // the snapshot's banzuke, chronological
+}
+
+// Placement is a wrestler's place on one tournament's banzuke: what a
+// career page needs of it, kept small (SPEC §8.10).
+type Placement struct {
+	Basho    domain.BashoID
+	Shikona  domain.Name
+	Rank     domain.Rank
+	Outcomes [domain.BashoDays]domain.Outcome // index = day-1
 }
 
 // NewIndex returns an empty index.
@@ -30,6 +40,7 @@ func NewIndex() *Index {
 		basho:     map[domain.BashoID]domain.Basho{},
 		byBasho:   map[domain.BashoID][]domain.Bout{},
 		byRikishi: map[domain.RikishiID][]*domain.Bout{},
+		placed:    map[domain.RikishiID][]Placement{},
 	}
 }
 
@@ -142,6 +153,29 @@ func (s *Snapshot) BuildIndex() (*Index, error) {
 			x.byRikishi[p.East.RikishiID] = append(x.byRikishi[p.East.RikishiID], p)
 			x.byRikishi[p.West.RikishiID] = append(x.byRikishi[p.West.RikishiID], p)
 		}
+		for _, div := range []domain.Division{domain.DivMakuuchi, domain.DivJuryo} {
+			for _, e := range t.Banzuke[div] {
+				x.placed[e.RikishiID] = append(x.placed[e.RikishiID], PlacementOf(t.Basho.ID, e))
+			}
+		}
 	}
 	return x, nil
+}
+
+// PlacementOf is a banzuke entry's placement.
+func PlacementOf(basho domain.BashoID, e domain.BanzukeEntry) Placement {
+	p := Placement{Basho: basho, Shikona: e.Shikona, Rank: e.Rank}
+	for i, r := range e.Results {
+		p.Outcomes[i] = r.Outcome
+	}
+	return p
+}
+
+// Placements returns a wrestler's places on the snapshot's banzuke,
+// oldest first. Tournaments after the snapshot are not in it: the service
+// reads their banzuke.
+func (x *Index) Placements(id domain.RikishiID) []Placement {
+	x.mu.RLock()
+	defer x.mu.RUnlock()
+	return x.placed[id]
 }

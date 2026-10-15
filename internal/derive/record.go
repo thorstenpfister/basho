@@ -92,3 +92,16 @@ func RecordAt(e domain.BanzukeEntry, d DayBouts, c AsOf) Record {
 	}
 	return r
 }
+
+// RecordThrough is a record from a tournament's day outcomes up to cutoff c:
+// a day with a bout counts when c includes the bout, a day without one
+// (an absence, a day off) when c has reached that day.
+func RecordThrough(basho domain.BashoID, outcomes [domain.BashoDays]domain.Outcome, boutOf func(day int) *domain.Bout, c AsOf) Record {
+	var r Record
+	for i, o := range outcomes {
+		if c.IncludesDay(basho, i+1, boutOf(i+1)) {
+			r.add(o)
+		}
+	}
+	return r
+}
