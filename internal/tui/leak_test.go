@@ -248,6 +248,9 @@ func screens(t *testing.T, ctx *tui.Context, days []int) map[string]string {
 				out[fmt.Sprintf("%s popup %d", name, j)] = d.View()
 				d.Keys("esc")
 			}
+			d.Keys("i") // the career of the grid's wrestler
+			out[name+" grid career"] = d.View()
+			d.Keys("esc")
 			d.Keys("esc") // the day view
 			rows := 20
 			for i := range rows {
@@ -257,6 +260,14 @@ func screens(t *testing.T, ctx *tui.Context, days []int) map[string]string {
 				out[fmt.Sprintf("%s VS %d moveset", name, i+1)] = d.View()
 				d.Keys("m", "v")
 				out[fmt.Sprintf("%s VS %d history", name, i+1)] = d.View()
+				d.Keys("v")
+				if i == 0 || i == 9 || i == rows-2 { // careers: both sides of three bouts
+					for _, side := range []string{"1", "2"} {
+						d.Keys(side)
+						out[fmt.Sprintf("%s VS %d career %s", name, i+1, side)] = d.View()
+						d.Keys("esc")
+					}
+				}
 				d.Keys("esc", "j")
 			}
 			d.Keys("esc")

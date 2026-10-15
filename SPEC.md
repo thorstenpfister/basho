@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.19** (2026-10-15). Implemented: Phases 0–14 (Phase 10 step 4 and its real-day check wait for Kyushu 2026; Phase 12's QA pass moved to Phase 16; Phase 13's rating divisor was dropped as not needed). The full snapshot (196001–202609), the calibrated rating and 353 wrestler portraits are committed. The non-interactive CLI works offline. The TUI has the picker, the day view with its recap, the VS screen with portraits, the standings and a paged help overlay, and offers `ui.names` and plain modes. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Next, before v1.0: the wrestler screen (15), the QA pass (16), then the release (17).
+> Status: **v0.20** (2026-10-15). Implemented: Phases 0–15 (Phase 10 step 4 and its real-day check wait for Kyushu 2026; Phase 12's QA pass moved to Phase 16; Phase 13's rating divisor was dropped as not needed). The full snapshot (196001–202609), the calibrated rating and 353 wrestler portraits are committed. The non-interactive CLI works offline, `basho wrestler` included. The TUI has the picker, the day view with its recap, the VS screen with portraits, the standings, the wrestler screen and a paged help overlay, and offers `ui.names` and plain modes. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Next: the QA pass (16), then the v1.0 release (17).
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1798,9 +1798,21 @@ AC status: met.
    - **Kanji:** sumo-api has none for many older wrestlers (Hakuho among them), so they are found by romaji only.
    - **Shared:** the moveset JSON moved into `movesetJSON`, which the tale's JSON uses too.
 4. **Spoiler-free:** everything stops at the horizon, ratings included; `TestNoLeaks` and `TestASCIIScreens` walk the new screen.
+
+   Done: the shared walker opens both wrestlers' careers from VS bouts 1, 10 and 19 of each day walked, and the grid wrestler's with `i`. `TestNoLeaks`, `TestASCIIScreens` and `TestNameModes` all cover the screen now, together about 7 s. Teeth: without the horizon in `service.Wrestler`, 38 career screens leak.
 5. Tests: goldens at the three widths, the CLI, and spot checks against the snapshot (Taiho, Hakuho, Onosato).
 
+   Done with steps 1–3:
+   - **Spot checks:** Hakuho's official record, Taiho's 32 yusho, Onosato's Aki 2026.
+   - **Goldens:** the screen at 80×24, 120×40 and 160×50; the CLI's text and JSON.
+   - **Keys and navigation**, and the name lookup, `RecordThrough` and the horizon.
+
 **AC:** both wrestlers' careers open from any VS screen; their rank and rating history match the snapshot and the rating replay; no leak in spoiler-free mode.
+
+AC status: met.
+   - **Opening:** `1`/`2` on every VS screen (tested, and walked across the leak test's days).
+   - **History:** ranks and records match the snapshot (Hakuho to the official record), and ratings come from the replay at each tournament's end.
+   - **Spoilers:** no leak in `TestNoLeaks`.
 
 ### Phase 16: QA pass
 
