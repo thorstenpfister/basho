@@ -26,11 +26,11 @@ import (
 func NewRoot(info buildinfo.Info) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "basho-data",
-		Short: "Build basho's data: snapshot, fixtures, live recordings, calibration",
+		Short: "Build basho's data: snapshot, fixtures, live recordings, calibration, portraits",
 		Args:  cobra.NoArgs,
 	}
 	cli.SetVersion(root, info)
-	root.AddCommand(newRecordCmd(info), newFixturesCmd(info), newSnapshotCmd(info), newRatingCmd(info))
+	root.AddCommand(newRecordCmd(info), newFixturesCmd(info), newSnapshotCmd(info), newRatingCmd(info), newPortraitsCmd(info))
 	return root
 }
 

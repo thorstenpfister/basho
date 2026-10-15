@@ -206,15 +206,16 @@ Finished tournaments never change. Instead of every user fetching them, a separa
 
 Only `basho-data` uses these, for the optional portraits (§8.9). The app itself never contacts Wikimedia.
 
-- **Join:** Wikidata property P3385 "Japan Sumo Association ID" equals sumo-api's `nskId`. Property P18 points to the image on Commons.
-- **Coverage (checked 2026-10-13):**
-  - 538 Wikidata items have a JSA ID, 293 of them with an image.
-  - 35 of the 42 current Makuuchi wrestlers have an image.
+- **Join:** Wikidata property P6652 "Sumo Reference ID" (its URL is SumoDB's `Rikishi.aspx?r=`) equals sumo-api's `sumodbId`; P3385 "Japan Sumo Association ID" equals `nskId` and is the fallback. Property P18 points to the image on Commons.
+- **Coverage:**
+  - 2026-10-13: 538 Wikidata items have a JSA ID, 293 of them with an image; 35 of the 42 current Makuuchi wrestlers have an image.
+  - 2026-10-15: the snapshot's index has 997 wrestlers, but only 142 with a JSA ID and 996 with a SumoDB ID. Joined by JSA ID, 88 have an image; by SumoDB ID first, 360.
 - **Licences:** the samples checked are CC BY-SA 3.0 or 4.0. Only licences on an allow-list are accepted: CC0, public domain, CC BY 2.0–4.0, CC BY-SA 2.0–4.0.
 - **Being polite:**
   - Follow Wikimedia's User-Agent policy (tool name and contact).
   - At most 1 request per second.
-  - Fetch thumbnails only (`Special:FilePath/<file>?width=480`), never full-resolution originals.
+  - Fetch thumbnails only, never full-resolution originals: the 500 px one the Commons API names (`iiurlwidth=500`, one of Wikimedia's standard widths, which its caches serve; served from `thumb.wikimedia.org`).
+  - Metadata comes from the Commons API, 50 files per request.
 
 ---
 
@@ -944,8 +945,8 @@ Pixel-art portraits beside the tale of the tape, facing each other like a fighti
 
 **Build pipeline** (`basho-data portraits update`, runs together with the snapshot):
 
-1. Query Wikidata for wrestlers in the snapshot's index with P3385 and P18 (§4.4). Fetch the licence, author and source URL from the Commons API and drop anything not on the allow-list.
-2. Fetch a 480 px thumbnail.
+1. Query Wikidata for wrestlers in the snapshot's index with P6652 or P3385, and P18 (§4.4). Fetch the licence, author and source URL from the Commons API and drop anything not on the allow-list.
+2. Fetch a 500 px thumbnail.
 3. Crop to head and shoulders. Face detection uses `github.com/esimov/pigo` (pure Go) and crops a square about 2.2× the face box. Manual overrides in `data/portraits/overrides.toml` can set the crop box, exclude an image or pick a different file.
 4. Downscale with area averaging to 32×32 (wide) and 20×20 (normal), then reduce colours to the theme palette (default: a 32-colour "arcade" palette) with optional ordered dithering.
 5. Store as PNG (about 1 KB each, about 300 KB in total) in `data/portraits/`, together with `credits.json` and a generated `CREDITS.md` (file, author, licence, source URL, and the changes made: "cropped, downscaled, colour-reduced").
@@ -1666,6 +1667,15 @@ AC status: met, by `TestNameModes`.
 ### Phase 14: Portraits
 
 1. `basho-data portraits update`: Wikidata query (P3385 → P18), Commons metadata and licence allow-list, polite thumbnail download.
+
+   Done (the fetch stage; steps 2 and 3 turn its output into `data/portraits/`):
+   - **Command:** `basho-data portraits update [--only IDs] [--limit N] [--dry-run] [--contact …]`, and `make portraits` (dry run, confirm, run; `CONTACT=` sets the contact).
+   - **Requests:** one SPARQL query, the Commons metadata 50 files at a time, then one 500 px thumbnail each. Every host gets 1 request per second, one at a time. The work cache keeps the query and metadata a week and the thumbnails for good, so a rerun fetches nothing.
+   - **Join:** by SumoDB ID (P6652) first, then by JSA ID. The JSA ID alone found 88 wrestlers; both find 360 (§4.4).
+   - **Licences:** checked before any download: CC0, public domain, and CC BY and BY-SA 2.0–4.0 including ported versions (`cc-by-sa-2.1-jp`). Each thumbnail must decode.
+   - **Output:** in `--work`: `images/<id>.<format>`, `sources.json` (item, file, licence and its URL, author and date as plain text, year, source page) and `skipped.json` with reasons.
+   - **User-Agent:** `basho-data/<version> (<contact>)`. Wikimedia asks for a contact; the default is the repository URL, and `--contact` takes an email.
+   - **Found on the smoke run** (3 wrestlers, 5 requests): thumbnails come from `thumb.wikimedia.org`, which now gets the same limit and caching.
 2. Face crop with `pigo` and the `overrides.toml` mechanism; downscale to 32 and 20 px; palette quantization with optional dithering.
 3. `data/portraits/` with PNGs, `credits.json`, generated `CREDITS.md` and `LICENSE`; `basho credits` and the help overlay's Data page.
 4. Half-block renderer with mirroring and the 256-colour fallback; procedural silhouette for wrestlers without a photo.

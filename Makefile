@@ -119,5 +119,7 @@ vhs: build ## Render the README GIF from docs/demo.tape (needs VHS: brew install
 release-snapshot: ## Local GoReleaser test build into dist/ (phase 17)
 	$(todo)
 
-portraits: ## Build pixel portraits (phase 14)
-	$(todo)
+portraits: build ## Fetch and build the pixel portraits, ARGS passed on (SPEC §8.9; CONTACT=you@example.org for the User-Agent)
+	$(BIN)/basho-data portraits update --dry-run $(ARGS)
+	$(call confirm,basho-data portraits update fetches the images above from Wikimedia at 1 request per second.)
+	$(BIN)/basho-data portraits update $(if $(CONTACT),--contact "$(CONTACT)") $(ARGS)
