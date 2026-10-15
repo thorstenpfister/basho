@@ -958,7 +958,18 @@ Pixel-art portraits beside the tale of the tape, facing each other like a fighti
 - Half-block characters (`▀`): the foreground colour is the upper pixel, the background colour the lower one. This is pure text, so it fits into Bubble Tea and Lip Gloss layouts and works in any truecolor terminal (Ghostty included). `github.com/charmbracelet/x/mosaic` (experimental) or a small renderer of our own.
 - The West portrait is mirrored horizontally so the fighters face each other.
 - On 256-colour terminals, colours map to the nearest palette entry. Portraits are hidden with `NO_COLOR`, `--ascii`, in compact layout and with `ui.portraits = false`.
-- Size: the largest of 48, 32 and 20 px that fits the width left beside the wide layout's history column, with the tape keeping 80 columns (48 px from 178 columns left, 32 from 146, 20 from 122), and the height: half its pixels in rows plus the caption, and 14 rows for the rest of the screen (48 px from 39 rows, 32 from 31, 20 from 25). In the wide layout that is 48 px from 221 terminal columns, 32 from 189, 20 from 165; in the normal one, 20 px from 122. The first plan, 32 px from 140 columns, predates the 42-column history column and does not fit beside it.
+- Size: the largest of 48, 32 and 20 px that fits the width left beside the wide layout's history column, with the tape keeping 80 columns (48 px from 178 columns left, 32 from 146, 20 from 122), and the height: half its pixels in rows plus the caption, and 14 rows for the rest of the screen (48 px from 39 rows, 32 from 31, 20 from 25). By terminal width:
+
+  | Columns | Portraits |
+  |---|---|
+  | below 122 | none |
+  | 122–145 | 20 px |
+  | 146–164 | 32 px, in place of the wide layout's head-to-head column (the history stays on `v`) |
+  | 165–188 | 20 px beside the column |
+  | 189–220 | 32 px beside the column |
+  | 221+ | 48 px beside the column |
+
+  The column gives way only when at least one of the two wrestlers has a photo; two silhouettes never replace it. The first plan, 32 px from 140 columns, predates the 42-column history column and does not fit beside it. Before the gap rule, nothing showed between 130 and 164 columns, the width of many full-screen laptop terminals.
 - Below each portrait a dim caption gives the photo year ("photo 2014"), because some photos are old.
 - **No photo:** a procedurally generated silhouette sprite, shaped by height and weight, with a mawashi colour derived from the wrestler ID. It is clearly not a likeness.
 - Full-resolution images via terminal graphics protocols (Kitty, iTerm2, Sixel) are not used: they conflict with Bubble Tea's renderer (§15).

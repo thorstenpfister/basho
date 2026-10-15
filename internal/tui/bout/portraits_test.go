@@ -67,7 +67,7 @@ func onosato(t *testing.T) domain.RikishiID {
 // Portraits beside the tape at the sizes the width allows (SPEC §8.9):
 // the East photo facing right, a silhouette for West without one.
 func TestPortraitGolden(t *testing.T) {
-	for _, size := range []struct{ w, h int }{{230, 50}, {200, 50}, {125, 40}} {
+	for _, size := range []struct{ w, h int }{{230, 50}, {200, 50}, {150, 45}, {125, 40}} {
 		t.Run(fmt.Sprintf("%dx%d", size.w, size.h), func(t *testing.T) {
 			d := openOn(t, withPortrait(t), aki2026, 13, 19, size.w, size.h)
 			v := d.View()
@@ -114,7 +114,34 @@ func TestPortraitSize(t *testing.T) {
 		}
 	}
 	// Compact: never, whatever the width says.
-	if l := measure(ctx, 70, 50); l.portrait != 0 {
+	if l := measure(ctx, 70, 50, true); l.portrait != 0 {
 		t.Error("compact layout with portraits")
+	}
+	// The wide layout: portraits before the head-to-head column where both
+	// do not fit, the column back once they do.
+	for _, tt := range []struct {
+		width, portrait int
+		column          bool
+	}{
+		{129, 20, false},
+		{130, 20, false},
+		{145, 20, false},
+		{146, 32, false},
+		{164, 32, false},
+		{165, 20, true},
+		{189, 32, true},
+		{221, 48, true},
+	} {
+		if l := measure(ctx, tt.width, 50, true); l.portrait != tt.portrait || l.column != tt.column {
+			t.Errorf("%d columns: %d px, column %v; want %d px, %v", tt.width, l.portrait, l.column, tt.portrait, tt.column)
+		}
+	}
+	if l := measure(ctx, 150, 50, false); !l.column || l.portrait != 0 {
+		t.Error("two silhouettes took the column's place")
+	}
+	off := *ctx
+	off.Cfg.UI.Portraits = false
+	if l := measure(&off, 150, 50, true); !l.column {
+		t.Error("without portraits the column stays")
 	}
 }

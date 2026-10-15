@@ -30,3 +30,13 @@ func (s *Service) Portrait(id domain.RikishiID, size int) (*image.Paletted, port
 	img, err := p.Image(id, size)
 	return img, c, err == nil
 }
+
+// HasPortrait reports whether a wrestler has a portrait, without loading it.
+func (s *Service) HasPortrait(id domain.RikishiID) bool {
+	p, err := s.portraits()
+	if err != nil {
+		return false
+	}
+	_, ok := p.Credit(id)
+	return ok
+}

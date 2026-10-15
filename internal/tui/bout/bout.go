@@ -289,22 +289,31 @@ func (v VS) QuitGoesBack() bool { return true }
 // layout is the measures of one render.
 type layout struct {
 	tui.Layout
-	width    int // of the tape, without the wide history column and portraits
-	side     int // each value column
-	middle   int // the label column
-	portrait int // the portraits' size in pixels (and columns), 0 for none
+	width    int  // of the tape, without the wide history column and portraits
+	side     int  // each value column
+	middle   int  // the label column
+	portrait int  // the portraits' size in pixels (and columns), 0 for none
+	column   bool // the wide layout's head-to-head column is shown
 }
 
 // historyWidth is the wide layout's head-to-head column.
 const historyWidth = 42
 
-func measure(ctx *tui.Context, width, height int) layout {
+func measure(ctx *tui.Context, width, height int, photo bool) layout {
 	l := layout{Layout: tui.LayoutOf(width), width: width}
 	if l.Layout == tui.Wide {
-		l.width = width - historyWidth - 1
+		l.width, l.column = width-historyWidth-1, true
 	}
 	if l.Layout != tui.Compact {
-		if l.portrait = portraitSize(ctx, l.width, height); l.portrait > 0 {
+		l.portrait = portraitSize(ctx, l.width, height)
+		// A photo comes before the head-to-head column (130–164 columns):
+		// the history is still on v. Two silhouettes do not.
+		if l.portrait == 0 && l.column && photo {
+			if size := portraitSize(ctx, width, height); size > 0 {
+				l.width, l.column, l.portrait = width, false, size
+			}
+		}
+		if l.portrait > 0 {
 			l.width -= 2 * (l.portrait + 1)
 		}
 	}
@@ -317,7 +326,7 @@ func measure(ctx *tui.Context, width, height int) layout {
 // View implements tui.Screen.
 func (v VS) View(ctx *tui.Context, width, height int) string {
 	t := ctx.Theme
-	l := measure(ctx, width, height)
+	l := measure(ctx, width, height, v.hasPhoto(ctx))
 	var b strings.Builder
 	b.WriteString(" " + t.Title.Render(v.heading()) + "\n")
 	if v.err != nil && v.tale == nil {
@@ -335,7 +344,7 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 		tape = v.withPortraits(ctx, lipgloss.NewStyle().Width(l.width).Render(tape), l.portrait)
 		l.width += 2*(l.portrait+1) - 1 // the history column goes beside all of it
 	}
-	if l.Layout == tui.Wide && v.tale != nil {
+	if l.column && v.tale != nil {
 		col := lipgloss.NewStyle().Width(historyWidth).PaddingLeft(1).
 			BorderStyle(lipgloss.NormalBorder()).BorderLeft(true).BorderForeground(t.Colors.Subtle).
 			Render(v.historyView(ctx, historyWidth-2, true))
@@ -420,7 +429,7 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 	}
 	lines = append(lines, " "+t.Rule.Render(strings.Repeat(t.Line, l.width-2)))
 	lines = append(lines, v.headToHead(ctx, l)...)
-	if v.history && l.Layout != tui.Wide {
+	if v.history && !l.column {
 		lines = append(lines, v.historyView(ctx, l.width-4, false))
 	}
 	return strings.Join(lines, "\n")

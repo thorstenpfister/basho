@@ -84,3 +84,8 @@ func (v VS) withPortraits(ctx *tui.Context, tape string, size int) string {
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top, " ", side(v.row.East.RikishiID, false), tape, side(v.row.West.RikishiID, true))
 }
+
+// hasPhoto reports whether either wrestler has a portrait.
+func (v VS) hasPhoto(ctx *tui.Context) bool {
+	return ctx.Svc != nil && (ctx.Svc.HasPortrait(v.row.East.RikishiID) || ctx.Svc.HasPortrait(v.row.West.RikishiID))
+}
