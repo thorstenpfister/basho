@@ -2,6 +2,7 @@ package wrestler
 
 import (
 	"fmt"
+	"maps"
 	"math"
 	"slices"
 	"strings"
@@ -151,16 +152,16 @@ func (v View) tableRows() int {
 	if v.picture != "" {
 		header = max(header, lipgloss.Height(v.picture))
 	}
-	trends := 2 // RANK and STYLE
+	trends := 1 // RANK
 	if v.data != nil && v.data.RatingShown {
 		trends++
 	}
 	return max(v.height-header-trends-4, 3)
 }
 
-// headerLines is the header text's height at most: name, profile, totals,
-// rating and the spoiler-free banner.
-const headerLines = 5
+// headerLines is the header text's height at most: the name and up to 13
+// facts (RATING, SIGNATURE and the spoiler-free banner come and go).
+const headerLines = 14
 
 // render draws the portrait once: never in ASCII, without colours or for a
 // wrestler without a photo.
@@ -206,47 +207,70 @@ func (v View) View(ctx *tui.Context, width, height int) string {
 	return b.String()
 }
 
-// header is the name, rank, profile and totals.
+// header is the name over the facts, one labelled row each, as on the VS
+// screen: they fill the rows beside the portrait and read down the column.
 func (v View) header(ctx *tui.Context, width int) string {
 	t, c := ctx.Theme, v.data
 	name := t.Bold.Render(strings.ToUpper(t.Name(c.Shikona)))
 	if alt := t.AltName(c.Shikona); alt != "" {
 		name += "  " + alt
 	}
-	lines := []string{tui.Spread(name, c.Rank.String(), width)}
-	var profile []string
-	if c.HasProfile {
-		profile = append(profile, orDash(c.Profile.Heya), orDash(c.Profile.Shusshin))
+	lines := []string{" " + name}
+	for _, f := range v.facts(ctx) {
+		lines = append(lines, tui.Truncate(" "+t.Header.Render(fmt.Sprintf("%-10s", f[0]))+" "+f[1], width))
 	}
+	return strings.Join(lines, "\n")
+}
+
+// facts are the header's rows: label and value.
+func (v View) facts(ctx *tui.Context) [][2]string {
+	t, c := ctx.Theme, v.data
+	dash := t.Dim.Render("—")
+	or := func(s string) string {
+		if s == "" {
+			return dash
+		}
+		return s
+	}
+	measure := func(x float64, unit string) string {
+		if x == 0 {
+			return dash
+		}
+		s := fmt.Sprintf("%.0f%s", x, unit)
+		if c.Stats.Latest {
+			s += t.Dim.Render("*")
+		}
+		return s
+	}
+	age := dash
 	if c.Stats.Age > 0 {
-		profile = append(profile, fmt.Sprintf("age %d", c.Stats.Age))
+		age = fmt.Sprint(c.Stats.Age)
 	}
-	if c.Stats.Height > 0 {
-		profile = append(profile, fmt.Sprintf("%.0fcm", c.Stats.Height), fmt.Sprintf("%.0fkg", c.Stats.Weight))
-	}
-	lines = append(lines, " "+strings.Join(profile, " · "))
-	var totals []string
+	var yusho []string
 	for _, div := range []domain.Division{domain.DivMakuuchi, domain.DivJuryo} {
 		if n := c.Stats.Yusho[div]; n > 0 {
-			totals = append(totals, t.Gold.Render(fmt.Sprintf("Yusho %d", n))+t.Dim.Render(" "+div.String()))
+			yusho = append(yusho, t.Gold.Render(fmt.Sprint(n))+" "+div.String())
 		}
 	}
-	for _, prize := range slices.Sorted(func(yield func(string) bool) {
-		for p := range c.Stats.Sansho {
-			if !yield(p) {
-				return
-			}
-		}
-	}) {
-		totals = append(totals, fmt.Sprintf("%s %d", prize, c.Stats.Sansho[prize]))
+	var prizes []string
+	for _, prize := range slices.Sorted(maps.Keys(c.Stats.Sansho)) {
+		prizes = append(prizes, fmt.Sprintf("%s %d", prize, c.Stats.Sansho[prize]))
 	}
+	kinboshi := dash
 	if c.Kinboshi.Count > 0 {
-		totals = append(totals, fmt.Sprintf("%s kinboshi %d", t.Kinboshi, c.Kinboshi.Count))
+		kinboshi = t.Gold.Render(strings.Repeat(t.Kinboshi, min(c.Kinboshi.Count, 10))) + fmt.Sprintf(" %d", c.Kinboshi.Count)
 	}
-	if len(totals) == 0 {
-		totals = append(totals, t.Dim.Render("no yusho or special prizes yet"))
+	rows := [][2]string{
+		{"RANK", c.Rank.String()},
+		{"HEYA", or(c.Profile.Heya)},
+		{"FROM", or(c.Profile.Shusshin)},
+		{"AGE", age},
+		{"HEIGHT", measure(c.Stats.Height, "cm")},
+		{"WEIGHT", measure(c.Stats.Weight, "kg")},
+		{"YUSHO", or(strings.Join(yusho, " · "))},
+		{"PRIZES", or(strings.Join(prizes, " · "))},
+		{"KINBOSHI", kinboshi},
 	}
-	lines = append(lines, " "+strings.Join(totals, " · "))
 	if c.RatingShown && len(c.Tournaments) > 0 {
 		last, peak := c.Tournaments[len(c.Tournaments)-1], c.Tournaments[0]
 		for _, b := range c.Tournaments {
@@ -254,12 +278,19 @@ func (v View) header(ctx *tui.Context, width int) string {
 				peak = b
 			}
 		}
-		lines = append(lines, fmt.Sprintf(" Rating %.0f%s", last.Rating, t.Dim.Render(fmt.Sprintf(" · peak %.0f, %s %d", peak.Rating, peak.Basho.Name(), peak.Basho.Year))))
+		rows = append(rows, [2]string{"RATING", fmt.Sprintf("%.0f", last.Rating) + t.Dim.Render(fmt.Sprintf("  peak %.0f, %s %d", peak.Rating, peak.Basho.Name(), peak.Basho.Year))})
+	}
+	if p := c.Movesets[derive.Career]; p.Enough() {
+		rows = append(rows,
+			[2]string{"STYLE", components.StyleBar(t, p.WinShare, components.StyleCells, false) + "  " + p.Type.String()},
+			[2]string{"SIGNATURE", fmt.Sprintf("%s %.0f%%", p.Signature.Kimarite, 100*p.SignatureShare)})
+	} else {
+		rows = append(rows, [2]string{"STYLE", t.Dim.Render("— not enough data —")})
 	}
 	if ctx.Hide && len(c.Tournaments) > 0 && c.Tournaments[len(c.Tournaments)-1].Partial && ctx.Spoilers != nil {
-		lines = append(lines, " "+t.Accent.Render(fmt.Sprintf("as of %s (spoiler-free)", ctx.Spoilers.Horizon(c.Through))))
+		rows = append(rows, [2]string{"", t.Accent.Render(fmt.Sprintf("as of %s (spoiler-free)", ctx.Spoilers.Horizon(c.Through)))})
 	}
-	return strings.Join(lines, "\n")
+	return rows
 }
 
 // sparks are the sparklines' eight heights.
@@ -282,8 +313,7 @@ func sparkline(values []float64) string {
 	return b.String()
 }
 
-// trends are the rank and rating over the career, the most recent that fit,
-// and the technique profile.
+// trends are the rank and rating over the career, the most recent that fit.
 func (v View) trends(ctx *tui.Context, width int) []string {
 	t, c := ctx.Theme, v.data
 	// The sparklines get what the label and the longest summary leave.
@@ -304,13 +334,6 @@ func (v View) trends(ctx *tui.Context, width int) []string {
 	lines := []string{label("RANK") + t.Accent.Render(sparkline(ranks)) + t.Dim.Render(span)}
 	if c.RatingShown {
 		lines = append(lines, label("RATING")+t.Accent.Render(sparkline(ratings))+t.Dim.Render(fmt.Sprintf("  %.0f → %.0f", first.Rating, last.Rating)))
-	}
-	p := c.Movesets[derive.Career]
-	if p.Enough() {
-		lines = append(lines, label("STYLE")+components.StyleBar(t, p.WinShare, components.StyleCells, false)+
-			t.Dim.Render(fmt.Sprintf("  %s · signature %s %.0f%%", p.Type, p.Signature.Kimarite, 100*p.SignatureShare)))
-	} else {
-		lines = append(lines, label("STYLE")+t.Dim.Render("— not enough data —"))
 	}
 	for i := range lines {
 		lines[i] = tui.Truncate(lines[i], width)
@@ -352,13 +375,6 @@ func (v View) table(ctx *tui.Context, width int) string {
 		lines = append(lines, tui.Truncate(line, width))
 	}
 	return strings.Join(lines, "\n")
-}
-
-func orDash(s string) string {
-	if s == "" {
-		return "—"
-	}
-	return s
 }
 
 // Status implements tui.Screen.
