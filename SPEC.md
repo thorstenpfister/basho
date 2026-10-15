@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.18** (2026-10-15). Implemented: Phases 0–12 (Phase 10 step 4 and its real-day check wait for Kyushu 2026; Phase 12's QA pass moved to Phase 16). The full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and the TUI has the picker, the day view with its recap, the VS screen, the standings and a paged help overlay. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Next, before v1.0: the rating scale and `ui.names` (13), portraits (14), the wrestler screen (15), the QA pass (16), then the release (17).
+> Status: **v0.19** (2026-10-15). Implemented: Phases 0–14 (Phase 10 step 4 and its real-day check wait for Kyushu 2026; Phase 12's QA pass moved to Phase 16; Phase 13's rating divisor was dropped as not needed). The full snapshot (196001–202609), the calibrated rating and 353 wrestler portraits are committed. The non-interactive CLI works offline. The TUI has the picker, the day view with its recap, the VS screen with portraits, the standings and a paged help overlay, and offers `ui.names` and plain modes. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Next, before v1.0: the wrestler screen (15), the QA pass (16), then the release (17).
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1717,14 +1717,17 @@ AC status: met, by `TestNameModes`.
    - **Review tools:** each cell of `sheet.png` has a label with the ID and name, marked "(override)" or "(no face)". `basho-data portraits update --overrides-only`, or `make portraits-preview`, rebuilds only the wrestlers in `overrides.toml`, into `.cache/basho-data/portraits-preview/sheet.png`, from the work cache in seconds. It never writes `data/portraits`.
    - **First review** (2026-10-15, all 360): `overrides.toml` excludes 7 images (three handprints, a statue, an arena wide shot, and two action shots without a usable face) and crops 68 by hand. Of those, 35 were full-body or profile shots where no face was found; the others caught a spectator, a towel, the belly, an apron or a banner. Each crop was checked with the preview, and the coordinates were read off the thumbnails with a 50 px grid.
 
-   Open: needs the owner's full run (`make portraits CONTACT=…`, about 370 requests, 6 minutes). Review `sheet.png` in the work directory and the "no face found" list, fix crops or exclude images in `overrides.toml`, run again (it fetches nothing twice), and decide on `--dither`.
+   Done: the owner's full run with the reviewed overrides is committed. That is 353 wrestlers, 360 found less 7 excluded, at 48, 32 and 20 px, 593 KB. Dithering stays off.
 7. Golden tests (§13).
 
    Done with steps 4 and 5: the renderer and silhouette tests, and the VS screen goldens with portraits at 200×50 and 125×40 from a generated image.
 
 **AC:** portraits render for every current Makuuchi wrestler with a Commons photo; every image is correctly credited; the VS screen still works at every size with portraits on and off.
 
-AC status: open until step 6. The VS screen at every size with portraits on and off is tested, and so are the credits' path from Commons to `CREDITS.md`, `basho credits --portraits` and JSON. The real photos and their review are the owner's run.
+AC status: met.
+   - **Coverage:** 35 of the 42 Makuuchi wrestlers of Aki 2026 have a portrait, every one with an image on Wikidata (the same 35 as counted on 2026-10-13). The other seven, mostly recent promotions, have none linked: Asasuiryu, Wakanosho, Shonannoumi, Kotoeiho, Fujiryoga, Asahakuryu and Toshinofuji. A Commons photo found by hand can be added with `file =` in `overrides.toml`. Juryo has 17 of 28.
+   - **Credits:** every image is credited in `CREDITS.md`, `credits.json` and `basho credits --portraits`.
+   - **VS screen:** tested at every size with portraits on and off.
 
 ### Phase 15: Wrestler screen
 
