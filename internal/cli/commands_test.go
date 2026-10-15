@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 	"unicode"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/config"
 	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/portrait"
 	"github.com/thorstenpfister/basho/internal/rating"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/snapshot"
@@ -21,21 +23,24 @@ import (
 
 var testNow = time.Date(2026, time.October, 14, 12, 0, 0, 0, domain.JST)
 
+// fixtureOptions are the fixture snapshot's service options.
+func fixtureOptions() service.Options {
+	return service.Options{
+		Snapshot: func() (*snapshot.Snapshot, error) { return snapshot.Open(os.DirFS("../../testdata/snapshot")) },
+		Params: func() (rating.File, error) {
+			return rating.File{Schema: rating.FileSchema, Params: rating.Params{K: 10, KNew: 24, NewBouts: 45, R: 0.3, WarmupScale: 0.5}, Show: true}, nil
+		},
+		Clock: clock.NewFake(testNow),
+	}
+}
+
 // fixtureDeps run the CLI over the fixture snapshot (196001, 202607, 202609)
 // with a fixed clock and no config file.
 func fixtureDeps(t *testing.T) Deps {
 	t.Helper()
 	cfgHome, stateHome := t.TempDir(), t.TempDir()
 	return Deps{
-		Open: func(cfg config.Config) (*service.Service, error) {
-			return service.New(service.Options{
-				Snapshot: func() (*snapshot.Snapshot, error) { return snapshot.Open(os.DirFS("../../testdata/snapshot")) },
-				Params: func() (rating.File, error) {
-					return rating.File{Schema: rating.FileSchema, Params: rating.Params{K: 10, KNew: 24, NewBouts: 45, R: 0.3, WarmupScale: 0.5}, Show: true}, nil
-				},
-				Clock: clock.NewFake(testNow),
-			}), nil
-		},
+		Open: func(config.Config) (*service.Service, error) { return service.New(fixtureOptions()), nil },
 		Env: func(k string) (string, bool) {
 			switch k {
 			case "XDG_CONFIG_HOME":
@@ -227,5 +232,34 @@ func TestNameModes(t *testing.T) {
 				t.Errorf("%s: shows %q", tt.mode, s)
 			}
 		}
+	}
+}
+
+// basho credits names the portraits and lists each photo with --portraits
+// (SPEC §8.9).
+func TestPortraitCredits(t *testing.T) {
+	deps := fixtureDeps(t)
+	deps.Open = func(config.Config) (*service.Service, error) {
+		opts := fixtureOptions()
+		opts.Portraits = func() (*portrait.Set, error) {
+			return portrait.Open(fstest.MapFS{"credits.json": {Data: []byte(
+				`[{"id":2,"name":"Onosato","file":"Onosato 2024.jpg","author":"Photo Co","licence":"CC BY-SA 4.0","sourceUrl":"https://commons.wikimedia.org/wiki/File:Onosato_2024.jpg","year":2024}]`)}})
+		}
+		return service.New(opts), nil
+	}
+	out, code := run(t, deps, "credits")
+	if code != exitOK || !strings.Contains(out, "Portraits: 1 photos from Wikimedia Commons") || strings.Contains(out, "Photo Co") {
+		t.Errorf("credits:\n%s", out)
+	}
+	out, _ = run(t, deps, "credits", "--portraits")
+	if !strings.Contains(out, "Onosato (2024)\n  Onosato 2024.jpg by Photo Co, CC BY-SA 4.0\n  https://commons.wikimedia.org/wiki/File:Onosato_2024.jpg") {
+		t.Errorf("--portraits:\n%s", out)
+	}
+	out, _ = run(t, deps, "credits", "--json")
+	if !strings.Contains(out, `"portraits": [`) || !strings.Contains(out, `"author": "Photo Co"`) {
+		t.Errorf("--json:\n%s", out)
+	}
+	if out, _ := run(t, fixtureDeps(t), "credits", "--json"); !strings.Contains(out, `"portraits": []`) {
+		t.Errorf("no portraits:\n%s", out)
 	}
 }

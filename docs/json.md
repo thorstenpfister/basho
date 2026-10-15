@@ -97,7 +97,7 @@ A TaleSide is a Wrestler with:
 
 ### `credits`
 
-`{"text": "…"}`.
+`{"text", "portraits"}`: the credits as text, and every portrait's photo as `{"id", "name", "file", "author", "licence", "licenceUrl", "sourceUrl", "year"}` (`[]` without portraits). `licenceUrl` and `year` are left out when unknown.
 
 ### `config`
 

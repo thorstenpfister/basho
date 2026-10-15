@@ -13,6 +13,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/idmap"
+	"github.com/thorstenpfister/basho/internal/portrait"
 	"github.com/thorstenpfister/basho/internal/rating"
 	"github.com/thorstenpfister/basho/internal/snapshot"
 	"github.com/thorstenpfister/basho/internal/source"
@@ -26,10 +27,11 @@ var ErrNoSnapshot = errors.New("no snapshot")
 type Options struct {
 	Snapshot   func() (*snapshot.Snapshot, error) // nil: --no-snapshot
 	Params     func() (rating.File, error)
-	Remote     TournamentSource // disk cache over the network; nil: snapshot only
-	RemoteName string           // provenance label, e.g. "sumo-api"
-	Wrestlers  WrestlerSource   // the active wrestlers, for the index refresh; nil: none
-	Clock      clock.Clock      // nil: the real clock
+	Remote     TournamentSource              // disk cache over the network; nil: snapshot only
+	RemoteName string                        // provenance label, e.g. "sumo-api"
+	Wrestlers  WrestlerSource                // the active wrestlers, for the index refresh; nil: none
+	Portraits  func() (*portrait.Set, error) // nil: none
+	Clock      clock.Clock                   // nil: the real clock
 }
 
 // WrestlerSource returns the active wrestlers; *sumoapi.Client implements it.
@@ -42,12 +44,13 @@ type WrestlerSource interface {
 // needed, so commands such as `basho version` stay instant. It is safe for
 // concurrent use.
 type Service struct {
-	opts     Options
-	snapshot func() (*snapshot.Snapshot, error)
-	index    func() (*snapshot.Index, error)
-	params   func() (rating.File, error)
-	ratings  func() (*Ratings, error)
-	profiles func() (*profiles, error)
+	opts      Options
+	snapshot  func() (*snapshot.Snapshot, error)
+	index     func() (*snapshot.Index, error)
+	params    func() (rating.File, error)
+	ratings   func() (*Ratings, error)
+	portraits func() (*portrait.Set, error)
+	profiles  func() (*profiles, error)
 
 	mu    sync.Mutex
 	later map[domain.BashoID]*laterTournament // after the snapshot: the days loaded so far
@@ -92,6 +95,12 @@ func New(opts Options) *Service {
 			return rating.File{}, nil
 		}
 		return opts.Params()
+	})
+	s.portraits = sync.OnceValues(func() (*portrait.Set, error) {
+		if opts.Portraits == nil {
+			return portrait.Empty(), nil
+		}
+		return opts.Portraits()
 	})
 	s.ratings = sync.OnceValues(func() (*Ratings, error) {
 		x, err := s.index()

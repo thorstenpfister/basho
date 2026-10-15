@@ -1,0 +1,8 @@
+# Manual fixes for the portraits (SPEC §8.9), read by basho-data portraits update.
+#
+# [[portrait]]
+# id = 3081                    # the wrestler's ID
+# crop = [40, 10, 300, 270]    # x0, y0, x1, y1 in the 500 px thumbnail
+# exclude = true               # no portrait for this wrestler
+# file = "Other photo.jpg"     # another Commons file than Wikidata's
+# note = "why"

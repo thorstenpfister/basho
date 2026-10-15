@@ -18,7 +18,7 @@ import (
 
 func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 	var cfg PortraitConfig
-	var only, snapDir, workCache, contact, overrides string
+	var only, snapDir, workCache, contact, overrides, out string
 	var dither bool
 	update := &cobra.Command{
 		Use:   "update",
@@ -60,7 +60,14 @@ func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 			if err != nil || cfg.DryRun {
 				return err
 			}
-			_, err = BuildPortraits(cfg.Work, set.Sources, cfg.Overrides, dither, cmd.ErrOrStderr())
+			built, err := BuildPortraits(cfg.Work, set.Sources, cfg.Overrides, dither, cmd.ErrOrStderr())
+			if err != nil || len(cfg.Only) > 0 || cfg.Limit > 0 {
+				return err // a partial run never replaces the shipped set
+			}
+			if err := WritePortraitData(out, built); err != nil {
+				return err
+			}
+			_, err = fmt.Fprintf(cmd.ErrOrStderr(), "%d portraits written to %s\n", len(built), out)
 			return err
 		},
 	}
@@ -72,6 +79,7 @@ func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 	f.IntVar(&cfg.Limit, "limit", 0, "at most this many images, for a smoke run")
 	f.BoolVar(&cfg.DryRun, "dry-run", false, "run the Wikidata query (one request) and print the plan")
 	f.StringVar(&overrides, "overrides", "data/portraits/overrides.toml", "manual crops, exclusions and other files")
+	f.StringVar(&out, "out", "data/portraits", "where the portraits and credits go (not with --only or --limit)")
 	f.BoolVar(&dither, "dither", false, "ordered dithering when reducing to the palette")
 	f.StringVar(&contact, "contact", "https://github.com/thorstenpfister/basho",
 		"contact for the User-Agent, as Wikimedia's policy asks: a URL or an email address")

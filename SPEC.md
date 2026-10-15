@@ -1685,6 +1685,13 @@ AC status: met, by `TestNameModes`.
    - **Palette:** DB32, mapped by the nearest colour in CIELAB. The first try used the redmean RGB distance, which turned shaded skin into the palette's greys and blues. `--dither` adds 4×4 ordered dithering; it is off by default, and the review decides.
    - **Output:** `work/out/<id>-32.png` and `-20.png`, and `work/sheet.png` with every crop next to its portrait enlarged 4 times, for the review (step 6).
 3. `data/portraits/` with PNGs, `credits.json`, generated `CREDITS.md` and `LICENSE`; `basho credits` and the help overlay's Data page.
+
+   Done:
+   - **Files:** `basho-data portraits update` writes `data/portraits/32/<id>.png` and `20/<id>.png` (paletted PNGs), `credits.json`, `CREDITS.md` (a table of every photo with author, licence and source) and `LICENSE` (the images keep their photos' licences; the code's licence is separate). It removes the PNGs of an earlier run and keeps `overrides.toml`. A run with `--only` or `--limit` never writes there.
+   - **Shipped:** the binary embeds `data/portraits`. Until the owner's full run, `credits.json` is `[]` and there are no images.
+   - **Access:** the `portrait` package reads the set (`Open`, `Credits`, `Credit`, `Image`). The service exposes it as `PortraitCredits` and `Portrait(id, size)`, loaded once like the snapshot.
+   - **`basho credits`:** a portraits line with the count when there are photos, and the full list with `--portraits`, each photo with year, file, author, licence and source. JSON gains `portraits`. `credits` now goes through the service like the data commands.
+   - **Elsewhere:** the help overlay's Data page gets the same line, loaded with the rating numbers when help opens, and the README credits the photos.
 4. Half-block renderer with mirroring and the 256-colour fallback; procedural silhouette for wrestlers without a photo.
 5. VS screen integration at the size breakpoints (§8.9), photo-year caption, `ui.portraits` toggle.
 6. Manual review of all generated portraits for current Makuuchi and Juryo wrestlers, and fix crops via overrides.

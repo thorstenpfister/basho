@@ -184,6 +184,7 @@ type Model struct {
 	helpPage      int
 	helpTop       int                  // the first line shown of a long page
 	helpRating    *service.RatingModel // for the rating page, loaded when help opens
+	helpPhotos    int                  // portraits shipped, for the data page
 	message       string
 	messageID     int
 	live          liveState
@@ -244,8 +245,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = msg.Text
 		id := m.messageID
 		return m, m.ctx.After(messageTTL, func(time.Time) tea.Msg { return clearMsg{id} })
-	case ratingModelMsg:
-		m.helpRating = &msg.model
+	case helpDataMsg:
+		m.helpRating, m.helpPhotos = msg.model, msg.photos
 		return m, nil
 	case clearMsg:
 		if msg.id == m.messageID {
@@ -283,7 +284,7 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.helpKey(msg), nil
 	case key.Matches(msg, keyHelp):
 		m.help, m.helpPage, m.helpTop = true, 0, 0
-		return m, m.loadRatingModel()
+		return m, m.loadHelpData()
 	case key.Matches(msg, keyQuit):
 		if b, ok := m.top().(QuitBacker); ok && b.QuitGoesBack() && len(m.stack) > 1 {
 			return m.pop()
@@ -492,20 +493,27 @@ func ErrorHint(err error) string {
 	}
 }
 
-// ratingModelMsg carries the rating's calibration to the help overlay.
-type ratingModelMsg struct{ model service.RatingModel }
+// helpDataMsg carries what the help pages read from the data: the rating's
+// calibration and the number of portraits.
+type helpDataMsg struct {
+	model  *service.RatingModel
+	photos int
+}
 
-func (m Model) loadRatingModel() tea.Cmd {
+func (m Model) loadHelpData() tea.Cmd {
 	svc := m.ctx.Svc
 	if svc == nil || m.helpRating != nil {
 		return nil
 	}
 	return func() tea.Msg {
-		r, err := svc.RatingModel()
-		if err != nil {
-			return nil // the page explains the rating without the numbers
+		var msg helpDataMsg
+		if r, err := svc.RatingModel(); err == nil { // else the page explains the rating without the numbers
+			msg.model = &r
 		}
-		return ratingModelMsg{r}
+		if pc, err := svc.PortraitCredits(); err == nil {
+			msg.photos = len(pc)
+		}
+		return msg
 	}
 }
 
@@ -531,7 +539,7 @@ func (m Model) helpKey(msg tea.KeyPressMsg) Model {
 // many of a page's lines fit.
 func (m Model) helpPages(width, height int) ([]help.Page, int) {
 	keys := [][]key.Binding{m.top().Keys(), globalKeys}
-	return help.Pages(m.ctx.Theme, keys, m.helpRating, width-4), max(height-5, 1)
+	return help.Pages(m.ctx.Theme, keys, m.helpRating, m.helpPhotos, width-4), max(height-5, 1)
 }
 
 func helpMaxTop(p help.Page, rows int) int {

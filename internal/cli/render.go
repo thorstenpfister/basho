@@ -13,6 +13,7 @@ import (
 
 	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/portrait"
 	"github.com/thorstenpfister/basho/internal/service"
 )
 
@@ -592,7 +593,7 @@ func renderRatings(g glyphs, t service.RatingTable, p service.Provenance) string
 
 // credits is `basho credits` (SPEC §4, §14.4): each source with its notes
 // in a column beside it.
-func credits() string {
+func credits(portraits []portrait.Credit, list bool) string {
 	var b strings.Builder
 	b.WriteString("basho uses data from:\n\n")
 	for _, c := range service.Credits {
@@ -605,7 +606,28 @@ func credits() string {
 		}
 	}
 	b.WriteString("\n" + wrap(service.CreditsNote, 74) + "\n")
+	if len(portraits) == 0 {
+		return b.String()
+	}
+	fmt.Fprintf(&b, "\n%s\n", wrap(fmt.Sprintf("Portraits: %d photos from Wikimedia Commons, %s, each under its own licence (mostly CC BY-SA). basho credits --portraits lists them.",
+		len(portraits), portrait.Changes), 74))
+	if list {
+		for _, c := range portraits {
+			who := c.Name
+			if c.Year > 0 {
+				who += fmt.Sprintf(" (%d)", c.Year)
+			}
+			fmt.Fprintf(&b, "\n%s\n  %s by %s, %s\n  %s\n", who, c.File, orElse(c.Author, "unknown"), c.Licence, c.SourceURL)
+		}
+	}
 	return b.String()
+}
+
+func orElse(s, fallback string) string {
+	if s == "" {
+		return fallback
+	}
+	return s
 }
 
 // wrap wraps at spaces only: ansi.Wordwrap also breaks after any hyphen

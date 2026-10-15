@@ -17,7 +17,7 @@ func TestPages(t *testing.T) {
 		Bouts: 34759, Accuracy: 0.562, RankAccuracy: 0.540,
 	}
 	for _, width := range []int{56, 76, 116} {
-		pages := Pages(theme.New(true, false), nil, m, width)
+		pages := Pages(theme.New(true, false), nil, m, 360, width)
 		var titles []string
 		for _, p := range pages {
 			titles = append(titles, p.Title)
@@ -30,13 +30,16 @@ func TestPages(t *testing.T) {
 		if got := strings.Join(titles, " "); got != "Keys Legend Rating Data Limitations" {
 			t.Errorf("pages %q", got)
 		}
+		if data := strings.Join(strings.Fields(ansi.Strip(pages[3].Body)), " "); !strings.Contains(data, "360 photos from Wikimedia Commons") {
+			t.Errorf("data page at %d:\n%s", width, pages[3].Body)
+		}
 		rating := strings.Join(strings.Fields(ansi.Strip(pages[2].Body)), " ")
 		if !strings.Contains(rating, "Tested on 34759 bouts from 2015 to Aki 2026") || !strings.Contains(rating, "the favourite won 56% of them; the higher rank won 54%") {
 			t.Errorf("rating page at %d:\n%s", width, pages[2].Body)
 		}
 	}
 	m.Shown = false
-	if body := Pages(theme.New(true, false), nil, m, 76)[2].Body; !strings.Contains(body, "basho hides it") {
+	if body := Pages(theme.New(true, false), nil, m, 0, 76)[2].Body; !strings.Contains(body, "basho hides it") {
 		t.Errorf("a hidden rating:\n%s", body)
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/thorstenpfister/basho/internal/portrait"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/tui/components"
 	"github.com/thorstenpfister/basho/internal/tui/theme"
@@ -23,13 +24,14 @@ type Page struct {
 
 // Pages are the overlay's pages at a width: the keys (the screen's, then the
 // global ones), the legend, the rating, the data sources and the known
-// limitations. model is the rating's calibration, nil until it has loaded.
-func Pages(t theme.Theme, keys [][]key.Binding, model *service.RatingModel, width int) []Page {
+// limitations. model is the rating's calibration, nil until it has loaded;
+// photos is the number of portraits shipped.
+func Pages(t theme.Theme, keys [][]key.Binding, model *service.RatingModel, photos, width int) []Page {
 	return []Page{
 		{"Keys", keysPage(keys, width)},
 		{"Legend", legend(t, width)},
 		{"Rating", ratingPage(t, model, width)},
-		{"Data", dataPage(t, width)},
+		{"Data", dataPage(t, photos, width)},
 		{"Limitations", limitations(width)},
 	}
 }
@@ -87,10 +89,14 @@ func ratingPage(t theme.Theme, m *service.RatingModel, width int) string {
 	return paragraphs(width, paras...)
 }
 
-func dataPage(t theme.Theme, width int) string {
+func dataPage(t theme.Theme, photos, width int) string {
 	rows := make([][2]string, len(service.Credits))
 	for i, c := range service.Credits {
 		rows[i] = [2]string{c.Source, c.About}
+	}
+	if photos > 0 {
+		rows = append(rows, [2]string{"Portraits", fmt.Sprintf("%d photos from Wikimedia Commons, %s, each under its own licence "+
+			"(mostly CC BY-SA). basho credits --portraits lists every photo's author, licence and source.", photos, portrait.Changes)})
 	}
 	return defs(t, width, rows) + "\n\n" + paragraphs(width,
 		service.CreditsNote,

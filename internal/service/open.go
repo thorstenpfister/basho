@@ -69,7 +69,7 @@ func Open(cfg config.Config, version string, env config.Env) (*Service, error) {
 	if cfg.Sources.OsadaEnabled || mode == resolver.ForceOsada {
 		res.Current = osada.New(cached(resolver.Osada, osada.Freshness{LiveInterval: interval, Window: window}.Policy), osada.DefaultBaseURL)
 	}
-	opts := Options{Snapshot: data.Snapshot, Params: data.RatingParams, Remote: res, Wrestlers: api, RemoteName: resolver.SumoAPI}
+	opts := Options{Snapshot: data.Snapshot, Params: data.RatingParams, Portraits: data.Portraits, Remote: res, Wrestlers: api, RemoteName: resolver.SumoAPI}
 	if cfg.NoSnapshot {
 		opts.Snapshot = nil
 	}

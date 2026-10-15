@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/portrait"
 )
 
 func TestPortraitOverrides(t *testing.T) {
@@ -146,5 +147,53 @@ func TestBuildPortraits(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(work, f)); err != nil {
 			t.Error(err)
 		}
+	}
+}
+
+func TestWritePortraitData(t *testing.T) {
+	dir := t.TempDir()
+	for _, f := range []string{"32/99.png", "overrides.toml"} { // a portrait of an earlier run, and the overrides
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, f)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, f), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	blank := image.NewNRGBA(image.Rect(0, 0, 100, 100))
+	built := []BuiltPortrait{{
+		PortraitSource: PortraitSource{
+			RikishiID: 7, Name: "Onosato", File: "A|B.jpg", Author: "Photo | Co", Licence: "CC BY-SA 4.0",
+			LicenceURL: "https://creativecommons.org/licenses/by-sa/4.0", SourceURL: "https://commons.wikimedia.org/wiki/File:A", Year: 2024,
+		},
+		Portrait: MakePortrait(blank, PortraitOverride{}, false),
+	}}
+	if err := WritePortraitData(dir, built); err != nil {
+		t.Fatal(err)
+	}
+	set, err := portrait.Open(os.DirFS(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c, ok := set.Credit(7); !ok || c.Author != "Photo | Co" || c.Year != 2024 {
+		t.Errorf("credit %+v", c)
+	}
+	for _, size := range portrait.Sizes {
+		if _, err := set.Image(7, size); err != nil {
+			t.Error(err)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, "32", "99.png")); err == nil {
+		t.Error("an earlier run's portrait stayed")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "overrides.toml")); err != nil {
+		t.Error("overrides.toml went")
+	}
+	md, _ := os.ReadFile(filepath.Join(dir, "CREDITS.md"))
+	if !strings.Contains(string(md), `| Onosato | [A\|B.jpg](https://commons.wikimedia.org/wiki/File:A) | Photo \| Co | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0) |`) {
+		t.Errorf("CREDITS.md:\n%s", md)
+	}
+	if lic, _ := os.ReadFile(filepath.Join(dir, "LICENSE")); !strings.Contains(string(lic), "keeps the licence") {
+		t.Errorf("LICENSE:\n%s", lic)
 	}
 }

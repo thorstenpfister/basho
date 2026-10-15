@@ -9,6 +9,7 @@ import (
 
 	"github.com/thorstenpfister/basho/internal/derive"
 	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/portrait"
 	"github.com/thorstenpfister/basho/internal/service"
 )
 
@@ -530,4 +531,10 @@ func ratingsJSON(t service.RatingTable) jsonRatings {
 		})
 	}
 	return out
+}
+
+// creditsJSON is `basho credits --json`: the text and every portrait's credit.
+type creditsJSON struct {
+	Text      string            `json:"text"`
+	Portraits []portrait.Credit `json:"portraits"`
 }

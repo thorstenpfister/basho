@@ -30,5 +30,9 @@ basho relies on; v2 differs a lot from v1.
   results of the current tournament.
 - Both derive from the official results of the
   [Japan Sumo Association](https://www.sumo.or.jp).
+- Portraits: photos from [Wikimedia Commons](https://commons.wikimedia.org),
+  cropped, downscaled and colour-reduced, each under its own licence
+  (mostly CC BY-SA). [`data/portraits/CREDITS.md`](data/portraits/CREDITS.md)
+  and `basho credits --portraits` credit every photo.
 
 Usage policies and how basho stays polite: SPEC.md §4 and §7.

@@ -212,13 +212,20 @@ func (a *app) commands() []*cobra.Command {
 	tFlag(ratings)
 	ratings.Flags().IntVar(&top, "top", 20, "number of wrestlers (0: all)")
 
+	var photos bool
 	creditsCmd := &cobra.Command{
-		Use: "credits", Short: "Data sources", Args: usageArgs(cobra.NoArgs),
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		Use: "credits", Short: "Data sources and portrait credits", Args: usageArgs(cobra.NoArgs),
+		RunE: a.data(func(cmd *cobra.Command, svc *service.Service, _ []string) error {
+			pc, err := svc.PortraitCredits()
+			if err != nil {
+				return err
+			}
+			text := func() string { return credits(pc, photos) }
 			p := service.Provenance{Source: "basho"}
-			return a.emit(cmd, "credits", p, credits, func() any { return map[string]string{"text": credits()} })
-		},
+			return a.emit(cmd, "credits", p, text, func() any { return creditsJSON{Text: credits(pc, false), Portraits: pc} })
+		}),
 	}
+	creditsCmd.Flags().BoolVar(&photos, "portraits", false, "list every portrait's photo, author and licence")
 	return []*cobra.Command{list, info, day, bout, standings, a.watchCommand(), ratings, creditsCmd, a.configCommand()}
 }
 
