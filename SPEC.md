@@ -1709,9 +1709,15 @@ AC status: met, by `TestNameModes`.
    - **Caching:** each portrait's text is rendered once and kept for the screen, since the VS screen redraws on every animation frame.
    - **Tests:** goldens at 200×50 (32 px) and 125×40 (20 px) use a generated test image, so no photo goes into the repository. Every gate and breakpoint is tested.
 6. Manual review of all generated portraits for current Makuuchi and Juryo wrestlers, and fix crops via overrides.
+
+   Open: needs the owner's full run (`make portraits CONTACT=…`, about 370 requests, 6 minutes). Review `sheet.png` in the work directory and the "no face found" list, fix crops or exclude images in `overrides.toml`, run again (it fetches nothing twice), and decide on `--dither`.
 7. Golden tests (§13).
 
+   Done with steps 4 and 5: the renderer and silhouette tests, and the VS screen goldens with portraits at 200×50 and 125×40 from a generated image.
+
 **AC:** portraits render for every current Makuuchi wrestler with a Commons photo; every image is correctly credited; the VS screen still works at every size with portraits on and off.
+
+AC status: open until step 6. The VS screen at every size with portraits on and off is tested, and so are the credits' path from Commons to `CREDITS.md`, `basho credits --portraits` and JSON. The real photos and their review are the owner's run.
 
 ### Phase 15: Wrestler screen
 
