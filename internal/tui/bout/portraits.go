@@ -17,7 +17,9 @@ import (
 // wrestler has a photo: two silhouettes alone are just a distraction.
 func (v VS) portraitSize(ctx *tui.Context, l layout, rows int) int {
 	t := ctx.Theme
-	if !ctx.Cfg.UI.Portraits || t.ASCII || t.Mono || ctx.Svc == nil || l.Layout == tui.Compact || !v.hasPhoto(ctx) {
+	// Only once the tale is in: while it loads the screen is a row or two
+	// shorter, and a portrait that fits then would vanish when it arrives.
+	if !ctx.Cfg.UI.Portraits || t.ASCII || t.Mono || ctx.Svc == nil || l.Layout == tui.Compact || v.tale == nil || !v.hasPhoto(ctx) {
 		return 0
 	}
 	for _, size := range portrait.Sizes { // largest first

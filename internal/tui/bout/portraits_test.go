@@ -94,6 +94,7 @@ func TestPortraitSize(t *testing.T) {
 	rows := res.Value.Bouts
 	musubi := New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, rows, len(rows)-1) // Onosato has a photo
 	other := New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, rows, 0)            // nobody has
+	musubi.tale, other.tale = &service.Tale{}, &service.Tale{}                        // loaded
 	// 32 px needs 16 rows and the caption. Every column outside the compact
 	// layout is at least 37 wide, so the height decides.
 	for _, tt := range []struct{ width, rows, want int }{
@@ -102,6 +103,11 @@ func TestPortraitSize(t *testing.T) {
 		if got := musubi.portraitSize(ctx, measure(tt.width), tt.rows); got != tt.want {
 			t.Errorf("%d columns, %d rows: %d px, want %d", tt.width, tt.rows, got, tt.want)
 		}
+	}
+	loading := musubi
+	loading.tale = nil
+	if loading.portraitSize(ctx, measure(120), 40) != 0 {
+		t.Error("a portrait before the tale is in")
 	}
 	if other.portraitSize(ctx, measure(120), 40) != 0 {
 		t.Error("two silhouettes shown")
