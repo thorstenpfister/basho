@@ -17,7 +17,7 @@ A terminal app for browsing the **days and bouts of a grand sumo tournament (bas
 
 - Browse any tournament from **January 1960 to today**, in the **Makuuchi** and **Juryo** divisions.
 - **Day view:** every bout of a day, in order, with results.
-- **Bout view ("VS screen"):** name, rank, stable, hometown, age, record going into the bout, last 5 results, height and weight bars, kinboshi stars, yusho count, head-to-head record, technique profile (fighter type, style, signature move). The result can be revealed on the screen.
+- **Bout view ("VS screen"):** name, rank, stable, hometown, age, record going into the bout, last 5 results, height and weight, kinboshi stars, yusho count, head-to-head record, technique profile (fighter type, style, signature move). The result can be revealed on the screen.
 - **Standings view:** state after day N. Includes the leader board (yusho race), the classic 15-day results grid (hoshitori), and winning/losing record (kachi-koshi/make-koshi) markers.
 - **Live mode:** automatic updates during the live window on tournament days, with strict limits on how often it calls the APIs.
 - **Optional spoiler-free mode** for people watching recordings later.
@@ -700,7 +700,7 @@ There is no public sumo rating API. Ozeki Analytics published an Elo analysis co
   | Width | Behaviour |
   |---|---|
   | < 60 cols or < 20 rows | "Terminal too small (need 60×20)" |
-  | 60–89 (compact) | Single column, short ranks (`M17e`), kanji hidden on the day view, VS screen without bars |
+  | 60–89 (compact) | Single column, short ranks (`M17e`), kanji hidden on the day view, VS screen without portraits |
   | 90–129 (normal) | Full layouts as drawn below |
   | ≥ 130 (wide) | Day view gets a standings side panel; VS screen gets the head-to-head history column |
 
@@ -801,8 +801,8 @@ BASHO ─ select tournament                                            [/] filte
    26                           AGE                           27
    10-2                       RECORD                         9-3
    ○○●○│○                     LAST 5                       ○●○○●
-   ██████████████ 190cm       HEIGHT        188cm █████████████
-   ██████████████ 188kg       WEIGHT        150kg ██████████
+   190cm                      HEIGHT                     188cm
+   188kg                      WEIGHT                     150kg
    ★★                        KINBOSHI                          —
    4                           YUSHO                           2
    ▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒░░▚▚        STYLE        ▓▓▓▓▒▒▒▒▒▒▒▒░░░░░░▚
@@ -822,7 +822,7 @@ BASHO ─ select tournament                                            [/] filte
 (The values in the mockup are illustrative. In the STYLE bars, each segment has its own colour and texture. See §6.7.)
 
 - Layout: mirrored columns around a centre column of labels. The left column is right-aligned towards the centre and the right column left-aligned (both "face" the middle).
-- **Bars:** height and weight are the latest values (§6.6), scaled to the minimum–maximum of the wrestlers in that tournament's division, so differences are visible. Each pair's bars point outwards from the labels.
+- **Height and weight:** the latest values (§6.6), as text. The bars that once scaled them to the division's range were dropped on 2026-10-15, together with the portraits' move above the names: they drew the eye away from the comparison.
 - **Result panel:**
   - Normal mode: visible when the bout is decided.
   - Spoiler-free mode: shows `[space] reveal` instead.
@@ -932,7 +932,7 @@ Pages, switched with `←`/`→` or `tab` and scrolled with `j`/`k` or the wheel
 
 ### 8.9 Portraits (Phase 14)
 
-Pixel-art portraits beside the tale of the tape, facing each other like a fighting-game character select screen:
+Pixel-art portraits above the wrestlers' names, facing each other like a fighting-game character select screen (the mockup below shows the first plan, beside the tape):
 
 ```
   ▗▄▄▄▄▖                                                        ▗▄▄▄▄▖
@@ -948,7 +948,7 @@ Pixel-art portraits beside the tale of the tape, facing each other like a fighti
 1. Query Wikidata for wrestlers in the snapshot's index with P6652 or P3385, and P18 (§4.4). Fetch the licence, author and source URL from the Commons API and drop anything not on the allow-list.
 2. Fetch a 500 px thumbnail.
 3. Crop to head and shoulders. Face detection uses `github.com/esimov/pigo` (pure Go) and crops a square about 1.7× the face box. Manual overrides in `data/portraits/overrides.toml` can set the crop box, exclude an image or pick a different file.
-4. Downscale with area averaging to 48×48, 32×32 and 20×20, then reduce each portrait to a palette of its own 16 colours (median cut in CIELAB on the 48 px image, shared by all three sizes), with optional ordered dithering.
+4. Downscale with area averaging to 32×32 and 20×20, then reduce each portrait to a palette of its own 16 colours (median cut in CIELAB on the 32 px image, shared by both sizes), with optional ordered dithering.
 5. Store as paletted PNG (about 1.7 KB per wrestler for the three sizes, about 610 KB for 360) in `data/portraits/`, together with `credits.json` and a generated `CREDITS.md` (file, author, licence, source URL, and the changes made: "cropped, downscaled, colour-reduced").
 
 **Licensing:** the derived images are adaptations, so they keep the source licence (mostly CC BY-SA). `data/portraits/LICENSE` says so. Attribution is shown by `basho credits`, on the help overlay's Data page, and in the README.
@@ -958,20 +958,10 @@ Pixel-art portraits beside the tale of the tape, facing each other like a fighti
 - Half-block characters (`▀`): the foreground colour is the upper pixel, the background colour the lower one. This is pure text, so it fits into Bubble Tea and Lip Gloss layouts and works in any truecolor terminal (Ghostty included). `github.com/charmbracelet/x/mosaic` (experimental) or a small renderer of our own.
 - The West portrait is mirrored horizontally so the fighters face each other.
 - On 256-colour terminals, colours map to the nearest palette entry. Portraits are hidden with `NO_COLOR`, `--ascii`, in compact layout and with `ui.portraits = false`.
-- Size: the largest of 48, 32 and 20 px that fits the width left beside the wide layout's history column, with the tape keeping 80 columns (48 px from 178 columns left, 32 from 146, 20 from 122), and the height: half its pixels in rows plus the caption, and 14 rows for the rest of the screen (48 px from 39 rows, 32 from 31, 20 from 25). By terminal width:
-
-  | Columns | Portraits |
-  |---|---|
-  | below 122 | none |
-  | 122–145 | 20 px |
-  | 146–164 | 32 px, in place of the wide layout's head-to-head column (the history stays on `v`) |
-  | 165–188 | 20 px beside the column |
-  | 189–220 | 32 px beside the column |
-  | 221+ | 48 px beside the column |
-
-  The column gives way only when at least one of the two wrestlers has a photo; two silhouettes never replace it. The first plan, 32 px from 140 columns, predates the 42-column history column and does not fit beside it. Before the gap rule, nothing showed between 130 and 164 columns, the width of many full-screen laptop terminals.
+- Placement and size: above the names, each portrait centred over its wrestler's column, in the rows the rest of the VS screen leaves free: 32 px when 17 rows are free (16 and the caption), 20 px from 11, none below. Outside the compact layout every column is at least 37 wide, so only the height decides. They show only when at least one of the two wrestlers has a photo; two silhouettes alone are just a distraction. The rest of the screen takes about 26 rows, so a 32 px portrait fits from about 44 terminal rows and a 20 px one from about 38.
+  - History: first beside the tape, with a 48 px size and rules by width, they took width from the tape and the head-to-head column, left a gap between 130 and 164 columns, and distracted from the comparison. On 2026-10-15 they moved above the names and 32 px became the largest size.
 - Below each portrait a dim caption gives the photo year ("photo 2014"), because some photos are old.
-- **No photo:** a procedurally generated silhouette sprite, shaped by height and weight, with a mawashi colour derived from the wrestler ID. It is clearly not a likeness.
+- **No photo:** a drawn silhouette, a head with a topknot over broad shoulders, in the rules' colour. It is clearly not a likeness.
 - Full-resolution images via terminal graphics protocols (Kitty, iTerm2, Sixel) are not used: they conflict with Bubble Tea's renderer (§15).
 
 ---
@@ -1715,20 +1705,20 @@ AC status: met, by `TestNameModes`.
 5. VS screen integration at the size breakpoints (§8.9), photo-year caption, `ui.portraits` toggle.
 
    Done:
-   - **Placement:** the portraits stand beside the tape, East on the left facing right, West mirrored on the right, each with "photo 2024" under it when the year is known. The tape narrows to make room, and the result panel and the history column go beside or under all of it.
+   - **Placement:** first beside the tape, East on the left facing right, West mirrored on the right, each with "photo 2024" under it when the year is known. Since 2026-10-15 they are above the names instead (§8.9), where they cost no width.
    - **Sizes:** chosen by width, as §8.9 now says. Not shown with `ui.portraits = false`, `--ascii`, without colours, or in the compact layout.
    - **Without a photo:** a silhouette in the rules' colour.
    - **Caching:** each portrait's text is rendered once and kept for the screen, since the VS screen redraws on every animation frame.
    - **Tests:** goldens at 200×50 (32 px) and 125×40 (20 px) use a generated test image, so no photo goes into the repository. Every gate and breakpoint is tested.
 6. Manual review of all generated portraits for current Makuuchi and Juryo wrestlers, and fix crops via overrides.
 
-   - **Look, after the first full run:** with DB32's 32 colours the photos turned to soup, the old sepia and black-and-white ones especially, and the wrestlers were hard to tell apart. A comparison over the cached thumbnails showed that the palette was the main loss, then the crop, then the size. Now each portrait gets a palette of its own 16 colours (median cut; `--colours` 2–256 tries others from the cache), the crop is 1.7 face widths with the face 45% down, and a 48 px size joins 32 and 20 for wide terminals. It stays pixel art, with crisp blocks and few colours, and DB32 is gone.
+   - **Look, after the first full run:** with DB32's 32 colours the photos turned to soup, the old sepia and black-and-white ones especially, and the wrestlers were hard to tell apart. A comparison over the cached thumbnails showed that the palette was the main loss, then the crop, then the size. Now each portrait gets a palette of its own 16 colours (median cut; `--colours` 2–256 tries others from the cache), the crop is 1.7 face widths with the face 45% down, and a 48 px size joined 32 and 20 for wide terminals; it went again when the portraits moved above the names. It stays pixel art, with crisp blocks and few colours, and DB32 is gone.
    - **Progress** (after the first full run, which said nothing for 6 minutes): each phase reports its count, metadata 3/8, thumbnails 37/360, portraits 120/360, on one rewritten line in a terminal and every 25 items in a log. A rerun from the work cache takes about 30 s, mostly face detection.
 
    - **Review tools:** each cell of `sheet.png` has a label with the ID and name, marked "(override)" or "(no face)". `basho-data portraits update --overrides-only`, or `make portraits-preview`, rebuilds only the wrestlers in `overrides.toml`, into `.cache/basho-data/portraits-preview/sheet.png`, from the work cache in seconds. It never writes `data/portraits`.
    - **First review** (2026-10-15, all 360): `overrides.toml` excludes 7 images (three handprints, a statue, an arena wide shot, and two action shots without a usable face) and crops 68 by hand. Of those, 35 were full-body or profile shots where no face was found; the others caught a spectator, a towel, the belly, an apron or a banner. Each crop was checked with the preview, and the coordinates were read off the thumbnails with a 50 px grid.
 
-   Done: the owner's full run with the reviewed overrides is committed. That is 353 wrestlers, 360 found less 7 excluded, at 48, 32 and 20 px, 593 KB. Dithering stays off.
+   Done: the owner's full run with the reviewed overrides is committed. That is 353 wrestlers, 360 found less 7 excluded, at 32 and 20 px, 294 KB. Dithering stays off.
 7. Golden tests (§13).
 
    Done with steps 4 and 5: the renderer and silhouette tests, and the VS screen goldens with portraits at 200×50 and 125×40 from a generated image.

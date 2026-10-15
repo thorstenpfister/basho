@@ -128,7 +128,7 @@ func TestMakePortrait(t *testing.T) {
 			t.Errorf("size %d", size)
 		}
 	}
-	if p.Images[48].Palette[0] != p.Images[20].Palette[0] {
+	if big, small := p.Images[portrait.Sizes[0]], p.Images[portrait.Sizes[len(portrait.Sizes)-1]]; big.Palette[0] != small.Palette[0] {
 		t.Error("the sizes do not share their palette")
 	}
 	p = MakePortrait(blank, PortraitOverride{Crop: []int{10, 20, 110, 120}}, ImageConfig{Colours: 8, Dither: true})
@@ -166,7 +166,7 @@ func TestBuildPortraits(t *testing.T) {
 	if err != nil || len(built) != 1 {
 		t.Fatal(built, err)
 	}
-	for _, f := range []string{"out/1-48.png", "out/1-32.png", "out/1-20.png", "sheet.png"} {
+	for _, f := range []string{"out/1-32.png", "out/1-20.png", "sheet.png"} {
 		if _, err := os.Stat(filepath.Join(work, f)); err != nil {
 			t.Error(err)
 		}

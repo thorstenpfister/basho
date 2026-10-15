@@ -29,24 +29,6 @@ func TestStatRow(t *testing.T) {
 	}
 }
 
-func TestBar(t *testing.T) {
-	if got := plain(Bar(uni, 190, 170, 190, 10, true)); got != "██████████" {
-		t.Errorf("max %q", got)
-	}
-	if got := plain(Bar(uni, 170, 170, 190, 10, false)); got != "██        " {
-		t.Errorf("min %q", got)
-	}
-	if got := plain(Bar(uni, 180, 170, 190, 10, true)); got != "    ██████" {
-		t.Errorf("middle, left %q", got)
-	}
-	if Bar(uni, 0, 170, 190, 10, true) != "" {
-		t.Error("an unknown value draws nothing")
-	}
-	if got := plain(Bar(ascii, 180, 180, 180, 4, false)); got != "####" {
-		t.Errorf("one value, ascii %q", got)
-	}
-}
-
 func TestPips(t *testing.T) {
 	nago, aki := domain.BashoID{Year: 2026, Month: time.July}, domain.BashoID{Year: 2026, Month: time.September}
 	l := derive.LastN{Results: []derive.Result{

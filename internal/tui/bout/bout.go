@@ -289,33 +289,18 @@ func (v VS) QuitGoesBack() bool { return true }
 // layout is the measures of one render.
 type layout struct {
 	tui.Layout
-	width    int  // of the tape, without the wide history column and portraits
-	side     int  // each value column
-	middle   int  // the label column
-	portrait int  // the portraits' size in pixels (and columns), 0 for none
-	column   bool // the wide layout's head-to-head column is shown
+	width  int // of the tape, without the wide history column and portraits
+	side   int // each value column
+	middle int // the label column
 }
 
 // historyWidth is the wide layout's head-to-head column.
 const historyWidth = 42
 
-func measure(ctx *tui.Context, width, height int, photo bool) layout {
+func measure(width int) layout {
 	l := layout{Layout: tui.LayoutOf(width), width: width}
 	if l.Layout == tui.Wide {
-		l.width, l.column = width-historyWidth-1, true
-	}
-	if l.Layout != tui.Compact {
-		l.portrait = portraitSize(ctx, l.width, height)
-		// A photo comes before the head-to-head column (130–164 columns):
-		// the history is still on v. Two silhouettes do not.
-		if l.portrait == 0 && l.column && photo {
-			if size := portraitSize(ctx, width, height); size > 0 {
-				l.width, l.column, l.portrait = width, false, size
-			}
-		}
-		if l.portrait > 0 {
-			l.width -= 2 * (l.portrait + 1)
-		}
+		l.width = width - historyWidth - 1
 	}
 	l.width = min(l.width, 110)
 	l.middle = 14
@@ -326,7 +311,7 @@ func measure(ctx *tui.Context, width, height int, photo bool) layout {
 // View implements tui.Screen.
 func (v VS) View(ctx *tui.Context, width, height int) string {
 	t := ctx.Theme
-	l := measure(ctx, width, height, v.hasPhoto(ctx))
+	l := measure(width)
 	var b strings.Builder
 	b.WriteString(" " + t.Title.Render(v.heading()) + "\n")
 	if v.err != nil && v.tale == nil {
@@ -340,19 +325,18 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 	if v.moveset && v.tale != nil {
 		tape = v.movesetPanel(ctx, l)
 	}
-	if l.portrait > 0 {
-		tape = v.withPortraits(ctx, lipgloss.NewStyle().Width(l.width).Render(tape), l.portrait)
-		l.width += 2*(l.portrait+1) - 1 // the history column goes beside all of it
-	}
-	if l.column && v.tale != nil {
+	if l.Layout == tui.Wide && v.tale != nil {
 		col := lipgloss.NewStyle().Width(historyWidth).PaddingLeft(1).
 			BorderStyle(lipgloss.NormalBorder()).BorderLeft(true).BorderForeground(t.Colors.Subtle).
 			Render(v.historyView(ctx, historyWidth-2, true))
 		tape = lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(l.width+1).Render(tape), col)
 	}
-	b.WriteString(tape + "\n")
-	b.WriteString(v.resultPanel(ctx, l) + "\n")
-	b.WriteString(t.Dim.Render(" [ ] prev/next · v head-to-head · m moveset · esc back"))
+	rest := tape + "\n" + v.resultPanel(ctx, l) + "\n" + t.Dim.Render(" [ ] prev/next · v head-to-head · m moveset · esc back")
+	// The portraits go above the names, in the rows the rest leaves free.
+	if size := v.portraitSize(ctx, l, height-1-lipgloss.Height(rest)); size > 0 {
+		b.WriteString(v.portraitRow(ctx, l, size) + "\n")
+	}
+	b.WriteString(rest)
 	return b.String()
 }
 
@@ -429,7 +413,7 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 	}
 	lines = append(lines, " "+t.Rule.Render(strings.Repeat(t.Line, l.width-2)))
 	lines = append(lines, v.headToHead(ctx, l)...)
-	if v.history && !l.column {
+	if v.history && l.Layout != tui.Wide {
 		lines = append(lines, v.historyView(ctx, l.width-4, false))
 	}
 	return strings.Join(lines, "\n")
@@ -439,8 +423,7 @@ func (v VS) tape(ctx *tui.Context, l layout) string {
 // outwards, scaled to the division (none in the compact layout).
 func (v VS) measures(ctx *tui.Context, l layout, row func(string, string, string) string) []string {
 	t := ctx.Theme
-	e, w, sc := v.tale.East, v.tale.West, v.tale.Scale
-	cells := l.side - 8
+	e, w := v.tale.East, v.tale.West
 	value := func(x float64, unit string, latest bool) string {
 		if x == 0 {
 			return "—"
@@ -451,17 +434,12 @@ func (v VS) measures(ctx *tui.Context, l layout, row func(string, string, string
 		}
 		return s
 	}
-	pair := func(ex, wx, lo, hi float64, unit, label string) string {
-		left, right := value(ex, unit, e.Career.Latest), value(wx, unit, w.Career.Latest)
-		if l.Layout != tui.Compact && cells > 4 {
-			left = components.Bar(t, ex, lo, hi, cells-lipgloss.Width(left), true) + " " + left
-			right += " " + components.Bar(t, wx, lo, hi, cells-lipgloss.Width(right), false)
-		}
-		return row(left, label, right)
+	pair := func(ex, wx float64, unit, label string) string {
+		return row(value(ex, unit, e.Career.Latest), label, value(wx, unit, w.Career.Latest))
 	}
 	return []string{
-		pair(e.Career.Height, w.Career.Height, sc.MinHeight, sc.MaxHeight, "cm", "HEIGHT"),
-		pair(e.Career.Weight, w.Career.Weight, sc.MinWeight, sc.MaxWeight, "kg", "WEIGHT"),
+		pair(e.Career.Height, w.Career.Height, "cm", "HEIGHT"),
+		pair(e.Career.Weight, w.Career.Weight, "kg", "WEIGHT"),
 	}
 }
 

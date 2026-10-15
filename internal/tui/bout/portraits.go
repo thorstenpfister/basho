@@ -11,25 +11,17 @@ import (
 	"github.com/thorstenpfister/basho/internal/tui"
 )
 
-// minTape is the narrowest the tale of the tape gets beside portraits:
-// hometowns and the bars need it.
-const minTape = 80
-
-// screenRows is what the VS screen needs besides the portrait's rows:
-// heading, result panel, hints and the tape below a portrait.
-const screenRows = 14
-
-// portraitSize is the portraits' size for the width left beside the
-// history column and the screen's height: the largest of portrait.Sizes
-// that leaves the tape minTape columns and fits its rows (half its pixels,
-// and the caption) on the screen; 0 for none (SPEC §8.9).
-func portraitSize(ctx *tui.Context, avail, height int) int {
+// portraitSize is the size of the portraits above the names (SPEC §8.9):
+// the largest of portrait.Sizes that fits its wrestler's column and, with
+// the caption, the rows left; 0 for none. They show only when at least one
+// wrestler has a photo: two silhouettes alone are just a distraction.
+func (v VS) portraitSize(ctx *tui.Context, l layout, rows int) int {
 	t := ctx.Theme
-	if !ctx.Cfg.UI.Portraits || t.ASCII || t.Mono || ctx.Svc == nil {
+	if !ctx.Cfg.UI.Portraits || t.ASCII || t.Mono || ctx.Svc == nil || l.Layout == tui.Compact || !v.hasPhoto(ctx) {
 		return 0
 	}
 	for _, size := range portrait.Sizes { // largest first
-		if avail >= 2*(size+1)+minTape && height >= size/2+1+screenRows {
+		if size <= l.side && size/2+1 <= rows {
 			return size
 		}
 	}
@@ -74,15 +66,16 @@ func (v VS) portrait(ctx *tui.Context, id domain.RikishiID, size int, mirror boo
 	return p
 }
 
-// withPortraits sets the portraits beside the tape: East on the left
-// facing right, West on the right, mirrored, facing left.
-func (v VS) withPortraits(ctx *tui.Context, tape string, size int) string {
+// portraitRow is the portraits above the names, each centred over its
+// wrestler's column: East facing right, West mirrored, facing left.
+func (v VS) portraitRow(ctx *tui.Context, l layout, size int) string {
 	t := ctx.Theme
 	side := func(id domain.RikishiID, mirror bool) string {
 		p := v.portrait(ctx, id, size, mirror)
-		return lipgloss.JoinVertical(lipgloss.Center, p.text, t.Dim.Render(lipgloss.PlaceHorizontal(size, lipgloss.Center, p.caption)))
+		return lipgloss.NewStyle().Width(l.side).Align(lipgloss.Center).Render(p.text + "\n" + t.Dim.Render(p.caption))
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, " ", side(v.row.East.RikishiID, false), tape, side(v.row.West.RikishiID, true))
+	gap := lipgloss.NewStyle().Width(l.middle).Render("")
+	return lipgloss.JoinHorizontal(lipgloss.Top, " ", side(v.row.East.RikishiID, false), gap, side(v.row.West.RikishiID, true))
 }
 
 // hasPhoto reports whether either wrestler has a portrait.

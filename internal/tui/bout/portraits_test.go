@@ -67,7 +67,7 @@ func onosato(t *testing.T) domain.RikishiID {
 // Portraits beside the tape at the sizes the width allows (SPEC §8.9):
 // the East photo facing right, a silhouette for West without one.
 func TestPortraitGolden(t *testing.T) {
-	for _, size := range []struct{ w, h int }{{230, 50}, {200, 50}, {150, 45}, {125, 40}} {
+	for _, size := range []struct{ w, h int }{{200, 50}, {150, 50}, {100, 42}, {100, 30}} {
 		t.Run(fmt.Sprintf("%dx%d", size.w, size.h), func(t *testing.T) {
 			d := openOn(t, withPortrait(t), aki2026, 13, 19, size.w, size.h)
 			v := d.View()
@@ -76,7 +76,7 @@ func TestPortraitGolden(t *testing.T) {
 					t.Errorf("line %d is %d wide", i, w)
 				}
 			}
-			if !strings.Contains(v, "photo 2024") {
+			if size.h >= 42 && !strings.Contains(v, "photo 2024") {
 				t.Errorf("no caption:\n%s", v)
 			}
 			golden.RequireEqual(t, v)
@@ -85,22 +85,26 @@ func TestPortraitGolden(t *testing.T) {
 }
 
 func TestPortraitSize(t *testing.T) {
-	ctx := &tui.Context{Svc: withPortrait(t), Cfg: testContext(nil).Cfg, Theme: theme.New(true, false), Clock: clock.NewFake(testNow)}
-	for _, tt := range []struct{ avail, height, want int }{
-		{200, 50, 48},
-		{178, 39, 48},
-		{177, 50, 32},
-		{200, 38, 32},
-		{146, 31, 32},
-		{145, 50, 20},
-		{200, 30, 20},
-		{122, 25, 20},
-		{121, 50, 0},
-		{200, 24, 0},
+	svc := withPortrait(t)
+	ctx := &tui.Context{Svc: svc, Cfg: testContext(nil).Cfg, Theme: theme.New(true, false), Clock: clock.NewFake(testNow)}
+	res, err := svc.Day(t.Context(), aki2026, domain.DivMakuuchi, 13)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := res.Value.Bouts
+	musubi := New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, rows, len(rows)-1) // Onosato has a photo
+	other := New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, rows, 0)            // nobody has
+	// 32 px needs 16 rows and the caption. Every column outside the compact
+	// layout is at least 37 wide, so the height decides.
+	for _, tt := range []struct{ width, rows, want int }{
+		{120, 17, 32}, {120, 16, 20}, {120, 11, 20}, {120, 10, 0}, {200, 40, 32}, {90, 40, 32}, {80, 40, 0}, // compact: never
 	} {
-		if got := portraitSize(ctx, tt.avail, tt.height); got != tt.want {
-			t.Errorf("%d columns, %d rows: %d px, want %d", tt.avail, tt.height, got, tt.want)
+		if got := musubi.portraitSize(ctx, measure(tt.width), tt.rows); got != tt.want {
+			t.Errorf("%d columns, %d rows: %d px, want %d", tt.width, tt.rows, got, tt.want)
 		}
+	}
+	if other.portraitSize(ctx, measure(120), 40) != 0 {
+		t.Error("two silhouettes shown")
 	}
 	for name, change := range map[string]func(*tui.Context){
 		"ui.portraits = false": func(c *tui.Context) { c.Cfg.UI.Portraits = false },
@@ -109,39 +113,8 @@ func TestPortraitSize(t *testing.T) {
 	} {
 		c := *ctx
 		change(&c)
-		if portraitSize(&c, 200, 50) != 0 {
+		if musubi.portraitSize(&c, measure(120), 40) != 0 {
 			t.Errorf("%s shows portraits", name)
 		}
-	}
-	// Compact: never, whatever the width says.
-	if l := measure(ctx, 70, 50, true); l.portrait != 0 {
-		t.Error("compact layout with portraits")
-	}
-	// The wide layout: portraits before the head-to-head column where both
-	// do not fit, the column back once they do.
-	for _, tt := range []struct {
-		width, portrait int
-		column          bool
-	}{
-		{129, 20, false},
-		{130, 20, false},
-		{145, 20, false},
-		{146, 32, false},
-		{164, 32, false},
-		{165, 20, true},
-		{189, 32, true},
-		{221, 48, true},
-	} {
-		if l := measure(ctx, tt.width, 50, true); l.portrait != tt.portrait || l.column != tt.column {
-			t.Errorf("%d columns: %d px, column %v; want %d px, %v", tt.width, l.portrait, l.column, tt.portrait, tt.column)
-		}
-	}
-	if l := measure(ctx, 150, 50, false); !l.column || l.portrait != 0 {
-		t.Error("two silhouettes took the column's place")
-	}
-	off := *ctx
-	off.Cfg.UI.Portraits = false
-	if l := measure(&off, 150, 50, true); !l.column {
-		t.Error("without portraits the column stays")
 	}
 }

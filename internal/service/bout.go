@@ -24,7 +24,6 @@ type Tale struct {
 	HeadToHead derive.HeadToHead  // A is east; up to MaxMeetings, newest first
 	Matchups   [3]*derive.Matchup // by derive.Window; nil without samples
 	WinChance  *float64           // the east side's chance; nil when the rating is hidden
-	Scale      Scale              // for the height and weight bars
 	Result     *TaleResult        // nil while undecided, or Hidden
 	Hidden     bool               // after the spoiler horizon, decided or not
 }
@@ -51,12 +50,6 @@ type TaleResult struct {
 	Fusen       bool
 	East, West  derive.Record // after the bout
 	WinnerUpset bool          // the winner had under 35%
-}
-
-// Scale is the range of heights and weights in the bout's division, so the
-// bars show differences (SPEC §8.5).
-type Scale struct {
-	MinHeight, MaxHeight, MinWeight, MaxWeight float64
 }
 
 // MaxMeetings is how many head-to-head meetings a tale carries: 3 on the
@@ -141,7 +134,6 @@ func (s *Service) Bout(ctx context.Context, id domain.BashoID, div domain.Divisi
 		Musubi: !b.IsPlayoff && matchNo == last && div == domain.DivMakuuchi, Playoff: b.IsPlayoff,
 		East: side(b.East), West: side(b.West),
 		HeadToHead: derive.HeadToHeadOf(b.East.RikishiID, b.West.RikishiID, x.Rikishi(b.East.RikishiID), c, MaxMeetings),
-		Scale:      scale(d.entries, profiles),
 	}
 	for w := range tale.Matchups {
 		if m, ok := derive.MatchupOf(tale.East.Movesets[w], tale.West.Movesets[w]); ok {
@@ -179,21 +171,4 @@ func bashoList(x *snapshot.Index) []domain.Basho {
 		}
 	}
 	return out
-}
-
-func scale(entries []domain.BanzukeEntry, profiles map[domain.RikishiID]domain.Rikishi) Scale {
-	var sc Scale
-	for _, e := range entries {
-		p, ok := profiles[e.RikishiID]
-		if !ok || p.Height == 0 || p.Weight == 0 {
-			continue
-		}
-		if sc.MaxHeight == 0 {
-			sc = Scale{p.Height, p.Height, p.Weight, p.Weight}
-			continue
-		}
-		sc.MinHeight, sc.MaxHeight = min(sc.MinHeight, p.Height), max(sc.MaxHeight, p.Height)
-		sc.MinWeight, sc.MaxWeight = min(sc.MinWeight, p.Weight), max(sc.MaxWeight, p.Weight)
-	}
-	return sc
 }

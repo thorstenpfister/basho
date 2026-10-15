@@ -83,9 +83,6 @@ func TestBout(t *testing.T) {
 	if r := b.Result; r == nil || r.Winner != domain.West || r.East.String() != "11-2" || r.Technique.Kimarite != "shitatenage" {
 		t.Errorf("result %+v", b.Result)
 	}
-	if b.Scale.MinHeight == 0 || b.Scale.MaxHeight < b.Scale.MinHeight {
-		t.Errorf("scale %+v", b.Scale)
-	}
 	if _, err := embedded().Bout(t.Context(), aki2026, domain.DivMakuuchi, 13, 99); !errors.Is(err, source.ErrNotFound) {
 		t.Errorf("bout 99: %v", err)
 	}

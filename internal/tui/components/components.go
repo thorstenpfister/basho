@@ -29,33 +29,6 @@ func clip(s string, w int) string {
 	return lipgloss.NewStyle().MaxWidth(w).Render(s)
 }
 
-// barFloor is the share of the cells the smallest value of the range gets,
-// so every bar is visible and differences stand out.
-const barFloor = 0.2
-
-// Bar draws value on a bar of up to cells, scaled to [lo, hi]: lo fills
-// barFloor of the cells, hi all of them. A left bar grows leftwards from the
-// centre (right-aligned); both point outwards from the labels.
-func Bar(t theme.Theme, value, lo, hi float64, cells int, left bool) string {
-	if value <= 0 || cells <= 0 {
-		return ""
-	}
-	share := 1.0
-	if hi > lo {
-		share = barFloor + (1-barFloor)*math.Max(0, math.Min(1, (value-lo)/(hi-lo)))
-	}
-	n := max(int(math.Round(share*float64(cells))), 1)
-	block := "█"
-	if t.ASCII {
-		block = "#"
-	}
-	bar := t.Accent.Render(strings.Repeat(block, n))
-	if left {
-		return strings.Repeat(" ", cells-n) + bar
-	}
-	return bar + strings.Repeat(" ", cells-n)
-}
-
 // Pips draws the last results, oldest first, with a divider where the
 // tournament changes and · padding for a new wrestler (SPEC §6.2).
 func Pips(t theme.Theme, last derive.LastN, n int) string {

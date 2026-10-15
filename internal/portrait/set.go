@@ -18,7 +18,7 @@ import (
 
 // Sizes are the portraits' widths in pixels, largest first (SPEC §8.9):
 // the VS screen shows the largest that fits.
-var Sizes = []int{48, 32, 20}
+var Sizes = []int{32, 20}
 
 // Changes says what was done to every photo, as its licence asks.
 const Changes = "cropped, downscaled, colour-reduced"
