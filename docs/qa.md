@@ -1,6 +1,6 @@
 # Manual QA pass
 
-The Phase 12 acceptance check (SPEC §17): the whole list in Ghostty and one other terminal (Terminal.app or iTerm2), each in a light and a dark theme. That makes four runs. Tick a box only when the item holds in every run, and note anything else under **Findings**.
+The QA pass (SPEC §17, Phase 16), which is also Phase 12's acceptance check: the whole list in Ghostty and one other terminal (Terminal.app or iTerm2), each in a light and a dark theme. That makes four runs. Tick a box only when the item holds in every run, and note anything else under **Findings**.
 
 | Run | Terminal | Theme | Date | Result |
 |---|---|---|---|---|

@@ -53,10 +53,6 @@ test-live: ## Real API smoke tests, manual only (phase 1)
 golden: ## Rewrite golden files with -update; review the diff (phase 6)
 	$(todo)
 
-demo: build ## Record docs/demo.gif from docs/demo.tape (needs VHS: brew install vhs)
-	@command -v vhs >/dev/null || { echo "make demo: needs vhs (brew install vhs)" >&2; exit 2; }
-	vhs docs/demo.tape
-
 bench: ## The performance budgets: first screen under 300 ms, grid frame under 16 ms
 	$(GO) test -run '^$$' -bench 'BenchmarkStart|BenchmarkGrid' -benchmem ./internal/tui/...
 
@@ -86,7 +82,7 @@ check: fmt-check lint vuln test-race test-leaks ## All checks; run before commit
 
 tools: ## Check that external tools are installed
 	@command -v golangci-lint >/dev/null || { echo "missing golangci-lint: brew install golangci-lint"; exit 1; }
-	@command -v goreleaser >/dev/null || echo "optional until phase 13: goreleaser (brew install goreleaser)"
+	@command -v goreleaser >/dev/null || echo "optional until phase 17: goreleaser (brew install goreleaser)"
 	@echo "tools ok"
 
 ## Data (network targets will ask before fetching unless YES=1)
@@ -116,11 +112,12 @@ calibrate: build ## Calibrate the rating model (no network): data/rating/params.
 
 ## Release and docs
 
-vhs: ## Render the README GIF (phase 12)
+vhs: build ## Render the README GIF from docs/demo.tape (needs VHS: brew install vhs)
+	@command -v vhs >/dev/null || { echo "make vhs: needs vhs (brew install vhs)" >&2; exit 2; }
+	vhs docs/demo.tape
+
+release-snapshot: ## Local GoReleaser test build into dist/ (phase 17)
 	$(todo)
 
-release-snapshot: ## Local GoReleaser test build into dist/ (phase 13)
-	$(todo)
-
-portraits: ## Build pixel portraits, after 1.0 (phase 14)
+portraits: ## Build pixel portraits (phase 14)
 	$(todo)

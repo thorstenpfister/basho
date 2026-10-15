@@ -1,4 +1,4 @@
-# The README's demo GIF: make demo (needs VHS: brew install vhs).
+# The README's demo GIF: make vhs (needs VHS: brew install vhs).
 #
 # basho runs offline on its own config, cache and state directories, so the
 # recording shows the embedded snapshot only and never your settings. It

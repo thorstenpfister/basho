@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.17** (2026-10-14). Implemented: Phases 0–11 (Phase 10 step 4 and its real-day check wait for Kyushu 2026); the full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and the TUI has the picker, the day view with its recap, the VS screen and the standings. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Later phases are still the plan.
+> Status: **v0.18** (2026-10-15). Implemented: Phases 0–12 (Phase 10 step 4 and its real-day check wait for Kyushu 2026; Phase 12's QA pass moved to Phase 16). The full snapshot (196001–202609) and the calibrated rating are committed, the non-interactive CLI works offline, and the TUI has the picker, the day view with its recap, the VS screen, the standings and a paged help overlay. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Next, before v1.0: the rating scale and `ui.names` (13), portraits (14), the wrestler screen (15), the QA pass (16), then the release (17).
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -38,7 +38,7 @@ Excluded entirely (not planned):
 Not in v1 (possible later, §15):
 
 - Favourites, watchlists, notifications.
-- A wrestler encyclopedia or search screen.
+- A search screen or wrestler encyclopedia. (The wrestler screen, Phase 15, opens from bouts and standings.)
 
 ### 1.3 Decisions so far
 
@@ -66,7 +66,7 @@ Not in v1 (possible later, §15):
 | D20 | Bundled snapshot | A separate tool (`basho-data`) builds the finished tournaments in advance; the result is embedded in the binary. Only the tournaments since the snapshot and the live tournament are fetched (§4.3, §5.8). |
 | D21 | Rating | Our own Elo-style rating computed from the snapshot, with a win chance on the VS screen (§6.8). There is no public sumo rating API. |
 | D22 | Homebrew tap | **After 1.0.** Hosted in this repository (`Casks/`), not in a separate tap repository (§14.3) |
-| D23 | Portraits | Optional pixel-art portraits from Wikimedia Commons, built when the snapshot is built; **after 1.0** (§4.4, §8.9, Phase 14) |
+| D23 | Portraits | Optional pixel-art portraits from Wikimedia Commons, built when the snapshot is built; **before 1.0** since 2026-10-15 (§4.4, §8.9, Phase 14) |
 | D24 | sumo-api.com usage | No contact with the maintainer. Our use stays within fair use: one-off snapshot build at ≤ 1 request per second, incremental updates, aggressive caching. The snapshot is committed to this repository. |
 | D25 | Signing and notarization | Not for now; after 1.0 at the earliest (§15). The binary works unsigned, as with many CLI tools. |
 | D26 | Win chance | Shown on the VS screen by default (`ui.win_chance = true`); the day-view column stays opt-in (`p`) |
@@ -469,9 +469,9 @@ The rule: **standard library first.** A third-party module is only added when it
 | `mvdan.cc/gofumpt` | Formatting | `tool` directive in `go.mod`, run as `go tool gofumpt` |
 | `golang.org/x/vuln/cmd/govulncheck` | Vulnerability check | `tool` directive, `go tool govulncheck` |
 | `golangci-lint` | Linting | Homebrew (already installed; the project advises against building it from source) |
-| `goreleaser` | Release builds (Phase 13) | Homebrew; `make tools` reports if missing |
+| `goreleaser` | Release builds (Phase 17) | Homebrew; `make tools` reports if missing |
 
-**After 1.0 (portraits):** `github.com/esimov/pigo` (face detection), `golang.org/x/image/draw` (scaling), `github.com/charmbracelet/x/mosaic` (half-block rendering, or our own renderer), and `vhs` (Homebrew) for the README GIF.
+**Portraits (Phase 14):** `github.com/esimov/pigo` (face detection), `golang.org/x/image/draw` (scaling), `github.com/charmbracelet/x/mosaic` (half-block rendering, or our own renderer), and `vhs` (Homebrew) for the README GIF.
 
 **Charm v2 API facts and import-path rules:** `docs/charm-v2-notes.md`. Versions: `go.mod`.
 
@@ -929,7 +929,7 @@ Pages, switched with `←`/`→` or `tab` and scrolled with `j`/`k` or the wheel
 
 ---
 
-### 8.9 Portraits (optional, after 1.0)
+### 8.9 Portraits (Phase 14)
 
 Pixel-art portraits beside the tale of the tape, facing each other like a fighting-game character select screen:
 
@@ -950,7 +950,7 @@ Pixel-art portraits beside the tale of the tape, facing each other like a fighti
 4. Downscale with area averaging to 32×32 (wide) and 20×20 (normal), then reduce colours to the theme palette (default: a 32-colour "arcade" palette) with optional ordered dithering.
 5. Store as PNG (about 1 KB each, about 300 KB in total) in `data/portraits/`, together with `credits.json` and a generated `CREDITS.md` (file, author, licence, source URL, and the changes made: "cropped, downscaled, colour-reduced").
 
-**Licensing:** the derived images are adaptations, so they keep the source licence (mostly CC BY-SA). `data/portraits/LICENSE` says so. Attribution is shown by `basho credits`, on a credits page in the help overlay, and in the README.
+**Licensing:** the derived images are adaptations, so they keep the source licence (mostly CC BY-SA). `data/portraits/LICENSE` says so. Attribution is shown by `basho credits`, on the help overlay's Data page, and in the README.
 
 **Rendering:**
 
@@ -1104,7 +1104,7 @@ Output rules:
 ```toml
 [ui]
 division      = "makuuchi"    # start division
-names         = "both"        # both | en | jp   (D5; hidden option)
+names         = "both"        # both | en | jp   (D5; Phase 13)
 ascii         = false
 animations    = true
 mouse         = true
@@ -1195,7 +1195,6 @@ adjacent_days = false
 | `test-leaks` | The screen walks (spoiler leaks, `--ascii`) without the race detector, under which they skip (single-threaded, ten times slower there) | 11 |
 | `test-live` | `go test -tags live ./...`: real API smoke tests, manual only | 1 |
 | `golden` | Re-runs tests with `-update` to rewrite golden files (review the diff afterwards) | 6 |
-| `demo` | Records `docs/demo.gif` from `docs/demo.tape` with VHS | 12 |
 | `bench` | The performance budgets: first screen under 300 ms, grid frame under 16 ms (§17 Phase 12) | 12 |
 | `cover` | Coverage profile and HTML report (`coverage.html`) | 0 |
 | `fmt` | `go tool gofumpt -w .` | 0 |
@@ -1204,15 +1203,15 @@ adjacent_days = false
 | `vuln` | `go tool govulncheck ./...` | 0 |
 | `tidy` | `go mod tidy` and `go mod verify` | 0 |
 | `check` | `fmt-check lint vuln test-race test-leaks`; the full check before committing | 0 |
-| `tools` | Checks that external tools exist (golangci-lint; goreleaser from Phase 13) and prints install hints | 0 |
+| `tools` | Checks that external tools exist (golangci-lint; goreleaser from Phase 17) and prints install hints | 0 |
 | `fixtures` | `basho-data fixtures record`: polite recording of the test fixtures | 1 |
 | `record` | `basho-data record $(ARGS)`: live recorder (Appendix E) | 1 |
 | `snapshot` | `basho-data snapshot update` then `verify` | 3 |
 | `snapshot-verify` | `basho-data snapshot verify` | 3 |
 | `snapshot-stats` | `basho-data snapshot stats` | 3 |
 | `calibrate` | `basho-data rating calibrate`; writes `data/rating/params.json` and `docs/rating.md` | 5 |
-| `vhs` | Renders the README GIF from `docs/demo.tape` | 12 |
-| `release-snapshot` | `goreleaser release --snapshot --clean` into `dist/` | 13 |
+| `vhs` | Renders the README GIF from `docs/demo.tape` (needs VHS: `brew install vhs`) | 12 |
+| `release-snapshot` | `goreleaser release --snapshot --clean` into `dist/` | 17 |
 | `portraits` | `basho-data portraits update` | 14 |
 | `clean` | Removes `bin/`, `dist/` and coverage files; never the work cache or `data/` | 0 |
 
@@ -1257,13 +1256,12 @@ Only once you have decided to make the repository public (D9, D22).
 
 ## 15. Future ideas (not in v1)
 
-- A wrestler screen: career graph of rank and rating over time (sparkline), technique usage, all tournaments.
 - Favourites, filters, notifications (decided against for v1).
 - `basho cache info|clear` (not selected for v1; `--offline` and the automatic cache cover the basics).
 - "Streak" markers (🔥 5 wins in a row).
 - Theme packs (for example "arcade" with a block-font `VS` and a matching portrait palette).
 - Signing and notarization (D25).
-- A better rating model (Glicko-2, or a blend with rank and head-to-head) if plain Elo shows weaknesses. Plain Elo is overconfident for lopsided bouts (V9); a calibrated scale on the rating difference (a fitted divisor instead of 400) would be the cheapest fix.
+- A better rating model (Glicko-2, or a blend with rank and head-to-head) if plain Elo shows weaknesses. Plain Elo is overconfident for lopsided bouts (V9); the cheapest fix, a fitted divisor for the win chance, is Phase 13.
 - Full-resolution portraits via the Kitty graphics protocol in terminals that support it, if Bubble Tea gains a clean way to mix it with text rendering.
 
 ---
@@ -1286,7 +1284,7 @@ Only once you have decided to make the repository public (D9, D22).
 - ~~Q9 sumo-api.com permission~~ → no contact; within fair use (D24)
 - ~~Q10 Public repository~~ → decide after 1.0; tap moves after 1.0 (D9, D22)
 - ~~Q11 Notarization~~ → not for now (D25)
-- ~~Q12 Portraits~~ → after 1.0 (D23)
+- ~~Q12 Portraits~~ → before 1.0 (D23)
 - ~~Q13 Win chance visibility~~ → shown by default on the VS screen (D26)
 
 **To check (V = verification):**
@@ -1616,7 +1614,7 @@ AC status: met, by `TestWalkDay13` and `TestNoLeaks` (step 6).
    - **Help tabs:** the current page is in brackets, like the day bar's `[13]`.
 6. VHS tape and GIF for the README.
 
-   Partly done: `docs/demo.tape` and `make demo` (needs VHS) are in. The GIF is recorded on the owner's machine, and the README embeds it in the same commit. The tape runs `bin/basho --offline` on its own XDG directories, opens Aki 2026 through the picker behind `Hide`, and shows the following, about 35 s:
+   Partly done: `docs/demo.tape` and `make vhs` (needs VHS) are in. The GIF is recorded on the owner's machine, and the README embeds it in the same commit. The tape runs `bin/basho --offline` on its own XDG directories, opens Aki 2026 through the picker behind `Hide`, and shows the following, about 35 s:
    - day 13 with the yusho race
    - the musubi-no-ichiban's VS screen, its moveset, and the bout before
    - the standings race and grid
@@ -1627,9 +1625,69 @@ AC status: met, by `TestWalkDay13` and `TestNoLeaks` (step 6).
 
 **AC:** a full manual test pass (checklist in `docs/qa.md`) in Ghostty and one other terminal, in light and dark themes.
 
-AC status: open. The checklist is written (`docs/qa.md`); the four runs are the owner's.
+AC status: moved to the QA pass (Phase 16), which runs after the phases added before v1.0. The checklist is written (`docs/qa.md`).
 
-### Phase 13: v1.0 release (private)
+**Before v1.0** (reordered 2026-10-15): the items that were optional or "not in v1" — the rating scale, `ui.names`, portraits and the wrestler screen — come first. Then the QA pass covers everything at once, and the release is last.
+
+### Phase 13: Rating scale and name display
+
+1. **Calibrated win chance** (§6.8, §15): plain Elo is overconfident for lopsided bouts (V9).
+   - Calibration fits a divisor `s` for the win chance `1 / (1 + 10^(−d/s))`, once the grid has chosen `K`, `K_new` and `r`. It is a one-dimensional search for the lowest log loss on the training years.
+   - The ratings and their updates keep 400. Only the chance uses `s`, wherever it shows: VS screen, day view column, recap upsets, CLI and JSON.
+   - `params.json` gains `scale`. `docs/rating.md` shows the calibration table before and after, V9 is checked again, and so is the 35% upset threshold.
+2. **`ui.names`** (D5, §12), no longer hidden:
+   - `both` (default): romaji first, kanji alongside, as now.
+   - `en`: no kanji anywhere, on every screen and in the CLI's text output.
+   - `jp`: kanji first, romaji alongside; romaji alone where no kanji is known.
+
+   JSON always carries both.
+3. Tests: the rating regression test with the new `scale`, goldens in the three name modes, and the CLI.
+
+**AC:** on the evaluation years, the calibration table's mean gap between predicted and actual shrinks and log loss does not get worse; with `ui.names = en`, a walk over every screen finds no kanji.
+
+### Phase 14: Portraits
+
+1. `basho-data portraits update`: Wikidata query (P3385 → P18), Commons metadata and licence allow-list, polite thumbnail download.
+2. Face crop with `pigo` and the `overrides.toml` mechanism; downscale to 32 and 20 px; palette quantization with optional dithering.
+3. `data/portraits/` with PNGs, `credits.json`, generated `CREDITS.md` and `LICENSE`; `basho credits` and the help overlay's Data page.
+4. Half-block renderer with mirroring and the 256-colour fallback; procedural silhouette for wrestlers without a photo.
+5. VS screen integration at the size breakpoints (§8.9), photo-year caption, `ui.portraits` toggle.
+6. Manual review of all generated portraits for current Makuuchi and Juryo wrestlers, and fix crops via overrides.
+7. Golden tests (§13).
+
+**AC:** portraits render for every current Makuuchi wrestler with a Commons photo; every image is correctly credited; the VS screen still works at every size with portraits on and off.
+
+### Phase 15: Wrestler screen
+
+1. **Service:** `service.Wrestler`, a wrestler's career as of a cutoff (the spoiler horizon included):
+   - the profile
+   - every sekitori tournament with rank, division, record, yusho and special prizes
+   - the rating after each tournament
+   - kinboshi
+   - the technique profile over the career and the last 6 tournaments (§6.7)
+2. **TUI** (`tui/wrestler`):
+   - a header with the names, heya, hometown, age, height, weight and the portrait (Phase 14)
+   - sparklines of rank and rating over the career
+   - the technique profile (STYLE bar, signature, top wins and losses)
+   - a table of every tournament, scrolled with `j`/`k` and the wheel; `enter` opens that tournament's day view on the wrestler's last bout
+
+   It opens from the VS screen (either side) and from the standings grid's results popup; the keys go into §8.8 in this step.
+3. **CLI:** `basho wrestler NAME|ID`, text and `--json`. NAME is a shikona from any era, matched exactly and ignoring case. A name several wrestlers used lists them and exits 2. This is not a search screen (§1.2).
+4. **Spoiler-free:** everything stops at the horizon, ratings included; `TestNoLeaks` and `TestASCIIScreens` walk the new screen.
+5. Tests: goldens at the three widths, the CLI, and spot checks against the snapshot (Taiho, Hakuho, Onosato).
+
+**AC:** both wrestlers' careers open from any VS screen; their rank and rating history match the snapshot and the rating replay; no leak in spoiler-free mode.
+
+### Phase 16: QA pass
+
+1. Extend `docs/qa.md` with Phases 13–15.
+2. The owner's four runs: Ghostty and one other terminal, light and dark. Live mode is checked during a tournament if one falls in the window.
+3. Findings are fixed one commit each and written into the spec.
+4. Record the README GIF (`make vhs`) and embed it in the README.
+
+**AC:** Phase 12's: every item in `docs/qa.md` holds in all four runs, and no finding is open.
+
+### Phase 17: v1.0 release (private)
 
 1. `make install` with the ldflags; `basho version` shows the snapshot date from the manifest.
 2. `.goreleaser.yaml`: targets, ldflags, archives with completions and man page, checksums. No Homebrew section yet.
@@ -1639,23 +1697,11 @@ AC status: open. The checklist is written (`docs/qa.md`); the four runs are the 
 
 **AC:** `make install` produces a `basho` whose `basho version` shows the tag and the snapshot date; zsh completions work; a snapshot-only patch release takes under 15 minutes of manual work.
 
-**After 1.0:**
-
-### Phase 14: Portraits (optional)
-
-1. `basho-data portraits update`: Wikidata query (P3385 → P18), Commons metadata and licence allow-list, polite thumbnail download.
-2. Face crop with `pigo` and the `overrides.toml` mechanism; downscale to 32 and 20 px; palette quantization with optional dithering.
-3. `data/portraits/` with PNGs, `credits.json`, generated `CREDITS.md` and `LICENSE`; `basho credits` and the help credits page.
-4. Half-block renderer with mirroring and the 256-colour fallback; procedural silhouette for wrestlers without a photo.
-5. VS screen integration at the size breakpoints (§8.9), photo-year caption, `ui.portraits` toggle.
-6. Manual review of all generated portraits for current Makuuchi and Juryo wrestlers, and fix crops via overrides.
-7. Golden tests (§13).
-
-**AC:** portraits render for every current Makuuchi wrestler with a Commons photo; every image is correctly credited; the VS screen still works at every size with portraits on and off.
-
 ---
 
-### Phase 15: Public repository and Homebrew tap
+**After 1.0:**
+
+### Phase 18: Public repository and Homebrew tap
 
 1. Decide to go public (D9). Review the history, README, LICENSE for the code and the data credits beforehand.
 2. Add `homebrew_casks` to `.goreleaser.yaml` (§14.3) with the quarantine `postflight` hook; release locally with `goreleaser release` (§14.3).
