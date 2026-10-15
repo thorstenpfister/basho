@@ -1693,6 +1693,13 @@ AC status: met, by `TestNameModes`.
    - **`basho credits`:** a portraits line with the count when there are photos, and the full list with `--portraits`, each photo with year, file, author, licence and source. JSON gains `portraits`. `credits` now goes through the service like the data commands.
    - **Elsewhere:** the help overlay's Data page gets the same line, loaded with the rating numbers when help opens, and the README credits the photos.
 4. Half-block renderer with mirroring and the 256-colour fallback; procedural silhouette for wrestlers without a photo.
+
+   Done (`portrait.Render`, `portrait.Silhouette`):
+   - **Cells:** ▀ with the upper pixel as foreground and the lower as background. A transparent pixel shows the terminal: ▄ when only the lower pixel is drawn, a space when neither is. An odd last row draws only its upper half.
+   - **Mirroring** flips the image for the West wrestler.
+   - **256 colours:** the renderer writes true colour, and Bubble Tea's screen converts every cell to the terminal's profile (`SetColorProfile`), 256 colours and fewer included. Nothing of our own was needed.
+   - **Silhouette:** a head with a topknot over broad shoulders, drawn at any size in one colour on a transparent ground, and symmetric, so mirroring leaves it as it is.
+   - **Speed:** a 32 px portrait renders in 0.5 ms (`BenchmarkRender`).
 5. VS screen integration at the size breakpoints (§8.9), photo-year caption, `ui.portraits` toggle.
 6. Manual review of all generated portraits for current Makuuchi and Juryo wrestlers, and fix crops via overrides.
 7. Golden tests (§13).
