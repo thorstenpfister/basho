@@ -95,10 +95,10 @@ func TestPortraitSize(t *testing.T) {
 	musubi := New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, rows, len(rows)-1) // Onosato has a photo
 	other := New(aki2026, domain.DivMakuuchi, 13, res.Value.Date, rows, 0)            // nobody has
 	musubi.tale, other.tale = &service.Tale{}, &service.Tale{}                        // loaded
-	// 32 px needs 16 rows and the caption. Every column outside the compact
+	// 20 px needs 10 rows and the caption. Every column outside the compact
 	// layout is at least 37 wide, so the height decides.
 	for _, tt := range []struct{ width, rows, want int }{
-		{120, 17, 32}, {120, 16, 20}, {120, 11, 20}, {120, 10, 0}, {200, 40, 32}, {90, 40, 32}, {80, 40, 0}, // compact: never
+		{120, 40, 20}, {120, 11, 20}, {120, 10, 0}, {200, 40, 20}, {90, 40, 20}, {80, 40, 0}, // compact: never
 	} {
 		if got := musubi.portraitSize(ctx, measure(tt.width), tt.rows); got != tt.want {
 			t.Errorf("%d columns, %d rows: %d px, want %d", tt.width, tt.rows, got, tt.want)
