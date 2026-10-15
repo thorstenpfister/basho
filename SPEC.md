@@ -1817,9 +1817,16 @@ AC status: met.
 ### Phase 16: QA pass
 
 1. Extend `docs/qa.md` with Phases 13–15.
+
+   Done:
+   - **New sections:** the wrestler screen, `ui.names`, and the data tools, checked once rather than per run.
+   - **Changed since Phase 12:** VS screen items for the portraits above the names (alignment, the 40-row threshold, no flicker), plain height and weight, and `1`/`2`; `i` in the standings; `basho wrestler` and `credits --portraits`; the help's Keys and Data pages.
+   - **Run table:** gains the terminal's size, since portraits depend on it.
 2. The owner's four runs: Ghostty and one other terminal, light and dark. Live mode is checked during a tournament if one falls in the window.
 3. Findings are fixed one commit each and written into the spec.
 4. Record the README GIF (`make vhs`) and embed it in the README.
+
+   Prepared: the tape now also shows Onosato's career page (`1` on the VS screen, a scroll down the table, `esc`), about 5 s more. Recording and the README embed wait for the owner's run.
 
 **AC:** Phase 12's: every item in `docs/qa.md` holds in all four runs, and no finding is open.
 

@@ -39,10 +39,15 @@ Type@80ms "jjjjjjjjjjjjjjjjjj"
 Sleep 800ms
 Enter
 Sleep 3.5s
-# The moveset panel, then the bout before.
+# The moveset panel, then the East wrestler's career, then the bout before.
 Type "m"
 Sleep 2.5s
 Type "m"
+Type "1"
+Sleep 3s
+Type@100ms "jjjj"
+Sleep 1s
+Escape
 Type "["
 Sleep 2.5s
 # The standings after day 13: the yusho race, then the hoshitori grid.
