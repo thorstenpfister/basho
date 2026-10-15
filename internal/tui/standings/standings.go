@@ -12,6 +12,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/tui"
+	"github.com/thorstenpfister/basho/internal/tui/wrestler"
 )
 
 // Tab is one of the two views of the standings.
@@ -52,6 +53,7 @@ var (
 	keyEnter    = key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "expand the tail · wrestler's results"))
 	keyDivision = key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "Makuuchi ⇄ Juryo"))
 	keyClose    = key.NewBinding(key.WithKeys("esc", "enter", "q", "b"), key.WithHelp("esc", "close"))
+	keyCareer   = key.NewBinding(key.WithKeys("i"), key.WithHelp("i", "wrestler's career (grid)"))
 )
 
 // New returns the standings of div after day.
@@ -120,6 +122,9 @@ func (v View) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 			return m
 		}
 	case tea.KeyPressMsg:
+		if key.Matches(msg, keyCareer) && v.tab == Grid && v.data != nil && len(v.data.Rows) > 0 {
+			return v, tui.Push(wrestler.New(v.data.ByBanzuke()[v.cursor].RikishiID, v.id))
+		}
 		if v.popup {
 			if key.Matches(msg, keyClose) {
 				v.popup = false
@@ -300,7 +305,7 @@ func (v View) View(ctx *tui.Context, width, height int) string {
 	b.WriteString(tui.Spread(fmt.Sprintf("Kachi-koshi: %d · Make-koshi: %d · Kyujo: %d", s.KachiKoshi, s.MakeKoshi, s.Kyujo), yusho(ctx, s), width) + "\n")
 	hints := " tab race/grid · ←/→ day · enter expand · d division · esc back"
 	if v.tab == Grid {
-		hints = " tab race/grid · ←/→ day · j/k wrestler · enter results · d division · esc back"
+		hints = " tab race/grid · ←/→ day · j/k wrestler · enter results · i career · d division · esc back"
 	}
 	b.WriteString(t.Dim.Render(tui.Truncate(hints, width)))
 	return b.String()
@@ -540,5 +545,5 @@ func (v View) Status(*tui.Context) tui.Status {
 
 // Keys implements tui.Screen.
 func (v View) Keys() []key.Binding {
-	return []key.Binding{keyTab, keyPrev, keyNext, keyUp, keyDown, keyEnter, keyDivision}
+	return []key.Binding{keyTab, keyPrev, keyNext, keyUp, keyDown, keyEnter, keyCareer, keyDivision}
 }

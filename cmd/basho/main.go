@@ -41,6 +41,7 @@ func runTUI(cfg config.Config, svc *service.Service, noColor bool, st *spoiler.S
 		TTY:      term.IsTerminal(os.Stdout.Fd()),
 		Spoilers: st, Hide: cfg.Spoilers.Mode == "hide",
 	}
+	ctx.OpenDay = func(id domain.BashoID, div domain.Division, d int) tui.Screen { return day.NewIn(ctx, id, div, d) }
 	open := func(id domain.BashoID) tui.Screen { return day.New(ctx, id, 0) }
 	today := func() []tui.Screen {
 		return []tui.Screen{picker.New(ctx, open), day.New(ctx, svc.CurrentBasho(), 0)}

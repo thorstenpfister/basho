@@ -16,6 +16,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/tui"
 	"github.com/thorstenpfister/basho/internal/tui/components"
+	"github.com/thorstenpfister/basho/internal/tui/wrestler"
 )
 
 // VS is the tale of the tape of one bout (SPEC §8.5).
@@ -49,6 +50,8 @@ type VS struct {
 
 var (
 	keyHistory = key.NewBinding(key.WithKeys("v"), key.WithHelp("v", "head-to-head history"))
+	keyEast    = key.NewBinding(key.WithKeys("1"), key.WithHelp("1/2", "East/West wrestler's career"))
+	keyWest    = key.NewBinding(key.WithKeys("2"))
 	keyMoveset = key.NewBinding(key.WithKeys("m"), key.WithHelp("m", "moveset panel"))
 	keyWindow  = key.NewBinding(key.WithKeys("w"), key.WithHelp("w", "moveset window"))
 	keyPrev    = key.NewBinding(key.WithKeys("["), key.WithHelp("[", "previous bout"))
@@ -249,6 +252,10 @@ func (v VS) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keyReveal):
 			return v.reveal(ctx)
+		case key.Matches(msg, keyEast):
+			return v, tui.Push(wrestler.New(v.row.East.RikishiID, v.id))
+		case key.Matches(msg, keyWest):
+			return v, tui.Push(wrestler.New(v.row.West.RikishiID, v.id))
 		case key.Matches(msg, keyHistory):
 			v.history = !v.history
 		case key.Matches(msg, keyMoveset):
@@ -331,7 +338,7 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 			Render(v.historyView(ctx, historyWidth-2, true))
 		tape = lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(l.width+1).Render(tape), col)
 	}
-	rest := tape + "\n" + v.resultPanel(ctx, l) + "\n" + t.Dim.Render(" [ ] prev/next · v head-to-head · m moveset · esc back")
+	rest := tape + "\n" + v.resultPanel(ctx, l) + "\n" + t.Dim.Render(" [ ] prev/next · v head-to-head · m moveset · 1/2 career · esc back")
 	// The portraits go above the names, in the rows the rest leaves free.
 	if size := v.portraitSize(ctx, l, height-1-lipgloss.Height(rest)); size > 0 {
 		b.WriteString(v.portraitRow(ctx, l, size) + "\n")
@@ -545,7 +552,7 @@ func (v VS) Status(*tui.Context) tui.Status {
 
 // Keys implements tui.Screen.
 func (v VS) Keys() []key.Binding {
-	return []key.Binding{keyPrev, keyNext, keyReveal, keyHistory, keyMoveset, keyWindow, keyBack}
+	return []key.Binding{keyPrev, keyNext, keyReveal, keyHistory, keyMoveset, keyWindow, keyEast, keyBack}
 }
 
 // resultPanel is the box under the tape (SPEC §8.5): the winner, the

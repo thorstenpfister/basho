@@ -15,8 +15,9 @@ var folds = []string{
 	"✓", "v", "↻", "~", "⚠", "!", "◌", "o",
 	// result glyphs, for text that bypasses the glyph set
 	"○", "o", "●", "x", "□", "O", "■", "X", "△", "d", "★", "*", "▲", "+", "▼", "-",
-	// bars
+	// bars, and the sparklines' heights as a ramp
 	"█", "#", "━", "=", "░", ".", "▓", "#", "▒", "+", "▚", "x",
+	"▁", "_", "▂", "_", "▃", ".", "▄", "-", "▅", "-", "▆", "=", "▇", "=",
 	// lines and box borders (lipgloss NormalBorder and RoundedBorder)
 	"─", "-", "│", "|", "┌", "+", "┐", "+", "└", "+", "┘", "+", "╭", "+", "╮", "+", "╰", "+", "╯", "+",
 	"├", "+", "┤", "+", "┬", "+", "┴", "+", "┼", "+",

@@ -35,6 +35,7 @@ type CareerBasho struct {
 	Yusho   bool     // won its division; false until the cutoff has passed the tournament
 	Prizes  []string // special prizes, likewise
 	Rating  float64  // after the tournament, or at the cutoff; 0 when hidden
+	LastDay int      // the last day they fought, within the cutoff; 0 for none
 }
 
 // Wrestler returns a wrestler's career as seen from tournament through: every
@@ -109,6 +110,7 @@ func (s *Service) Wrestler(ctx context.Context, id domain.RikishiID, through dom
 	name := profile.Name
 	if !hasProfile {
 		name = last.Shikona
+		profile.ID = id // CareerAt counts yusho and prizes by it
 	}
 	meta, _ := x.Basho(through)
 	if meta.ID.IsZero() {
@@ -129,6 +131,11 @@ func (s *Service) Wrestler(ctx context.Context, id domain.RikishiID, through dom
 			Basho: p.Basho, Shikona: p.Shikona, Rank: p.Rank,
 			Record:  derive.RecordThrough(p.Basho, p.Outcomes, boutOf(p.Basho), c),
 			Partial: p.Basho == c.Basho && derive.EndOf(p.Basho).After(c),
+		}
+		for day := domain.BashoDays; day > 0 && cb.LastDay == 0; day-- {
+			if b := byDay[dayKey{p.Basho, day}]; b != nil && c.Includes(*b) {
+				cb.LastDay = day
+			}
 		}
 		if b, ok := x.Basho(p.Basho); ok && finalShown(ctx, p.Basho) && !cb.Partial {
 			cb.Yusho = b.Yusho[p.Rank.Title.Division()] == id

@@ -40,6 +40,9 @@ type Context struct {
 	// session (spoilers.mode, S). Only the root changes Hide.
 	Spoilers *spoiler.State
 	Hide     bool
+	// OpenDay builds a day view, for screens the day view's package imports
+	// (the wrestler screen opens a tournament's day); nil: none.
+	OpenDay func(id domain.BashoID, div domain.Division, day int) Screen
 }
 
 // Data returns the context for a screen's service calls: spoiler-free when

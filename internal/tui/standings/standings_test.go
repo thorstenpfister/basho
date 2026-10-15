@@ -168,3 +168,16 @@ func BenchmarkGrid(b *testing.B) {
 		_ = m.View()
 	}
 }
+
+// i opens the grid's selected wrestler's career; the race has no cursor.
+func TestCareerKey(t *testing.T) {
+	d := open(fixture(), domain.DivMakuuchi, 13, 120, 40)
+	d.Keys("i")
+	if v := d.View(); strings.Contains(v, "career through") {
+		t.Errorf("i in the race:\n%s", v)
+	}
+	d.Keys("tab", "j", "i")
+	if v := d.View(); !strings.Contains(v, "HOSHORYU") || !strings.Contains(v, "career through Aki 2026") {
+		t.Errorf("i on the grid's second row:\n%s", v)
+	}
+}

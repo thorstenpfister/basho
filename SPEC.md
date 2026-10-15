@@ -911,6 +911,10 @@ Pages, switched with `←`/`→` or `tab` and scrolled with `j`/`k` or the wheel
 | `[` / `]` | VS screen | previous/next bout |
 | `space` | VS screen | reveal result (spoiler-free mode) |
 | `v` | VS screen | head-to-head history |
+| `1` / `2` | VS screen | the East / West wrestler's career (wrestler screen) |
+| `i` | standings grid and its popup | the selected wrestler's career |
+| `enter` | wrestler screen | that tournament's day view, on the wrestler's last bout of it |
+| `g` / `G` | wrestler screen | newest / oldest tournament |
 | `p` | day view | toggle the win-chance column |
 | `m` | VS screen | moveset panel |
 | `w` | moveset panel | cycle the sample window |
@@ -969,6 +973,13 @@ Pixel-art portraits above the wrestlers' names, facing each other like a fightin
 ### 8.10 Wrestler screen (Phase 15)
 
 A wrestler's career as seen from one tournament, the one it opens from: every sekitori tournament up to that tournament's end, or up to its spoiler horizon in spoiler-free mode, so nothing later is told.
+
+**Screen** (`tui/wrestler`), top to bottom:
+- **Header:** the 32 px portrait at the left, when there is a photo, colours and no `--ascii`. Beside it: the name (romaji and kanji by `ui.names`) with the last rank at the right; heya, hometown, age, height and weight; yusho by division, special prizes and kinboshi; the rating with its peak. In spoiler-free mode, the banner "as of Day 13 · Makuuchi bout 5 (spoiler-free)".
+- **Trends:** RANK and RATING as sparklines over the most recent tournaments that fit, with first → last and "last 89 of 105" when cut; STYLE, the career technique profile with fighter type and signature.
+- **Table:** one tournament a row, newest first: tournament, rank, record coloured by kachi-koshi or make-koshi ("…" while partial), rating, YUSHO, special prizes, and the shikona of the time when it differs from today's. `j`/`k` and the wheel move the cursor; `g`/`G` jump to the newest and oldest; `enter` opens that tournament's day view in the wrestler's division, on the day of their last bout.
+
+It opens with `1`/`2` on the VS screen, as of the bout's tournament, and with `i` in the standings grid, as of that tournament. The status bar reads "Onosato · career through Aki 2026".
 
 **Data** (`service.Wrestler`):
 - **Profile:** heya, hometown, age, height and weight; today's shikona and the last rank.
@@ -1768,6 +1779,15 @@ AC status: met.
    - a table of every tournament, scrolled with `j`/`k` and the wheel; `enter` opens that tournament's day view on the wrestler's last bout
 
    It opens from the VS screen (either side) and from the standings grid's results popup; the keys go into §8.8 in this step.
+
+   Done (§8.10, §8.8):
+   - **Keys** (the owner chose): `1`/`2` on the VS screen, and `i` in the standings grid and its popup.
+   - **Layout** (the owner chose): header with the portrait, trends, then the table.
+   - **Opening a day:** the day view's package imports the VS screen, which imports this one, so the root context carries `OpenDay`, set by `cmd/basho`; `day.NewIn` opens a division. `CareerBasho.LastDay` places the day.
+   - **Bug found:** for a wrestler without a profile, the yusho and prize totals were always 0, because `CareerAt` matched them by the empty profile's ID 0.
+   - **Fixed after a screenshot review:** the header's rank was cut beside the portrait, the "last N of M" note wrapped, and the table pushed the hints off the screen.
+   - **`--ascii`:** the sparkline heights fold to a `_ . - = #` ramp.
+   - **Tests:** goldens at 80×24, 120×40 and 160×50 over the fixture snapshot with a generated portrait, navigation and `enter`, and the keys on the VS and standings screens.
 3. **CLI:** `basho wrestler NAME|ID`, text and `--json`. NAME is a shikona from any era, matched exactly and ignoring case. A name several wrestlers used lists them and exits 2. This is not a search screen (§1.2).
 4. **Spoiler-free:** everything stops at the horizon, ratings included; `TestNoLeaks` and `TestASCIIScreens` walk the new screen.
 5. Tests: goldens at the three widths, the CLI, and spot checks against the snapshot (Taiho, Hakuho, Onosato).

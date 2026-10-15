@@ -124,3 +124,14 @@ func TestPortraitSize(t *testing.T) {
 		}
 	}
 }
+
+// 1 and 2 open the East and West wrestlers' careers, as of this tournament.
+func TestCareerKeys(t *testing.T) {
+	for k, want := range map[string]string{"1": "ONOSATO", "2": "KIRISHIMA"} {
+		d := openOn(t, withPortrait(t), aki2026, 13, 19, 120, 40)
+		d.Keys(k)
+		if v := d.View(); !strings.Contains(v, want) || !strings.Contains(v, "career through Aki 2026") {
+			t.Errorf("%s:\n%s", k, v)
+		}
+	}
+}

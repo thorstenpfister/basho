@@ -85,6 +85,11 @@ func New(ctx *tui.Context, id domain.BashoID, day int) Day {
 	if ctx.Cfg.UI.Division == "juryo" {
 		div = domain.DivJuryo
 	}
+	return NewIn(ctx, id, div, day)
+}
+
+// NewIn returns the day view of tournament id in div.
+func NewIn(ctx *tui.Context, id domain.BashoID, div domain.Division, day int) Day {
 	return Day{id: id, div: div, want: day, winChance: ctx.Cfg.UI.WinChanceColumn}
 }
 
