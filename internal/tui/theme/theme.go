@@ -66,24 +66,35 @@ type Palette struct {
 	Categories [domain.Other + 1]color.Color
 }
 
-func palette(dark bool) Palette {
-	ld := lipgloss.LightDark(dark)
-	return Palette{
-		Fg:     ld(lipgloss.Color("#1f2328"), lipgloss.Color("#e6e6e6")),
-		Dim:    ld(lipgloss.Color("#6e7781"), lipgloss.Color("#8b949e")),
-		Accent: ld(lipgloss.Color("#4b3fd1"), lipgloss.Color("#8c84ff")),
-		Gold:   ld(lipgloss.Color("#9a6700"), lipgloss.Color("#e3b341")),
-		Green:  ld(lipgloss.Color("#1a7f37"), lipgloss.Color("#3fb950")),
-		Red:    ld(lipgloss.Color("#cf222e"), lipgloss.Color("#f85149")),
-		Subtle: ld(lipgloss.Color("#d0d7de"), lipgloss.Color("#30363d")),
-		Categories: [domain.Other + 1]color.Color{
-			domain.Push:  ld(lipgloss.Color("#4b3fd1"), lipgloss.Color("#8c84ff")), // indigo
-			domain.Belt:  ld(lipgloss.Color("#1a7f37"), lipgloss.Color("#3fb950")), // green
-			domain.Throw: ld(lipgloss.Color("#9a6700"), lipgloss.Color("#e3b341")), // gold
-			domain.Pull:  ld(lipgloss.Color("#cf222e"), lipgloss.Color("#f85149")), // red
-			domain.Other: ld(lipgloss.Color("#6e7781"), lipgloss.Color("#8b949e")), // grey
-		},
+// light and dark are the palette's colours on each background. Text keeps
+// a WCAG contrast of 4.5 on the common terminal backgrounds, rules 1.75
+// (theme_test.go lists them, Ghostty's default among them).
+var (
+	light = Palette{
+		Fg: lipgloss.Color("#1f2328"), Dim: lipgloss.Color("#636c76"), Accent: lipgloss.Color("#4b3fd1"),
+		Gold: lipgloss.Color("#8a5c00"), Green: lipgloss.Color("#1a7a35"), Red: lipgloss.Color("#cf222e"),
+		Subtle: lipgloss.Color("#afb8c1"),
 	}
+	dark = Palette{
+		Fg: lipgloss.Color("#e6e6e6"), Dim: lipgloss.Color("#8b949e"), Accent: lipgloss.Color("#8c84ff"),
+		Gold: lipgloss.Color("#e3b341"), Green: lipgloss.Color("#3fb950"), Red: lipgloss.Color("#ff6e64"),
+		Subtle: lipgloss.Color("#545b64"),
+	}
+)
+
+func palette(isDark bool) Palette {
+	p := light
+	if isDark {
+		p = dark
+	}
+	p.Categories = [domain.Other + 1]color.Color{
+		domain.Push:  p.Accent, // indigo
+		domain.Belt:  p.Green,
+		domain.Throw: p.Gold,
+		domain.Pull:  p.Red,
+		domain.Other: p.Dim, // grey
+	}
+	return p
 }
 
 // Theme is the TUI's styles and glyphs.
@@ -92,6 +103,9 @@ type Theme struct {
 	Colors Palette
 	Dark   bool
 	ASCII  bool // the ASCII glyph set: bars use #, the STYLE bar letters
+	// Mono is set when the terminal shows no colours (NO_COLOR, --no-color):
+	// whatever only colour told apart needs letters, like the STYLE bar.
+	Mono bool
 
 	Text, Dim, Bold, Title, Accent, Gold, GoldDim, Green, Red lipgloss.Style
 	Selected, Header, Rule, StatusBar, StatusKey              lipgloss.Style

@@ -11,6 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/thorstenpfister/basho/internal/asciifold"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/live"
 	"github.com/thorstenpfister/basho/internal/service"
@@ -63,7 +64,7 @@ func (a *app) watch(cmd *cobra.Command, svc *service.Service, divs []domain.Divi
 		Rand: rand.Float64,
 	}, start)
 	s.SetOn(true)
-	w := watcher{out: cmd.OutOrStdout(), errs: cmd.ErrOrStderr(), json: a.json, divs: divs, seen: map[string]bool{}, g: a.glyphs()}
+	w := watcher{out: cmd.OutOrStdout(), errs: cmd.ErrOrStderr(), json: a.json, divs: divs, seen: map[string]bool{}, g: a.glyphs(), ascii: a.cfg.UI.ASCII}
 	for {
 		now := a.deps.Now()
 		switch st := s.State(now); {
@@ -123,6 +124,7 @@ type watcher struct {
 	seen      map[string]bool // division and match number of the bouts printed
 	complete  bool
 	g         glyphs
+	ascii     bool // fold what the glyphs don't cover (--ascii)
 }
 
 func jstClock(t time.Time) string { return t.In(domain.JST).Format("15:04 JST") }
@@ -142,7 +144,7 @@ func (w *watcher) bouts(now time.Time, p service.LivePoll) error {
 			if w.json {
 				err = w.write(watchEvent{Event: "bout", Time: now, Basho: p.Basho, Day: p.Day, Division: lower(div.String()), Playoff: playoff, Bout: boutRowJSON(r)})
 			} else {
-				_, err = fmt.Fprintln(w.out, w.line(now, div, r, playoff))
+				_, err = fmt.Fprintln(w.out, w.fold(w.line(now, div, r, playoff)))
 			}
 			if err != nil {
 				return err
@@ -172,8 +174,15 @@ func (w *watcher) event(now time.Time, kind, text string) error {
 	if w.json {
 		return w.write(watchEvent{Event: kind, Time: now})
 	}
-	_, err := fmt.Fprintf(w.out, "%s  %s\n", jstClock(now), text)
+	_, err := fmt.Fprintf(w.out, "%s  %s\n", jstClock(now), w.fold(text))
 	return err
+}
+
+func (w *watcher) fold(s string) string {
+	if w.ascii {
+		return asciifold.Fold(s)
+	}
+	return s
 }
 
 // watchEvent is one line of `basho watch --json` (newline-delimited JSON).

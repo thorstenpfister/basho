@@ -247,6 +247,7 @@ internal/
   spoiler/                    reveal horizon (how far the user has revealed results) and its persistence
   config/                     config file, environment, flags, defaults
   clock/                      Clock interface (real or fake); JST lives in domain/jst.go
+  asciifold/                  ASCII stand-ins for the symbols, for --ascii in the TUI and the CLI
   tui/
     app.go                    root model, screen stack, global keys, status bar
     theme/                    Lip Gloss styles, adaptive colours, glyph sets
@@ -1568,6 +1569,12 @@ AC status: met, by `TestWalkDay13` and `TestNoLeaks` (step 6).
 ### Phase 12: Polish
 
 1. Light/dark theme check, `--ascii` and `NO_COLOR` passes, mouse wheel support.
+
+   Done:
+   - **Themes:** `ui.theme = "dark"` or `"light"` is taken as set; only `auto` asks the terminal for its background. A contrast test holds every text colour to WCAG 4.5:1 and rules and borders to 1.75:1, on white, Solarized Light, Catppuccin Latte, black, VS Code, Ghostty's default (`#282c34`) and Solarized Dark. Ghostty's default background failed it: dark red came out at 4.18 and rules at 1.15, practically invisible. Adjusted colours: dark red `#ff6e64`, dark rules `#545b64`, light dim `#636c76`, gold `#8a5c00`, green `#1a7a35` and rules `#afb8c1`. The STYLE bar categories now share the palette's colours.
+   - **`--ascii`:** the glyph set covered only the results. Separators, ellipses, arrows, check marks, bars, borders and `≈` were still Unicode. `asciifold.Fold` maps each to one ASCII cell of the same width (`·` → `.`, `…` → `.`, `✓` → `v`, `│` → `|`, `╭` → `+`). The TUI folds every frame with it, and the CLI folds its text output and `watch` lines; JSON is left as it is. Letters are data and stay: kanji names, places like Töv. `TestASCIIScreens` walks every screen in ASCII mode (days 1, 13 and 15 in both divisions, every VS screen with its panels, standings, recap, picker, help). Without the fold, all 415 screens fail. `make test-leaks` runs it.
+   - **`NO_COLOR`:** colorprofile honours only values that `strconv.ParseBool` reads, so `NO_COLOR=yes` kept the colours. Any non-empty value now counts, as no-color.org says, in the TUI and the CLI. The TUI reads the colour profile (`tea.ColorProfileMsg`), and without colours `Theme.Mono` draws the STYLE bar in letters, as `--ascii` does. Auditing everything else that relies on colour alone is step 5.
+   - **Mouse:** with `ui.mouse` (the default), the wheel scrolls as `↑` and `↓` do, through the root's key handling, so lists, overlays and focused inputs behave as they do with the keys.
 2. Help overlay content: legend, data source notes, credits page, an explanation of the rating, known limitations (historical heya; sekitori bouts only).
 3. `basho config path|show`; friendlier first-run messages.
 4. Performance: hoshitori grid renders in under 16 ms at 130×50; snapshot and bout index load fast enough for an instant start (target under 300 ms to first screen).

@@ -10,8 +10,10 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/thorstenpfister/basho/internal/asciifold"
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/config"
 	"github.com/thorstenpfister/basho/internal/domain"
@@ -209,7 +211,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		return m.forward(msg)
 	case tea.BackgroundColorMsg:
-		m.ctx.Theme = theme.New(msg.IsDark(), m.ctx.Cfg.UI.ASCII)
+		mono := m.ctx.Theme.Mono
+		m.ctx.Theme = theme.New(msg.IsDark(), m.ctx.Theme.ASCII)
+		m.ctx.Theme.Mono = mono
+		return m, nil
+	case tea.ColorProfileMsg:
+		m.ctx.Theme.Mono = msg.Profile <= colorprofile.ASCII
 		return m, nil
 	case PushMsg:
 		m.stack = append(m.stack, msg.Screen)
@@ -235,8 +242,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case tea.KeyPressMsg:
 		return m.key(msg)
+	case tea.MouseWheelMsg:
+		return m.wheel(msg)
 	}
 	return m.forward(msg)
+}
+
+// wheel scrolls with the mouse wheel (ui.mouse) as ↑ and ↓ do, so every
+// list and overlay moves the way its keys move it.
+func (m Model) wheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
+	switch msg.Button {
+	case tea.MouseWheelUp:
+		return m.key(tea.KeyPressMsg{Code: tea.KeyUp})
+	case tea.MouseWheelDown:
+		return m.key(tea.KeyPressMsg{Code: tea.KeyDown})
+	}
+	return m, nil
 }
 
 func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
@@ -314,7 +335,11 @@ func (m Model) forward(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View implements tea.Model.
 func (m Model) View() tea.View {
-	v := tea.NewView(m.render())
+	frame := m.render()
+	if m.ctx.Theme.ASCII {
+		frame = asciifold.Fold(frame)
+	}
+	v := tea.NewView(frame)
 	v.AltScreen = true
 	if m.ctx.Cfg.UI.Mouse {
 		v.MouseMode = tea.MouseModeCellMotion

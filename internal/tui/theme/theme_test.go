@@ -1,8 +1,12 @@
 package theme
 
 import (
+	"image/color"
+	"math"
 	"reflect"
 	"testing"
+
+	"charm.land/lipgloss/v2"
 
 	"github.com/thorstenpfister/basho/internal/domain"
 )
@@ -48,4 +52,45 @@ func TestNew(t *testing.T) {
 	if got := dark.Record("7-7", false, false); got != "7-7" {
 		t.Error("a plain record coloured")
 	}
+}
+
+// Text colours stay readable on the common terminal backgrounds (WCAG 4.5),
+// rules and borders visible (1.75).
+func TestContrast(t *testing.T) {
+	backgrounds := map[bool]map[string]string{
+		false: {"white": "#ffffff", "Solarized Light": "#fdf6e3", "Catppuccin Latte": "#eff1f5"},
+		true:  {"black": "#000000", "VS Code": "#1e1e1e", "Ghostty": "#282c34", "Solarized Dark": "#002b36"},
+	}
+	for isDark, bgs := range backgrounds {
+		p := palette(isDark)
+		text := map[string]color.Color{"Fg": p.Fg, "Dim": p.Dim, "Accent": p.Accent, "Gold": p.Gold, "Green": p.Green, "Red": p.Red}
+		for bg, hex := range bgs {
+			for name, c := range text {
+				if r := contrast(c, lipgloss.Color(hex)); r < 4.5 {
+					t.Errorf("dark=%v: %s on %s: %.2f", isDark, name, bg, r)
+				}
+			}
+			if r := contrast(p.Subtle, lipgloss.Color(hex)); r < 1.75 {
+				t.Errorf("dark=%v: Subtle on %s: %.2f", isDark, bg, r)
+			}
+		}
+	}
+}
+
+// contrast is the WCAG 2 contrast ratio.
+func contrast(a, b color.Color) float64 {
+	la, lb := luminance(a), luminance(b)
+	return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+}
+
+func luminance(c color.Color) float64 {
+	r, g, b, _ := c.RGBA()
+	lin := func(v uint32) float64 {
+		x := float64(v) / 0xffff
+		if x <= 0.03928 {
+			return x / 12.92
+		}
+		return math.Pow((x+0.055)/1.055, 2.4)
+	}
+	return 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b)
 }

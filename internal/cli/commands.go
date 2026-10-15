@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/thorstenpfister/basho/internal/asciifold"
 	"github.com/thorstenpfister/basho/internal/domain"
 	"github.com/thorstenpfister/basho/internal/service"
 )
@@ -41,7 +42,11 @@ func (a *app) emit(cmd *cobra.Command, kind string, p service.Provenance, text f
 	if a.json {
 		return writeJSON(cmd.OutOrStdout(), kind, p, data())
 	}
-	_, err := a.out(cmd).Write([]byte(text()))
+	s := text()
+	if a.cfg.UI.ASCII {
+		s = asciifold.Fold(s)
+	}
+	_, err := a.out(cmd).Write([]byte(s))
 	return err
 }
 

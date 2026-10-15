@@ -47,7 +47,7 @@ func runTUI(cfg config.Config, svc *service.Service, noColor bool, st *spoiler.S
 	}
 	var opts []tea.ProgramOption
 	if noColor {
-		opts = append(opts, tea.WithColorProfile(colorprofile.Ascii))
+		opts = append(opts, tea.WithColorProfile(colorprofile.ASCII))
 	}
 	svc.StartBackground(context.Background())
 	return tui.Run(ctx, today(), today, opts...)

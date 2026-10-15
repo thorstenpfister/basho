@@ -142,7 +142,7 @@ func StyleBar(t theme.Theme, s derive.Shares, cells int, left bool) string {
 			continue
 		}
 		glyph := "█"
-		if t.ASCII {
+		if t.ASCII || t.Mono {
 			glyph = ascii[c]
 		}
 		parts = append(parts, lipgloss.NewStyle().Foreground(t.Colors.Categories[c]).Render(strings.Repeat(glyph, n[c])))

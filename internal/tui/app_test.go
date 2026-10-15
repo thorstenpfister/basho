@@ -7,6 +7,8 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/config"
@@ -191,6 +193,54 @@ func TestBackground(t *testing.T) {
 	_, _ = send(t, m, tea.BackgroundColorMsg{Color: lipglossWhite})
 	if ctx.Theme.Dark {
 		t.Error("a white background kept the dark theme")
+	}
+}
+
+// Without colours (NO_COLOR, --no-color) the theme turns to letters where
+// colour alone told things apart, and a background report keeps that.
+func TestColorProfile(t *testing.T) {
+	ctx := testContext()
+	m := New(ctx, []Screen{&fake{}}, nil)
+	m, _ = send(t, m, tea.ColorProfileMsg{Profile: colorprofile.ASCII})
+	if !ctx.Theme.Mono {
+		t.Fatal("no colours, but not mono")
+	}
+	m, _ = send(t, m, tea.BackgroundColorMsg{Color: lipglossWhite})
+	if !ctx.Theme.Mono || ctx.Theme.Dark {
+		t.Error("the background report dropped mono or kept dark")
+	}
+	_, _ = send(t, m, tea.ColorProfileMsg{Profile: colorprofile.ANSI256})
+	if ctx.Theme.Mono {
+		t.Error("256 colours, but mono")
+	}
+}
+
+// The wheel scrolls as ↑ and ↓ do.
+func TestMouseWheel(t *testing.T) {
+	f := &fake{}
+	m := New(testContext(), []Screen{f}, nil)
+	m, _ = send(t, m, tea.MouseWheelMsg{Button: tea.MouseWheelDown})
+	m, _ = send(t, m, tea.MouseWheelMsg{Button: tea.MouseWheelUp})
+	_, _ = send(t, m, tea.MouseWheelMsg{Button: tea.MouseWheelLeft})
+	if got := strings.Join(f.got, " "); got != "down up" {
+		t.Errorf("the screen got %q", got)
+	}
+}
+
+// --ascii folds the whole frame, the status bar included.
+func TestASCIIFold(t *testing.T) {
+	ctx := testContext()
+	ctx.Theme = theme.New(true, true)
+	m := New(ctx, []Screen{&fake{name: "a · b…"}}, nil)
+	m, _ = send(t, m, tea.WindowSizeMsg{Width: 80, Height: 24})
+	view := m.View().Content
+	if !strings.Contains(view, "a . b.") {
+		t.Errorf("not folded:\n%s", view)
+	}
+	for _, r := range ansi.Strip(view) {
+		if r > 127 {
+			t.Fatalf("%q left in:\n%s", r, view)
+		}
 	}
 }
 

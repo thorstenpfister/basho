@@ -103,6 +103,11 @@ func (a *app) setup(cmd *cobra.Command) error {
 	if f.Changed("ascii") {
 		cfg.UI.ASCII = a.ascii
 	}
+	// NO_COLOR counts with any value (no-color.org); colorprofile only
+	// takes the ones strconv.ParseBool reads, so NO_COLOR=yes slipped by.
+	if v, _ := a.deps.Env("NO_COLOR"); v != "" {
+		a.noColor = true
+	}
 	cfg.NoSnapshot = a.noSnapshot
 	if err := cfg.Validate(); err != nil {
 		return usage(err)

@@ -43,7 +43,7 @@ var networkPkgs = []string{"net", "net/http"}
 // carry its types (records, profiles, standings).
 var uiAllowed = []string{
 	"internal/service", "internal/domain", "internal/derive", "internal/clock", "internal/config",
-	"internal/spoiler", "internal/live", "internal/portrait", "internal/buildinfo",
+	"internal/spoiler", "internal/live", "internal/portrait", "internal/buildinfo", "internal/asciifold",
 }
 
 // violations applies the SPEC §5.1 rules to a package graph.

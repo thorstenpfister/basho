@@ -101,6 +101,11 @@ func TestStyleBar(t *testing.T) {
 	if StyleBar(uni, derive.Shares{}, StyleCells, false) != "" {
 		t.Error("no wins, no bar")
 	}
+	mono := uni
+	mono.Mono = true // without colours, letters tell the categories apart
+	if got := plain(StyleBar(mono, s, StyleCells, false)); got != "PPPPPPPPPPPPBBBBTTLL" {
+		t.Errorf("mono %q", got)
+	}
 }
 
 func TestApportion(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode"
 
 	"github.com/thorstenpfister/basho/internal/buildinfo"
 	"github.com/thorstenpfister/basho/internal/clock"
@@ -15,6 +16,7 @@ import (
 	"github.com/thorstenpfister/basho/internal/rating"
 	"github.com/thorstenpfister/basho/internal/service"
 	"github.com/thorstenpfister/basho/internal/snapshot"
+	"github.com/thorstenpfister/basho/internal/spoiler"
 )
 
 var testNow = time.Date(2026, time.October, 14, 12, 0, 0, 0, domain.JST)
@@ -91,8 +93,55 @@ func TestCommands(t *testing.T) {
 			t.Errorf("%v: colour codes in piped output", tt.args)
 		}
 	}
-	if out, _ := run(t, deps, "day", "13", "-t", "202609", "--ascii"); strings.ContainsAny(out, "○●結") {
-		t.Errorf("--ascii left symbols:\n%s", out)
+}
+
+// --ascii leaves no symbol outside ASCII in any command; letters are data
+// (kanji names, places like Töv).
+func TestASCII(t *testing.T) {
+	deps := fixtureDeps(t)
+	for _, args := range [][]string{
+		{"day", "13", "-t", "202609"},
+		{"bout", "13", "19", "-t", "202609"},
+		{"standings", "--day", "15", "-t", "202609"},
+		{"standings", "--day", "15", "-t", "202609", "--grid"},
+		{"info", "202609"},
+		{"list", "--from", "2026"},
+		{"ratings", "-t", "202609", "--top", "10"},
+		{"credits"},
+	} {
+		out, code := run(t, deps, append(args, "--ascii")...)
+		if code != exitOK {
+			t.Errorf("%v: exit %d", args, code)
+		}
+		for _, r := range out {
+			if r > unicode.MaxASCII && !unicode.IsLetter(r) {
+				t.Errorf("%v --ascii draws %q:\n%s", args, r, out)
+				break
+			}
+		}
+	}
+}
+
+// NO_COLOR with any value turns colours off (no-color.org), not only the
+// values strconv.ParseBool reads.
+func TestNoColorEnv(t *testing.T) {
+	for _, v := range []string{"1", "yes", "true"} {
+		deps := fixtureDeps(t)
+		env := deps.Env
+		deps.Env = func(k string) (string, bool) {
+			if k == "NO_COLOR" {
+				return v, true
+			}
+			return env(k)
+		}
+		var noColor bool
+		deps.TUI = func(_ config.Config, _ *service.Service, nc bool, _ *spoiler.State) error {
+			noColor = nc
+			return nil
+		}
+		if _, code := run(t, deps); code != exitOK || !noColor {
+			t.Errorf("NO_COLOR=%s: exit %d, no colour %v", v, code, noColor)
+		}
 	}
 }
 

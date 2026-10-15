@@ -44,8 +44,8 @@ test: ## Run all tests
 test-race: ## Run all tests with the race detector
 	$(GO) test -race ./...
 
-test-leaks: ## The spoiler leak tests, which skip under the race detector
-	$(GO) test -run 'TestNoLeaks|TestWalkDay13' ./internal/tui/
+test-leaks: ## The screen walks (spoiler leaks, --ascii), which skip under the race detector
+	$(GO) test -run 'TestNoLeaks|TestWalkDay13|TestASCIIScreens' ./internal/tui/
 
 test-live: ## Real API smoke tests, manual only (phase 1)
 	$(todo)
