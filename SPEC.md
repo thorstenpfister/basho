@@ -1261,7 +1261,7 @@ Only once you have decided to make the repository public (D9, D22).
 - "Streak" markers (🔥 5 wins in a row).
 - Theme packs (for example "arcade" with a block-font `VS` and a matching portrait palette).
 - Signing and notarization (D25).
-- A better rating model (Glicko-2, or a blend with rank and head-to-head) if plain Elo shows weaknesses. Plain Elo is overconfident for lopsided bouts (V9); the cheapest fix, a fitted divisor for the win chance, is Phase 13.
+- A better rating model (Glicko-2, or a blend with rank and head-to-head) if plain Elo shows weaknesses. The overconfidence in V9 comes from 2015–2020, not from Elo in general (Phase 13 step 1). A likely cause is top wrestlers fighting hurt or withdrawing partway through a tournament: their ratings stay high, and the model only pulls ratings back after tournaments missed completely. Modelling partial absences would be the place to start.
 - Full-resolution portraits via the Kitty graphics protocol in terminals that support it, if Bubble Tea gains a clean way to mix it with text rendering.
 
 ---
@@ -1299,7 +1299,7 @@ Only once you have decided to make the repository public (D9, D22).
 - **V8** Actual snapshot size (compressed) and time to build the bout index at startup. Answered: 2.50 MB for 399 tournaments (§4.3); opening the snapshot and building the whole bout index takes about 50 ms on an Apple M5.
 - ~~**V10**~~ **Answered (Phase 1):** `rankValue` = title × 100 + number (Yokozuna 1 → 101, Juryo 3 → 603); the side is not encoded, East and West share the value. Old-era haridashi wrestlers appear as ordinary numbered ranks (196001 has "Yokozuna 2 East"), so the English format is the same throughout. Side note for §6.8: Juryo had 18 ranks per side in 1960, not 14, so the rank bands must not assume J14 is the lowest.
 - ~~**V11**~~ **Answered (Phase 1):** sumo-api.com's `/kimarite` lists 90 values, all spelled as in Appendix B. Four were missing and are added: `dashinage` and `yobikaeshi` (historical), `hikiwake` and `itamiwake` (old-era draws). `kakezori`, `shumokuzori` and `sototasukizori` are official but never occur in sumo-api's data.
-- **V9** Whether Elo beats the "higher rank wins" baseline on log loss for 2015 onwards. This decides whether the win chance is shown at all. **Answered: yes, shown.** On 34,759 bouts from 2015 to 202609, Elo (`K` 10, `K_new` 24 for the first 45 bouts, `r` 0.3, warm-up scale 0.5) has log loss 0.6772, Brier 0.2422 and 56.2% accuracy, against 0.6860 / 0.2465 / 54.0% for the rank baseline and 0.6931 / 0.2500 / 50% for a coin. The margin is modest, as expected for a sport where most bouts are close. The model is somewhat overconfident at the extremes (predicted 74% wins 69%, 93% wins 85%; lowering `K` does not fix it), noted under §15. Report: `docs/rating.md`.
+- **V9** Whether Elo beats the "higher rank wins" baseline on log loss for 2015 onwards. This decides whether the win chance is shown at all. **Answered: yes, shown.** On 34,759 bouts from 2015 to 202609, Elo (`K` 10, `K_new` 24 for the first 45 bouts, `r` 0.3, warm-up scale 0.5) has log loss 0.6772, Brier 0.2422 and 56.2% accuracy, against 0.6860 / 0.2465 / 54.0% for the rank baseline and 0.6931 / 0.2500 / 50% for a coin. The margin is modest, as expected for a sport where most bouts are close. The model is somewhat overconfident at the extremes (predicted 74% wins 69%, 93% wins 85%; lowering `K` does not fix it). Phase 13 found this belongs to one era rather than to Elo itself. The win chance's best divisor, fitted era by era, is 380–434 from 1965 to 2014 and 428 for 2021–2026, all close to 400, but 562 for 2015–2020. Fitted on the training years, it is 406, which moves evaluation log loss only from 0.6772 to 0.6770. So the chance keeps 400; see §15. Report: `docs/rating.md`.
 
 ---
 
@@ -1632,6 +1632,10 @@ AC status: moved to the QA pass (Phase 16), which runs after the phases added be
 ### Phase 13: Rating scale and name display
 
 1. **Calibrated win chance** (§6.8, §15): plain Elo is overconfident for lopsided bouts (V9).
+
+   Done: investigated and dropped (no code change). The fit, built as planned, comes out at 406 on the training years: displayed chances would move by less than 0.3 points, and evaluation log loss from 0.6772 to 0.6770. Fitted era by era, the divisor is 380–434 everywhere except 2015–2020 (562); for 2021–2026, the years shown most, 400 already scores 0.6771 against 0.6770 at the best divisor (428), and 562 would make it worse (0.6779). The overconfidence is a drift in one era, not a constant (V9, §15).
+
+   The original plan:
    - Calibration fits a divisor `s` for the win chance `1 / (1 + 10^(−d/s))`, once the grid has chosen `K`, `K_new` and `r`. It is a one-dimensional search for the lowest log loss on the training years.
    - The ratings and their updates keep 400. Only the chance uses `s`, wherever it shows: VS screen, day view column, recap upsets, CLI and JSON.
    - `params.json` gains `scale`. `docs/rating.md` shows the calibration table before and after, V9 is checked again, and so is the 35% upset threshold.
@@ -1643,7 +1647,7 @@ AC status: moved to the QA pass (Phase 16), which runs after the phases added be
    JSON always carries both.
 3. Tests: the rating regression test with the new `scale`, goldens in the three name modes, and the CLI.
 
-**AC:** on the evaluation years, the calibration table's mean gap between predicted and actual shrinks and log loss does not get worse; with `ui.names = en`, a walk over every screen finds no kanji.
+**AC:** with `ui.names = en`, a walk over every screen finds no kanji. (The first half, a better calibrated chance, fell with step 1.)
 
 ### Phase 14: Portraits
 
