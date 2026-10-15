@@ -298,13 +298,13 @@ type layout struct {
 // historyWidth is the wide layout's head-to-head column.
 const historyWidth = 42
 
-func measure(ctx *tui.Context, width int) layout {
+func measure(ctx *tui.Context, width, height int) layout {
 	l := layout{Layout: tui.LayoutOf(width), width: width}
 	if l.Layout == tui.Wide {
 		l.width = width - historyWidth - 1
 	}
 	if l.Layout != tui.Compact {
-		if l.portrait = portraitSize(ctx, l.width); l.portrait > 0 {
+		if l.portrait = portraitSize(ctx, l.width, height); l.portrait > 0 {
 			l.width -= 2 * (l.portrait + 1)
 		}
 	}
@@ -317,7 +317,7 @@ func measure(ctx *tui.Context, width int) layout {
 // View implements tui.Screen.
 func (v VS) View(ctx *tui.Context, width, height int) string {
 	t := ctx.Theme
-	l := measure(ctx, width)
+	l := measure(ctx, width, height)
 	var b strings.Builder
 	b.WriteString(" " + t.Title.Render(v.heading()) + "\n")
 	if v.err != nil && v.tale == nil {

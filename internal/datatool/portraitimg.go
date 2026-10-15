@@ -27,17 +27,16 @@ import (
 	"github.com/thorstenpfister/basho/internal/portrait"
 )
 
-// Portrait sizes (SPEC §8.9): 32 px in the wide layout, 20 px in the normal.
-const (
-	BigPortrait   = 32
-	SmallPortrait = 20
-)
-
-// cropFactor is the crop's side in face widths: head and shoulders.
-const cropFactor = 2.2
+// cropFactor is the crop's side in face widths: head and a little of the
+// shoulders. 2.2 gave the face too few of the pixels.
+const cropFactor = 1.7
 
 // faceTop is where the face's centre sits in the crop, from the top.
-const faceTop = 0.4
+const faceTop = 0.45
+
+// DefaultColours is each portrait's palette size: few enough for the pixel
+// look, enough that faces keep their shading.
+const DefaultColours = 16
 
 //go:embed cascade/facefinder
 var facefinder []byte
@@ -83,14 +82,22 @@ func LoadPortraitOverrides(path string) (PortraitOverrides, error) {
 
 // Portrait is one wrestler's pixel portraits.
 type Portrait struct {
-	Big, Small *image.Paletted
-	Crop       image.Rectangle // in the thumbnail
-	Face       bool            // the crop follows a detected face, or an override
+	Images map[int]*image.Paletted // by size (portrait.Sizes), sharing one palette
+	Crop   image.Rectangle         // in the thumbnail
+	Face   bool                    // the crop follows a detected face, or an override
+}
+
+// ImageConfig is how the portraits are reduced.
+type ImageConfig struct {
+	Colours int  // palette size per portrait; zero: DefaultColours
+	Dither  bool // ordered dithering
 }
 
 // MakePortrait crops img to head and shoulders, around the face found or
-// the override's box, and reduces it to both sizes in Palette.
-func MakePortrait(img image.Image, o PortraitOverride, dither bool) Portrait {
+// the override's box, and reduces it to every size with a palette of its
+// own colours, picked from the largest size, so a wrestler looks alike at
+// all of them.
+func MakePortrait(img image.Image, o PortraitOverride, cfg ImageConfig) Portrait {
 	b := img.Bounds()
 	var p Portrait
 	switch face, ok := findFace(img); {
@@ -103,8 +110,15 @@ func MakePortrait(img image.Image, o PortraitOverride, dither bool) Portrait {
 		x := b.Min.X + (b.Dx()-side)/2
 		p.Crop = image.Rect(x, b.Min.Y, x+side, b.Min.Y+side)
 	}
-	p.Big = Quantize(AreaScale(img, p.Crop, BigPortrait), dither)
-	p.Small = Quantize(AreaScale(img, p.Crop, SmallPortrait), dither)
+	colours := cfg.Colours
+	if colours == 0 {
+		colours = DefaultColours
+	}
+	pal := MedianCut(AreaScale(img, p.Crop, portrait.Sizes[0]), colours)
+	p.Images = map[int]*image.Paletted{}
+	for _, size := range portrait.Sizes {
+		p.Images[size] = Quantize(AreaScale(img, p.Crop, size), pal, cfg.Dither)
+	}
 	return p
 }
 
@@ -178,16 +192,73 @@ func AreaScale(img image.Image, r image.Rectangle, n int) *image.NRGBA {
 	return out
 }
 
-// Palette is the portraits' 32 colours: DawnBringer's DB32, a pixel-art
-// palette with enough skin tones (SPEC §8.9's "arcade" palette).
-var Palette = color.Palette{
-	hex(0x000000), hex(0x222034), hex(0x45283c), hex(0x663931), hex(0x8f563b), hex(0xdf7126), hex(0xd9a066), hex(0xeec39a),
-	hex(0xfbf236), hex(0x99e550), hex(0x6abe30), hex(0x37946e), hex(0x4b692f), hex(0x524b24), hex(0x323c39), hex(0x3f3f74),
-	hex(0x306082), hex(0x5b6ee1), hex(0x639bff), hex(0x5fcde4), hex(0xcbdbfc), hex(0xffffff), hex(0x9badb7), hex(0x847e87),
-	hex(0x696a6a), hex(0x595652), hex(0x76428a), hex(0xac3232), hex(0xd95763), hex(0xd77bba), hex(0x8f974a), hex(0x8a6f30),
+// MedianCut picks a palette of up to n colours from img (SPEC §8.9): the
+// pixels in CIELAB form one box, and the box with the widest range is cut
+// at its median along that range, until there are n; each colour is its
+// box's mean. Stable sorting makes it the same on every run.
+func MedianCut(img *image.NRGBA, n int) color.Palette {
+	type px struct {
+		lab [3]float64
+		c   color.NRGBA
+	}
+	b := img.Bounds()
+	all := make([]px, 0, b.Dx()*b.Dy())
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			c := img.NRGBAAt(x, y)
+			l, a, bb := lab(float64(c.R), float64(c.G), float64(c.B))
+			all = append(all, px{[3]float64{l, a, bb}, c})
+		}
+	}
+	widest := func(box []px) (axis int, width float64) {
+		for d := range 3 {
+			lo, hi := box[0].lab[d], box[0].lab[d]
+			for _, p := range box {
+				lo, hi = min(lo, p.lab[d]), max(hi, p.lab[d])
+			}
+			if hi-lo > width {
+				axis, width = d, hi-lo
+			}
+		}
+		return axis, width
+	}
+	boxes := [][]px{all}
+	for len(boxes) < n {
+		cut, cutAxis, cutWidth := -1, 0, 0.0
+		for i, box := range boxes {
+			if axis, w := widest(box); len(box) > 1 && w > cutWidth {
+				cut, cutAxis, cutWidth = i, axis, w
+			}
+		}
+		if cut < 0 {
+			break // every box is one colour
+		}
+		box := boxes[cut]
+		slices.SortStableFunc(box, func(a, b px) int { return cmpFloat(a.lab[cutAxis], b.lab[cutAxis]) })
+		m := len(box) / 2
+		boxes = slices.Replace(boxes, cut, cut+1, box[:m], box[m:])
+	}
+	pal := make(color.Palette, len(boxes))
+	for i, box := range boxes {
+		var r, g, bl float64
+		for _, p := range box {
+			r, g, bl = r+float64(p.c.R), g+float64(p.c.G), bl+float64(p.c.B)
+		}
+		n := float64(len(box))
+		pal[i] = color.NRGBA{uint8(r/n + 0.5), uint8(g/n + 0.5), uint8(bl/n + 0.5), 255}
+	}
+	return pal
 }
 
-func hex(v uint32) color.NRGBA { return color.NRGBA{uint8(v >> 16), uint8(v >> 8), uint8(v), 255} }
+func cmpFloat(a, b float64) int {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return 1
+	}
+	return 0
+}
 
 // bayer is the 4×4 ordered dithering matrix.
 var bayer = [4][4]float64{{0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 13, 5}}
@@ -196,11 +267,12 @@ var bayer = [4][4]float64{{0, 8, 2, 10}, {12, 4, 14, 6}, {3, 11, 1, 9}, {15, 7, 
 // between neighbouring palette colours.
 const ditherSpread = 24
 
-// Quantize maps img to Palette by the nearest colour (CIELAB), with
-// ordered dithering if asked.
-func Quantize(img *image.NRGBA, dither bool) *image.Paletted {
+// Quantize maps img to pal by the nearest colour (CIELAB), with ordered
+// dithering if asked.
+func Quantize(img *image.NRGBA, pal color.Palette, dither bool) *image.Paletted {
 	b := img.Bounds()
-	out := image.NewPaletted(b, Palette)
+	out := image.NewPaletted(b, pal)
+	labs := paletteLab(pal)
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
 			c := img.NRGBAAt(x, y)
@@ -209,7 +281,7 @@ func Quantize(img *image.NRGBA, dither bool) *image.Paletted {
 				d := (bayer[y%4][x%4]/16 - 0.5) * ditherSpread
 				r, g, bl = r+d, g+d, bl+d
 			}
-			out.SetColorIndex(x, y, nearest(r, g, bl))
+			out.SetColorIndex(x, y, nearest(labs, r, g, bl))
 		}
 	}
 	return out
@@ -218,10 +290,10 @@ func Quantize(img *image.NRGBA, dither bool) *image.Paletted {
 // nearest is the palette index closest to r, g, b in CIELAB, where
 // distance follows how far apart colours look. A plain RGB distance sent
 // shaded skin to the palette's greys and blues.
-func nearest(r, g, b float64) uint8 {
+func nearest(labs [][3]float64, r, g, b float64) uint8 {
 	l, a, bb := lab(r, g, b)
 	best, bestD := 0, math.Inf(1)
-	for i, p := range paletteLab {
+	for i, p := range labs {
 		d := (l-p[0])*(l-p[0]) + (a-p[1])*(a-p[1]) + (bb-p[2])*(bb-p[2])
 		if d < bestD {
 			best, bestD = i, d
@@ -230,15 +302,15 @@ func nearest(r, g, b float64) uint8 {
 	return uint8(best)
 }
 
-// paletteLab is Palette in CIELAB.
-var paletteLab = func() [][3]float64 {
-	out := make([][3]float64, len(Palette))
-	for i, pc := range Palette {
-		c := pc.(color.NRGBA)
+// paletteLab is pal in CIELAB.
+func paletteLab(pal color.Palette) [][3]float64 {
+	out := make([][3]float64, len(pal))
+	for i, pc := range pal {
+		c := color.NRGBAModel.Convert(pc).(color.NRGBA)
 		out[i][0], out[i][1], out[i][2] = lab(float64(c.R), float64(c.G), float64(c.B))
 	}
 	return out
-}()
+}
 
 // lab converts sRGB (0–255, clamped) to CIELAB under D65.
 func lab(r, g, b float64) (l, a, bb float64) {
@@ -282,7 +354,7 @@ type BuiltPortrait struct {
 // BuildPortraits makes the pixel portraits of the fetched sources and
 // writes them to work/out (<id>-32.png, <id>-20.png) with sheet.png, every
 // portrait enlarged beside its crop, for review (SPEC §8.9).
-func BuildPortraits(work string, sources []PortraitSource, ov PortraitOverrides, dither bool, log io.Writer) ([]BuiltPortrait, error) {
+func BuildPortraits(work string, sources []PortraitSource, ov PortraitOverrides, cfg ImageConfig, log io.Writer) ([]BuiltPortrait, error) {
 	if err := os.MkdirAll(filepath.Join(work, "out"), 0o755); err != nil {
 		return nil, err
 	}
@@ -295,12 +367,12 @@ func BuildPortraits(work string, sources []PortraitSource, ov PortraitOverrides,
 		if err != nil {
 			return built, fmt.Errorf("%s (%d): %w", s.Name, s.RikishiID, err)
 		}
-		p := MakePortrait(img, ov[s.RikishiID], dither)
+		p := MakePortrait(img, ov[s.RikishiID], cfg)
 		if !p.Face {
 			noFace = append(noFace, fmt.Sprintf("%s (%d)", s.Name, s.RikishiID))
 		}
-		for _, im := range []*image.Paletted{p.Big, p.Small} {
-			if err := writePNG(filepath.Join(work, "out", fmt.Sprintf("%d-%d.png", s.RikishiID, im.Bounds().Dx())), im); err != nil {
+		for size, im := range p.Images {
+			if err := writePNG(filepath.Join(work, "out", fmt.Sprintf("%d-%d.png", s.RikishiID, size)), im); err != nil {
 				return built, err
 			}
 		}
@@ -318,11 +390,11 @@ func BuildPortraits(work string, sources []PortraitSource, ov PortraitOverrides,
 }
 
 // sheetCell is one portrait on the review sheet: the thumbnail's crop and
-// the 32 px portrait, both 128 px.
-const sheetCell = 128
+// the largest portrait, both 144 px.
+const sheetCell = 144
 
 // sheet lays the portraits out for review, 8 a row: the crop of the photo,
-// then the pixel portrait enlarged 4 times.
+// then the largest pixel portrait enlarged.
 func sheet(built []BuiltPortrait, work string) image.Image {
 	const perRow = 8
 	rows := max((len(built)+perRow-1)/perRow, 1)
@@ -333,10 +405,11 @@ func sheet(built []BuiltPortrait, work string) image.Image {
 			crop := AreaScale(img, b.Crop, sheetCell)
 			draw.Draw(out, image.Rect(x, y, x+sheetCell, y+sheetCell), crop, image.Point{}, draw.Src)
 		}
-		scale := sheetCell / BigPortrait
-		for py := range BigPortrait {
-			for px := range BigPortrait {
-				c := b.Big.At(px, py)
+		big := portrait.Sizes[0]
+		scale := sheetCell / big
+		for py := range big {
+			for px := range big {
+				c := b.Images[big].At(px, py)
 				draw.Draw(out, image.Rect(x+sheetCell+px*scale, y+py*scale, x+sheetCell+(px+1)*scale, y+(py+1)*scale), image.NewUniform(c), image.Point{}, draw.Src)
 			}
 		}
@@ -367,8 +440,8 @@ func WritePortraitData(dir string, built []BuiltPortrait) error {
 	}
 	credits := make([]portrait.Credit, 0, len(built))
 	for _, b := range built {
-		for _, im := range []*image.Paletted{b.Big, b.Small} {
-			if err := writePNG(filepath.Join(dir, portrait.Path(b.RikishiID, im.Bounds().Dx())), im); err != nil {
+		for size, im := range b.Images {
+			if err := writePNG(filepath.Join(dir, portrait.Path(b.RikishiID, size)), im); err != nil {
 				return err
 			}
 		}

@@ -947,9 +947,9 @@ Pixel-art portraits beside the tale of the tape, facing each other like a fighti
 
 1. Query Wikidata for wrestlers in the snapshot's index with P6652 or P3385, and P18 (§4.4). Fetch the licence, author and source URL from the Commons API and drop anything not on the allow-list.
 2. Fetch a 500 px thumbnail.
-3. Crop to head and shoulders. Face detection uses `github.com/esimov/pigo` (pure Go) and crops a square about 2.2× the face box. Manual overrides in `data/portraits/overrides.toml` can set the crop box, exclude an image or pick a different file.
-4. Downscale with area averaging to 32×32 (wide) and 20×20 (normal), then reduce colours to a 32-colour palette (DawnBringer's DB32) by the nearest colour in CIELAB, with optional ordered dithering.
-5. Store as PNG (about 1 KB each, about 300 KB in total) in `data/portraits/`, together with `credits.json` and a generated `CREDITS.md` (file, author, licence, source URL, and the changes made: "cropped, downscaled, colour-reduced").
+3. Crop to head and shoulders. Face detection uses `github.com/esimov/pigo` (pure Go) and crops a square about 1.7× the face box. Manual overrides in `data/portraits/overrides.toml` can set the crop box, exclude an image or pick a different file.
+4. Downscale with area averaging to 48×48, 32×32 and 20×20, then reduce each portrait to a palette of its own 16 colours (median cut in CIELAB on the 48 px image, shared by all three sizes), with optional ordered dithering.
+5. Store as paletted PNG (about 1.7 KB per wrestler for the three sizes, about 610 KB for 360) in `data/portraits/`, together with `credits.json` and a generated `CREDITS.md` (file, author, licence, source URL, and the changes made: "cropped, downscaled, colour-reduced").
 
 **Licensing:** the derived images are adaptations, so they keep the source licence (mostly CC BY-SA). `data/portraits/LICENSE` says so. Attribution is shown by `basho credits`, on the help overlay's Data page, and in the README.
 
@@ -958,7 +958,7 @@ Pixel-art portraits beside the tale of the tape, facing each other like a fighti
 - Half-block characters (`▀`): the foreground colour is the upper pixel, the background colour the lower one. This is pure text, so it fits into Bubble Tea and Lip Gloss layouts and works in any truecolor terminal (Ghostty included). `github.com/charmbracelet/x/mosaic` (experimental) or a small renderer of our own.
 - The West portrait is mirrored horizontally so the fighters face each other.
 - On 256-colour terminals, colours map to the nearest palette entry. Portraits are hidden with `NO_COLOR`, `--ascii`, in compact layout and with `ui.portraits = false`.
-- Size: by the width left beside the wide layout's history column, so that the tape keeps 80 columns: 32 px when 146 or more are left (from 189 terminal columns in the wide layout), 20 px from 122 (122–129 columns in the normal layout, 165 in the wide), none below. The first plan, 32 px from 140 columns, predates the 42-column history column and does not fit beside it.
+- Size: the largest of 48, 32 and 20 px that fits the width left beside the wide layout's history column, with the tape keeping 80 columns (48 px from 178 columns left, 32 from 146, 20 from 122), and the height: half its pixels in rows plus the caption, and 14 rows for the rest of the screen (48 px from 39 rows, 32 from 31, 20 from 25). In the wide layout that is 48 px from 221 terminal columns, 32 from 189, 20 from 165; in the normal one, 20 px from 122. The first plan, 32 px from 140 columns, predates the 42-column history column and does not fit beside it.
 - Below each portrait a dim caption gives the photo year ("photo 2014"), because some photos are old.
 - **No photo:** a procedurally generated silhouette sprite, shaped by height and weight, with a mawashi colour derived from the wrestler ID. It is clearly not a likeness.
 - Full-resolution images via terminal graphics protocols (Kitty, iTerm2, Sixel) are not used: they conflict with Bubble Tea's renderer (§15).
@@ -1710,6 +1710,7 @@ AC status: met, by `TestNameModes`.
    - **Tests:** goldens at 200×50 (32 px) and 125×40 (20 px) use a generated test image, so no photo goes into the repository. Every gate and breakpoint is tested.
 6. Manual review of all generated portraits for current Makuuchi and Juryo wrestlers, and fix crops via overrides.
 
+   - **Look, after the first full run:** with DB32's 32 colours the photos turned to soup, the old sepia and black-and-white ones especially, and the wrestlers were hard to tell apart. A comparison over the cached thumbnails showed that the palette was the main loss, then the crop, then the size. Now each portrait gets a palette of its own 16 colours (median cut; `--colours` 2–256 tries others from the cache), the crop is 1.7 face widths with the face 45% down, and a 48 px size joins 32 and 20 for wide terminals. It stays pixel art, with crisp blocks and few colours, and DB32 is gone.
    - **Progress** (after the first full run, which said nothing for 6 minutes): each phase reports its count, metadata 3/8, thumbnails 37/360, portraits 120/360, on one rewritten line in a terminal and every 25 items in a log. A rerun from the work cache takes about 30 s, mostly face detection.
 
    Open: needs the owner's full run (`make portraits CONTACT=…`, about 370 requests, 6 minutes). Review `sheet.png` in the work directory and the "no face found" list, fix crops or exclude images in `overrides.toml`, run again (it fetches nothing twice), and decide on `--dither`.

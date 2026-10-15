@@ -23,6 +23,7 @@ func TestSet(t *testing.T) {
 	fsys := fstest.MapFS{
 		"credits.json": {Data: []byte(`[{"id":2,"name":"Onosato","file":"O.jpg","author":"A","licence":"CC BY-SA 4.0","sourceUrl":"u","year":2024},
 			{"id":1,"name":"Hoshoryu","file":"H.jpg","author":"B","licence":"CC0","sourceUrl":"v"}]`)},
+		"48/2.png": {Data: paletted(t, 48)},
 		"32/2.png": {Data: paletted(t, 32)},
 		"20/2.png": {Data: paletted(t, 20)},
 		"32/1.png": {Data: []byte("not a png")},

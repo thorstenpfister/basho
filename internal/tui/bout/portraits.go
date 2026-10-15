@@ -15,16 +15,21 @@ import (
 // hometowns and the bars need it.
 const minTape = 80
 
+// screenRows is what the VS screen needs besides the portrait's rows:
+// heading, result panel, hints and the tape below a portrait.
+const screenRows = 14
+
 // portraitSize is the portraits' size for the width left beside the
-// history column: 32 px, 20 px or none (0). The tape keeps minTape
-// (SPEC §8.9).
-func portraitSize(ctx *tui.Context, avail int) int {
+// history column and the screen's height: the largest of portrait.Sizes
+// that leaves the tape minTape columns and fits its rows (half its pixels,
+// and the caption) on the screen; 0 for none (SPEC §8.9).
+func portraitSize(ctx *tui.Context, avail, height int) int {
 	t := ctx.Theme
 	if !ctx.Cfg.UI.Portraits || t.ASCII || t.Mono || ctx.Svc == nil {
 		return 0
 	}
 	for _, size := range portrait.Sizes { // largest first
-		if avail >= 2*(size+1)+minTape {
+		if avail >= 2*(size+1)+minTape && height >= size/2+1+screenRows {
 			return size
 		}
 	}

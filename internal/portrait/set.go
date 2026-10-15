@@ -16,9 +16,9 @@ import (
 	"github.com/thorstenpfister/basho/internal/domain"
 )
 
-// Sizes are the portraits' widths in pixels (SPEC §8.9): 32 in the wide
-// layout, 20 in the normal one.
-var Sizes = []int{32, 20}
+// Sizes are the portraits' widths in pixels, largest first (SPEC §8.9):
+// the VS screen shows the largest that fits.
+var Sizes = []int{48, 32, 20}
 
 // Changes says what was done to every photo, as its licence asks.
 const Changes = "cropped, downscaled, colour-reduced"

@@ -1,6 +1,7 @@
 package datatool
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"io"
@@ -52,12 +53,12 @@ exclude = true
 
 func TestCropAround(t *testing.T) {
 	b := image.Rect(0, 0, 500, 800)
-	// A 100 px face in the middle: a 220 px square, the face 40% down.
-	if got := cropAround(image.Rect(200, 300, 300, 400), b); got != image.Rect(140, 262, 360, 482) {
+	// A 100 px face in the middle: a 170 px square, the face 45% down.
+	if got := cropAround(image.Rect(200, 300, 300, 400), b); got != image.Rect(165, 274, 335, 444) {
 		t.Errorf("middle: %v", got)
 	}
 	// At the top left edge: moved inside.
-	if got := cropAround(image.Rect(0, 0, 100, 100), b); got != image.Rect(0, 0, 220, 220) {
+	if got := cropAround(image.Rect(0, 0, 100, 100), b); got != image.Rect(0, 0, 170, 170) {
 		t.Errorf("edge: %v", got)
 	}
 	// A face too large for the photo: the square shrinks to fit.
@@ -80,35 +81,56 @@ func TestAreaScale(t *testing.T) {
 	}
 }
 
-func TestQuantize(t *testing.T) {
-	img := image.NewNRGBA(image.Rect(0, 0, len(Palette), 1))
-	for i, c := range Palette {
-		img.Set(i, 0, c)
-	}
-	q := Quantize(img, false)
-	for i := range Palette {
-		if int(q.ColorIndexAt(i, 0)) != i {
-			t.Errorf("palette colour %d maps to %d", i, q.ColorIndexAt(i, 0))
+func TestMedianCut(t *testing.T) {
+	// Four colours in, four out, each mapping to itself.
+	four := []color.NRGBA{{200, 140, 110, 255}, {40, 30, 60, 255}, {250, 250, 250, 255}, {90, 60, 40, 255}}
+	img := image.NewNRGBA(image.Rect(0, 0, 8, 8))
+	for y := range 8 {
+		for x := range 8 {
+			img.SetNRGBA(x, y, four[(x+y)%4])
 		}
 	}
-	// A shaded skin tone stays a skin tone, not a grey or a blue.
-	skin := image.NewNRGBA(image.Rect(0, 0, 1, 1))
-	skin.SetNRGBA(0, 0, color.NRGBA{0xb0, 0x80, 0x68, 255})
-	if c := Palette[Quantize(skin, false).ColorIndexAt(0, 0)].(color.NRGBA); c.R <= c.B {
-		t.Errorf("skin became %v", c)
+	pal := MedianCut(img, 16)
+	if len(pal) != 4 {
+		t.Fatalf("%d colours from 4", len(pal))
+	}
+	q := Quantize(img, pal, false)
+	for y := range 8 {
+		for x := range 8 {
+			if q.At(x, y) != color.Color(four[(x+y)%4]) {
+				t.Fatalf("%d,%d: %v, want %v", x, y, q.At(x, y), four[(x+y)%4])
+			}
+		}
+	}
+	// A grey ramp of 256 shades comes down to 16, evenly, the same every run.
+	ramp := image.NewNRGBA(image.Rect(0, 0, 256, 1))
+	for x := range 256 {
+		ramp.SetNRGBA(x, 0, color.NRGBA{uint8(x), uint8(x), uint8(x), 255})
+	}
+	a, b := MedianCut(ramp, 16), MedianCut(ramp, 16)
+	if len(a) != 16 || fmt.Sprint(a) != fmt.Sprint(b) {
+		t.Errorf("ramp: %d colours, stable %v", len(a), fmt.Sprint(a) == fmt.Sprint(b))
+	}
+	if c := a[0].(color.NRGBA); c.R > 16 {
+		t.Errorf("the darkest box's mean is %v", c)
 	}
 }
 
 func TestMakePortrait(t *testing.T) {
 	blank := image.NewNRGBA(image.Rect(0, 0, 300, 500))
-	p := MakePortrait(blank, PortraitOverride{}, false)
+	p := MakePortrait(blank, PortraitOverride{}, ImageConfig{})
 	if p.Face || p.Crop != image.Rect(0, 0, 300, 300) {
 		t.Errorf("no face: %+v", p.Crop)
 	}
-	if p.Big.Bounds().Dx() != BigPortrait || p.Small.Bounds().Dx() != SmallPortrait {
-		t.Error("sizes")
+	for _, size := range portrait.Sizes {
+		if p.Images[size].Bounds().Dx() != size {
+			t.Errorf("size %d", size)
+		}
 	}
-	p = MakePortrait(blank, PortraitOverride{Crop: []int{10, 20, 110, 120}}, true)
+	if p.Images[48].Palette[0] != p.Images[20].Palette[0] {
+		t.Error("the sizes do not share their palette")
+	}
+	p = MakePortrait(blank, PortraitOverride{Crop: []int{10, 20, 110, 120}}, ImageConfig{Colours: 8, Dither: true})
 	if !p.Face || p.Crop != image.Rect(10, 20, 110, 120) {
 		t.Errorf("override: %v", p.Crop)
 	}
@@ -139,11 +161,11 @@ func TestBuildPortraits(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(work, "images", "1.png"), pngBytes(t), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	built, err := BuildPortraits(work, []PortraitSource{{RikishiID: 1, Name: "A", Image: filepath.Join("images", "1.png")}}, nil, false, io.Discard)
+	built, err := BuildPortraits(work, []PortraitSource{{RikishiID: 1, Name: "A", Image: filepath.Join("images", "1.png")}}, nil, ImageConfig{}, io.Discard)
 	if err != nil || len(built) != 1 {
 		t.Fatal(built, err)
 	}
-	for _, f := range []string{"out/1-32.png", "out/1-20.png", "sheet.png"} {
+	for _, f := range []string{"out/1-48.png", "out/1-32.png", "out/1-20.png", "sheet.png"} {
 		if _, err := os.Stat(filepath.Join(work, f)); err != nil {
 			t.Error(err)
 		}
@@ -166,7 +188,7 @@ func TestWritePortraitData(t *testing.T) {
 			RikishiID: 7, Name: "Onosato", File: "A|B.jpg", Author: "Photo | Co", Licence: "CC BY-SA 4.0",
 			LicenceURL: "https://creativecommons.org/licenses/by-sa/4.0", SourceURL: "https://commons.wikimedia.org/wiki/File:A", Year: 2024,
 		},
-		Portrait: MakePortrait(blank, PortraitOverride{}, false),
+		Portrait: MakePortrait(blank, PortraitOverride{}, ImageConfig{}),
 	}}
 	if err := WritePortraitData(dir, built); err != nil {
 		t.Fatal(err)

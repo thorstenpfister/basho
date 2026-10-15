@@ -67,7 +67,7 @@ func onosato(t *testing.T) domain.RikishiID {
 // Portraits beside the tape at the sizes the width allows (SPEC §8.9):
 // the East photo facing right, a silhouette for West without one.
 func TestPortraitGolden(t *testing.T) {
-	for _, size := range []struct{ w, h int }{{200, 50}, {125, 40}} {
+	for _, size := range []struct{ w, h int }{{230, 50}, {200, 50}, {125, 40}} {
 		t.Run(fmt.Sprintf("%dx%d", size.w, size.h), func(t *testing.T) {
 			d := openOn(t, withPortrait(t), aki2026, 13, 19, size.w, size.h)
 			v := d.View()
@@ -86,9 +86,20 @@ func TestPortraitGolden(t *testing.T) {
 
 func TestPortraitSize(t *testing.T) {
 	ctx := &tui.Context{Svc: withPortrait(t), Cfg: testContext(nil).Cfg, Theme: theme.New(true, false), Clock: clock.NewFake(testNow)}
-	for avail, want := range map[int]int{200: 32, 146: 32, 145: 20, 122: 20, 121: 0, 90: 0} {
-		if got := portraitSize(ctx, avail); got != want {
-			t.Errorf("%d columns: %d px, want %d", avail, got, want)
+	for _, tt := range []struct{ avail, height, want int }{
+		{200, 50, 48},
+		{178, 39, 48},
+		{177, 50, 32},
+		{200, 38, 32},
+		{146, 31, 32},
+		{145, 50, 20},
+		{200, 30, 20},
+		{122, 25, 20},
+		{121, 50, 0},
+		{200, 24, 0},
+	} {
+		if got := portraitSize(ctx, tt.avail, tt.height); got != tt.want {
+			t.Errorf("%d columns, %d rows: %d px, want %d", tt.avail, tt.height, got, tt.want)
 		}
 	}
 	for name, change := range map[string]func(*tui.Context){
@@ -98,12 +109,12 @@ func TestPortraitSize(t *testing.T) {
 	} {
 		c := *ctx
 		change(&c)
-		if portraitSize(&c, 200) != 0 {
+		if portraitSize(&c, 200, 50) != 0 {
 			t.Errorf("%s shows portraits", name)
 		}
 	}
 	// Compact: never, whatever the width says.
-	if l := measure(ctx, 70); l.portrait != 0 {
+	if l := measure(ctx, 70, 50); l.portrait != 0 {
 		t.Error("compact layout with portraits")
 	}
 }

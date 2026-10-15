@@ -19,18 +19,22 @@ import (
 func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 	var cfg PortraitConfig
 	var only, snapDir, workCache, contact, overrides, out string
-	var dither bool
+	var img ImageConfig
 	update := &cobra.Command{
 		Use:   "update",
 		Short: "Fetch wrestler portraits from Wikimedia Commons (about one request per image)",
 		Long: "update finds the snapshot's wrestlers on Wikidata (JSA ID, P3385) with an image\n" +
 			"(P18), keeps the images whose licence is on the allow-list, and fetches 500 px\n" +
 			"thumbnails into --work, one request per second per host (SPEC §4.4, §8.9).\n" +
-			"Then it crops each to head and shoulders around the face, reduces it to 32 and\n" +
-			"20 px in the portrait palette, and writes them with a review sheet (sheet.png).\n" +
+			"Then it crops each to head and shoulders around the face, reduces it to 48, 32\n" +
+			"and 20 px in a palette of its own --colours, and writes them with a review\n" +
+			"sheet (sheet.png).\n" +
 			"Responses go through a work cache, so a second run fetches nothing again.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			if img.Colours < 2 || img.Colours > 256 {
+				return fmt.Errorf("--colours: %d, want 2 to 256", img.Colours)
+			}
 			for f := range strings.SplitSeq(only, ",") {
 				if f = strings.TrimSpace(f); f != "" {
 					id, err := strconv.Atoi(f)
@@ -60,7 +64,7 @@ func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 			if err != nil || cfg.DryRun {
 				return err
 			}
-			built, err := BuildPortraits(cfg.Work, set.Sources, cfg.Overrides, dither, cmd.ErrOrStderr())
+			built, err := BuildPortraits(cfg.Work, set.Sources, cfg.Overrides, img, cmd.ErrOrStderr())
 			if err != nil || len(cfg.Only) > 0 || cfg.Limit > 0 {
 				return err // a partial run never replaces the shipped set
 			}
@@ -80,7 +84,8 @@ func newPortraitsCmd(info buildinfo.Info) *cobra.Command {
 	f.BoolVar(&cfg.DryRun, "dry-run", false, "run the Wikidata query (one request) and print the plan")
 	f.StringVar(&overrides, "overrides", "data/portraits/overrides.toml", "manual crops, exclusions and other files")
 	f.StringVar(&out, "out", "data/portraits", "where the portraits and credits go (not with --only or --limit)")
-	f.BoolVar(&dither, "dither", false, "ordered dithering when reducing to the palette")
+	f.IntVar(&img.Colours, "colours", DefaultColours, "colours per portrait")
+	f.BoolVar(&img.Dither, "dither", false, "ordered dithering when reducing the colours")
 	f.StringVar(&contact, "contact", "https://github.com/thorstenpfister/basho",
 		"contact for the User-Agent, as Wikimedia's policy asks: a URL or an email address")
 	portraits := &cobra.Command{Use: "portraits", Short: "Wrestler portraits from Wikimedia Commons (SPEC §8.9)"}

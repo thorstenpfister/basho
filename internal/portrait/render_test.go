@@ -36,8 +36,8 @@ func TestSilhouette(t *testing.T) {
 		if len(lines) != size/2 || ansi.StringWidth(lines[0]) != size {
 			t.Fatalf("%d: %d lines of %d", size, len(lines), ansi.StringWidth(lines[0]))
 		}
-		if strings.TrimSpace(lines[0]) == "" && strings.TrimSpace(lines[1]) == "" {
-			t.Errorf("%d: no topknot at the top:\n%s", size, strings.Join(lines, "\n"))
+		if top := strings.Join(lines[:len(lines)/5+1], ""); strings.TrimSpace(top) == "" {
+			t.Errorf("%d: no topknot in the top fifth:\n%s", size, strings.Join(lines, "\n"))
 		}
 		if s.ColorIndexAt(0, 0) != 0 || s.ColorIndexAt(size/2, size-1) != 1 || s.ColorIndexAt(size/2, size/3) != 1 {
 			t.Errorf("%d: corners clear, head and body drawn", size)
