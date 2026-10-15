@@ -53,6 +53,9 @@ test-live: ## Real API smoke tests, manual only (phase 1)
 golden: ## Rewrite golden files with -update; review the diff (phase 6)
 	$(todo)
 
+bench: ## The performance budgets: first screen under 300 ms, grid frame under 16 ms
+	$(GO) test -run '^$$' -bench 'BenchmarkStart|BenchmarkGrid' -benchmem ./internal/tui/...
+
 cover: ## Coverage profile and HTML report (coverage.html)
 	$(GO) test -coverprofile=coverage.out ./...
 	$(GO) tool cover -html=coverage.out -o coverage.html

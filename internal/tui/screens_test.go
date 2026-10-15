@@ -207,3 +207,17 @@ func TestHelpPages(t *testing.T) {
 		t.Errorf("esc kept the overlay:\n%s", v)
 	}
 }
+
+// Phase 12 step 4: from nothing loaded to the first screen with bouts in
+// under 300 ms: the snapshot opened, the current tournament's latest day
+// read and drawn as basho starts (cmd/basho measures about 110 ms in a
+// terminal, process start included).
+func BenchmarkStart(b *testing.B) {
+	for b.Loop() {
+		svc := service.New(service.Options{Snapshot: data.Snapshot, Params: data.RatingParams, Clock: clock.NewFake(testNow)})
+		d := tuitest.New(app(svc), 130, 50)
+		if !strings.Contains(d.View(), "Onosato") {
+			b.Fatalf("no bouts:\n%s", d.View())
+		}
+	}
+}

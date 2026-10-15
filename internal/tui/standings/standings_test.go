@@ -153,3 +153,18 @@ func TestScroll(t *testing.T) {
 		t.Errorf("%d lines", len(lines))
 	}
 }
+
+// Phase 12 step 4: the hoshitori grid draws in under 16 ms at 130×50, one
+// frame at 60 fps. The whole frame counts: status bar, layout and styles.
+func BenchmarkGrid(b *testing.B) {
+	d := open(fixture(), domain.DivMakuuchi, 15, 130, 50)
+	d.Keys("tab", "j", "j")
+	if v := d.View(); !strings.Contains(v, "W-L-A") || !strings.Contains(v, "[tab] race") {
+		b.Fatalf("not the grid:\n%s", d.View())
+	}
+	m := d.M.(tui.Model)
+	b.ResetTimer()
+	for b.Loop() {
+		_ = m.View()
+	}
+}

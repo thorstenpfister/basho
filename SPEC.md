@@ -1192,9 +1192,10 @@ adjacent_days = false
 | `run` | `go run ./cmd/basho $(ARGS)` | 0 |
 | `test` | `go test ./...` | 0 |
 | `test-race` | `go test -race ./...` | 0 |
-| `test-leaks` | The spoiler leak tests without the race detector, under which they skip (single-threaded, ten times slower there) | 11 |
+| `test-leaks` | The screen walks (spoiler leaks, `--ascii`) without the race detector, under which they skip (single-threaded, ten times slower there) | 11 |
 | `test-live` | `go test -tags live ./...`: real API smoke tests, manual only | 1 |
 | `golden` | Re-runs tests with `-update` to rewrite golden files (review the diff afterwards) | 6 |
+| `bench` | The performance budgets: first screen under 300 ms, grid frame under 16 ms (§17 Phase 12) | 12 |
 | `cover` | Coverage profile and HTML report (`coverage.html`) | 0 |
 | `fmt` | `go tool gofumpt -w .` | 0 |
 | `fmt-check` | Fails if gofumpt would change anything | 0 |
@@ -1601,6 +1602,11 @@ AC status: met, by `TestWalkDay13` and `TestNoLeaks` (step 6).
      - **Every source failed:** check the connection; the snapshot's tournaments work offline.
      - **TUI:** the day, VS and standings screens show `tui.ErrorHint` as a dim line under the error. `service.Offline` tells an offline miss from an outage, and the TUI now says which it is.
 4. Performance: hoshitori grid renders in under 16 ms at 130×50; snapshot and bout index load fast enough for an instant start (target under 300 ms to first screen).
+
+   Done: both budgets hold without changes; `make bench` measures them.
+   - **First screen:** 106 ms from launch until the day view's bouts are on screen, for the real binary in a 130×50 pseudo-terminal (Apple M5), the first frame after 21 ms. `BenchmarkStart` measures 96 ms in-process: the snapshot opened, the current tournament's latest day read and drawn.
+   - **Grid:** `BenchmarkGrid` draws the whole frame with the Makuuchi grid after day 15 at 130×50 in 1.3 ms.
+   - **Memory:** peak RSS is about 150 MB, also for `basho day`. It comes from decoding every tournament into the bout index (about 195,000 bouts) and replaying the ratings. Pre-sizing the per-tournament day index saved 4% of the allocations and nothing in RSS, so it was left out.
 5. Accessibility: never rely on colour alone (glyphs and KK/MK text always shown).
 6. VHS tape and GIF for the README.
 
