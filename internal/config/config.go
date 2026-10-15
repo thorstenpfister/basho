@@ -176,6 +176,18 @@ func Load(path string, required bool, env Env) (Config, error) {
 	return c, nil
 }
 
+// Encode writes c as the file would: one table per section, in order, and
+// no session switches.
+func (c Config) Encode() (string, error) {
+	var b strings.Builder
+	enc := toml.NewEncoder(&b)
+	enc.Indent = ""
+	if err := enc.Encode(c); err != nil {
+		return "", err
+	}
+	return b.String(), nil
+}
+
 // applyEnv sets every setting from BASHO_<SECTION>_<KEY> (for example
 // BASHO_LIVE_INTERVAL=5m), and the session switches from BASHO_SOURCE,
 // BASHO_OFFLINE and BASHO_DEBUG. Lists are comma separated.
@@ -251,7 +263,7 @@ func (c Config) Validate() error {
 	}
 	atLeast := func(name string, d Duration, limit time.Duration) {
 		if time.Duration(d) < limit {
-			errs = append(errs, fmt.Errorf("%s = %s: at least %s", name, time.Duration(d), limit))
+			errs = append(errs, fmt.Errorf("%s = %s: at least %s", name, d, Duration(limit)))
 		}
 	}
 	oneOf("ui.division", c.UI.Division, "makuuchi", "juryo")
@@ -290,8 +302,20 @@ func (d *Duration) UnmarshalText(b []byte) error {
 	return err
 }
 
-// MarshalText implements encoding.TextMarshaler.
-func (d Duration) MarshalText() ([]byte, error) { return []byte(time.Duration(d).String()), nil }
+func (d Duration) String() string { b, _ := d.MarshalText(); return string(b) }
+
+// MarshalText implements encoding.TextMarshaler: "3m" and "1h30m" rather
+// than Go's "3m0s" and "1h30m0s", as the file writes them.
+func (d Duration) MarshalText() ([]byte, error) {
+	s := time.Duration(d).String()
+	if strings.HasSuffix(s, "m0s") {
+		s = strings.TrimSuffix(s, "0s")
+	}
+	if strings.HasSuffix(s, "h0m") {
+		s = strings.TrimSuffix(s, "0m")
+	}
+	return []byte(s), nil
+}
 
 // TimeOfDay is a JST time of day written as "14:00".
 type TimeOfDay time.Duration

@@ -1099,7 +1099,7 @@ Output rules:
 - File: `$XDG_CONFIG_HOME/basho/config.toml`, otherwise `~/.config/basho/config.toml`. This location was chosen deliberately on macOS (instead of `~/Library/Application Support`) so it fits a dotfiles repository.
 - Precedence: flags > environment (`BASHO_*`, for example `BASHO_SOURCE=osada`) > file > defaults. Every file setting has a variable named `BASHO_<SECTION>_<KEY>` (`BASHO_LIVE_INTERVAL=5m`, lists comma separated); the session switches `--source`, `--offline` and `--debug` are `BASHO_SOURCE`, `BASHO_OFFLINE` and `BASHO_DEBUG` and never come from the file.
 - Unknown settings and invalid values are errors. Intervals can only be stricter than the built-in limits (live 2 min, sumo-api 1 s, osada 20 s; §7.1). A missing file is fine unless `--config` names it.
-- `basho config path|show` prints the effective config (phase 12).
+- `basho config path` prints the file's path, without reading it, so a broken file can still be found. `basho config show` prints the configuration in effect (defaults, file, environment, flags) as TOML, marking each value that differs from the default, with the file, cache and state paths as comments. Both take `--json`.
 
 ```toml
 [ui]
@@ -1590,6 +1590,16 @@ AC status: met, by `TestWalkDay13` and `TestNoLeaks` (step 6).
    - **Wrapping:** `ansi.Wordwrap` always breaks after a hyphen (head-/to-head, sumo-/api), so text wraps with non-breaking hyphens that are swapped back afterwards.
    - **Shared:** the STYLE categories and their letters now live in `components` only (the VS screen kept a copy).
 3. `basho config path|show`; friendlier first-run messages.
+
+   Done:
+   - **`basho config`** (§12): `path` and `show`, both with `--json` (`config_path`, `config`). `config.Config.Encode` writes the file's layout, which `Load` reads back. Durations print as the file writes them (`3m`, not `3m0s`), in `show` and in error messages.
+   - **Error box:** fang capitalised the first word of every error. A message starting with a path came out as `/Private/Tmp/…`, a path that doesn't exist, and fang's hard wrap split paths at hyphens. `errorHandler` keeps fang's look without either, so paths can be copied.
+   - **Hints:** each failure says what to do, on its own line.
+     - **Config errors** name where settings come from: the file and `BASHO_*` variables. Validation errors start with `config:`.
+     - **A broken state file** says it only keeps reveal horizons and can be deleted.
+     - **Offline without a copy** drops the repeated URL and says to run once without `--offline`.
+     - **Every source failed:** check the connection; the snapshot's tournaments work offline.
+     - **TUI:** the day, VS and standings screens show `tui.ErrorHint` as a dim line under the error. `service.Offline` tells an offline miss from an outage, and the TUI now says which it is.
 4. Performance: hoshitori grid renders in under 16 ms at 130×50; snapshot and bout index load fast enough for an instant start (target under 300 ms to first screen).
 5. Accessibility: never rely on colour alone (glyphs and KK/MK text always shown).
 6. VHS tape and GIF for the README.

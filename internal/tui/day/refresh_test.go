@@ -86,7 +86,7 @@ func (broken) Get(context.Context, string, httpx.Validators) (*httpx.Response, e
 func TestErrorState(t *testing.T) {
 	ctx := remoteContext(t, broken{})
 	d := tuitest.New(tui.New(ctx, []tui.Screen{New(ctx, aki2026, 13)}, nil), 100, 30)
-	if v := d.View(); !strings.Contains(v, "Every source failed and nothing is cached. R retries.") {
+	if v := d.View(); !strings.Contains(v, "Every source failed and nothing is cached. R retries.") || !strings.Contains(v, "Check the connection.") {
 		t.Errorf("error state:\n%s", v)
 	}
 	d.Keys("R")

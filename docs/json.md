@@ -21,7 +21,7 @@ Every data command takes `--json` and prints one JSON document to stdout (SPEC �
 | Field | Meaning |
 |---|---|
 | `schemaVersion` | `1`. Raised on any incompatible change. |
-| `kind` | `list`, `info`, `day`, `bout`, `standings`, `ratings` or `credits`: says what `data` is. |
+| `kind` | `list`, `info`, `day`, `bout`, `standings`, `ratings`, `credits`, `config` or `config_path`: says what `data` is. |
 | `provenance.source` | `snapshot` (embedded data), `sumo-api` (any part came from the network), `cache:sumo-api` (all from the disk cache), `calendar` (no data needed, e.g. a cancelled tournament), `basho` (static text). |
 | `provenance.fetchedAt` | UTC. The snapshot's build time, or the oldest response used. |
 | `provenance.sourceUpdatedAt` | The source's own update time when it gives one (osada.us, Phase 9); otherwise `null`. |
@@ -98,6 +98,14 @@ A TaleSide is a Wrestler with:
 ### `credits`
 
 `{"text": "…"}`.
+
+### `config`
+
+`basho config show --json`: the configuration in effect, one object per section with the file's keys (`{"ui": {"theme": "auto", …}, "live": {"interval": "3m", …}, …}`). Durations and times of day are strings as the file writes them. The session switches (`source`, `offline`, `debug`) are not part of it.
+
+### `config_path`
+
+`basho config path --json`: `{"path", "exists"}`, the config file in use and whether it is there.
 
 ## Exit codes
 

@@ -315,6 +315,9 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 	b.WriteString(" " + t.Title.Render(v.heading()) + "\n")
 	if v.err != nil && v.tale == nil {
 		b.WriteString("\n " + t.Error.Render(tui.ErrorText(v.err)) + "\n")
+		if h := tui.ErrorHint(v.err); h != "" {
+			b.WriteString(" " + t.Dim.Render(h) + "\n")
+		}
 		return b.String()
 	}
 	tape := v.tape(ctx, l)

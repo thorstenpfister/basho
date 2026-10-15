@@ -76,19 +76,29 @@ func (a *app) flags(root *cobra.Command) {
 	_ = f.MarkHidden("no-snapshot")
 }
 
+// configFile is the config file in use: --config, or the default path.
+func (a *app) configFile() (string, error) {
+	if a.configPath != "" {
+		return a.configPath, nil
+	}
+	return config.DefaultPath(a.deps.Env)
+}
+
+// configHint says where settings come from after a config error.
+func configHint(err error, path string) error {
+	return fmt.Errorf("%w\nSettings come from %s and BASHO_* variables", err, path)
+}
+
 // setup loads the configuration and prepares the service; the commands that
 // need data run it first.
 func (a *app) setup(cmd *cobra.Command) error {
-	path, required := a.configPath, a.configPath != ""
-	if !required {
-		var err error
-		if path, err = config.DefaultPath(a.deps.Env); err != nil {
-			return err
-		}
-	}
-	cfg, err := config.Load(path, required, a.deps.Env)
+	path, err := a.configFile()
 	if err != nil {
-		return usage(err)
+		return err
+	}
+	cfg, err := config.Load(path, a.configPath != "", a.deps.Env)
+	if err != nil {
+		return usage(configHint(err, path))
 	}
 	f := cmd.Flags()
 	if f.Changed("source") {
@@ -110,7 +120,7 @@ func (a *app) setup(cmd *cobra.Command) error {
 	}
 	cfg.NoSnapshot = a.noSnapshot
 	if err := cfg.Validate(); err != nil {
-		return usage(err)
+		return usage(configHint(fmt.Errorf("config: %w", err), path))
 	}
 	if a.revealTo != "" {
 		h, err := parseHorizon(a.revealTo)
@@ -127,7 +137,7 @@ func (a *app) setup(cmd *cobra.Command) error {
 		return err
 	}
 	if a.spoilers, err = spoiler.Load(filepath.Join(dir, spoiler.FileName)); err != nil {
-		return err
+		return fmt.Errorf("spoiler state %w\nIt only keeps how far each tournament is revealed; delete it to start afresh", err)
 	}
 	a.cfg = cfg
 	a.svc = sync.OnceValues(func() (*service.Service, error) {

@@ -13,7 +13,16 @@ import (
 // Execute runs root through fang and returns the process exit code (SPEC
 // §11). fang prints errors itself.
 func Execute(root *cobra.Command) int {
-	return exitCode(fang.Execute(context.Background(), root, fang.WithoutVersion()))
+	return exitCode(fang.Execute(context.Background(), root, fang.WithoutVersion(), fang.WithErrorHandler(errorHandler)))
+}
+
+// errorHandler is fang's, without its case change and hard wrap: fang
+// capitalises the first word, which turned a path at the start into
+// /Private/Tmp/…, and wrapped paths at hyphens. A hint follows on its own
+// line.
+func errorHandler(w io.Writer, styles fang.Styles, err error) {
+	styles.ErrorText = styles.ErrorText.UnsetTransform().UnsetWidth()
+	fang.DefaultErrorHandler(w, styles, err)
 }
 
 // SetVersion makes --version print the same text as `version`. fang's own

@@ -21,3 +21,7 @@ func Unavailable(err error) bool {
 	return errors.Is(err, source.ErrUpstream) || errors.Is(err, source.ErrRateLimited) ||
 		errors.Is(err, cache.ErrOffline) || errors.Is(err, httpx.ErrCircuitOpen)
 }
+
+// Offline reports a failure because basho runs offline (--offline) and the
+// data is in neither the snapshot nor the cache.
+func Offline(err error) bool { return errors.Is(err, cache.ErrOffline) }

@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -101,7 +102,7 @@ func TestValidate(t *testing.T) {
 	if err == nil {
 		t.Fatal("invalid config passed")
 	}
-	for _, want := range []string{"ui.division", "live.interval = 1m0s: at least 2m0s", "sources.sumoapi_interval", "sources.osada_interval", "sources.priority_current", "live.window_end", "cache.max_size_mb"} {
+	for _, want := range []string{"ui.division", "live.interval = 1m: at least 2m", "sources.sumoapi_interval", "sources.osada_interval", "sources.priority_current", "live.window_end", "cache.max_size_mb"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("errors lack %q:\n%v", want, err)
 		}
@@ -134,10 +135,33 @@ func TestPaths(t *testing.T) {
 }
 
 func TestTextForms(t *testing.T) {
-	if b, _ := Duration(3 * time.Minute).MarshalText(); string(b) != "3m0s" {
-		t.Errorf("duration %s", b)
+	for d, want := range map[time.Duration]string{3 * time.Minute: "3m", 20 * time.Second: "20s", 90 * time.Second: "1m30s", 2 * time.Hour: "2h", 0: "0s"} {
+		if b, _ := Duration(d).MarshalText(); string(b) != want {
+			t.Errorf("duration %v: %s, want %s", d, b, want)
+		}
 	}
 	if b, _ := TimeOfDay(18*time.Hour + 45*time.Minute).MarshalText(); string(b) != "18:45" {
 		t.Errorf("time of day %s", b)
+	}
+}
+
+// Encode writes what Load reads back, durations as the file writes them.
+func TestEncode(t *testing.T) {
+	c := Default()
+	c.UI.Theme, c.Live.Interval, c.Sources.PriorityCurrent = "light", Duration(90*time.Minute), []string{"sumoapi"}
+	text, err := c.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(text, "[live]\nauto = true\ninterval = \"1h30m\"\n") || !strings.Contains(text, `osada_interval = "20s"`) {
+		t.Errorf("encoded:\n%s", text)
+	}
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	back, err := Load(path, true, func(string) (string, bool) { return "", false })
+	if err != nil || !reflect.DeepEqual(back, c) {
+		t.Errorf("read back %+v, %v", back, err)
 	}
 }

@@ -25,17 +25,27 @@ func (a *app) data(run func(cmd *cobra.Command, svc *service.Service, args []str
 	}
 }
 
-// explain leads a failure to reach the data with a sentence; fang prints the
-// error with its first word capitalised.
+// explain leads a failure to reach the data with a sentence and what to do.
 func (a *app) explain(err error) error {
 	if !service.Unavailable(err) {
 		return err
 	}
 	if a.cfg.Offline {
-		return fmt.Errorf("not in the snapshot or the cache, and --offline is set: %w", err)
+		// The cause only repeats it: the request was never made.
+		return &explained{"not in the snapshot or the cache, and --offline is set\nRun it once without --offline to fetch and cache it", err}
 	}
-	return fmt.Errorf("every source failed and nothing is cached: %w", err)
+	return fmt.Errorf("every source failed and nothing is cached: %w\n"+
+		"Check the connection and try again; the tournaments in the snapshot work offline", err)
 }
+
+// explained replaces an error's text and keeps it for the exit code.
+type explained struct {
+	text string
+	err  error
+}
+
+func (e *explained) Error() string { return e.text }
+func (e *explained) Unwrap() error { return e.err }
 
 // emit writes a result: the JSON envelope with --json, otherwise text.
 func (a *app) emit(cmd *cobra.Command, kind string, p service.Provenance, text func() string, data func() any) error {
@@ -209,7 +219,7 @@ func (a *app) commands() []*cobra.Command {
 			return a.emit(cmd, "credits", p, credits, func() any { return map[string]string{"text": credits()} })
 		},
 	}
-	return []*cobra.Command{list, info, day, bout, standings, a.watchCommand(), ratings, creditsCmd}
+	return []*cobra.Command{list, info, day, bout, standings, a.watchCommand(), ratings, creditsCmd, a.configCommand()}
 }
 
 // dayArg is the day given, or the default (SPEC §11).

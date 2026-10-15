@@ -267,6 +267,9 @@ func (v View) View(ctx *tui.Context, width, height int) string {
 	switch {
 	case v.err != nil:
 		b.WriteString("\n" + t.Error.Render(" "+tui.ErrorText(v.err)) + "\n")
+		if h := tui.ErrorHint(v.err); h != "" {
+			b.WriteString(t.Dim.Render(" "+h) + "\n")
+		}
 		return b.String()
 	case v.data == nil:
 		b.WriteString("\n" + t.Dim.Render(fmt.Sprintf(" Loading the standings after day %d…", v.day)) + "\n")

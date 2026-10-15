@@ -571,6 +571,9 @@ func (d Day) View(ctx *tui.Context, width, height int) string {
 	switch {
 	case d.err != nil && d.data == nil:
 		b.WriteString("\n" + t.Error.Render(" "+dayError(d.err)) + "\n")
+		if h := tui.ErrorHint(d.err); h != "" {
+			b.WriteString(t.Dim.Render(" "+h) + "\n")
+		}
 		return b.String()
 	case d.data == nil:
 		frames := spinner

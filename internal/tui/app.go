@@ -466,10 +466,25 @@ func ErrorText(err error) string {
 	switch {
 	case service.NotFound(err):
 		return "Not available: " + err.Error()
+	case service.Offline(err):
+		return "Not in the snapshot or the cache, and basho runs offline."
 	case service.Unavailable(err):
 		return "Every source failed and nothing is cached."
 	default:
 		return err.Error()
+	}
+}
+
+// ErrorHint is what to do about an error, for a dim line under ErrorText;
+// empty when there is nothing to do.
+func ErrorHint(err error) string {
+	switch {
+	case service.Offline(err):
+		return "Run basho once without --offline to fetch it."
+	case service.Unavailable(err):
+		return "Check the connection. Snapshot tournaments work offline."
+	default:
+		return ""
 	}
 }
 
