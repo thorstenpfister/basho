@@ -1,0 +1,45 @@
+# GoReleaser v2 (SPEC §14.2): `make release-snapshot` builds into dist/.
+# Publishing and the Homebrew cask come after 1.0 (Phase 18, §14.3).
+version: 2
+
+before:
+  hooks:
+    - ./scripts/completions.sh
+
+builds:
+  - id: basho
+    main: ./cmd/basho # basho-data is never shipped
+    binary: basho
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux]
+    goarch: [arm64, amd64]
+    flags:
+      - -trimpath
+    # Only the version, as `make install` does: the tag with its "v".
+    # Commit and date come from the toolchain's VCS stamping (§14).
+    ldflags:
+      - -s -w -X github.com/thorstenpfister/basho/internal/buildinfo.Version={{ if .IsSnapshot }}{{ .Version }}{{ else }}{{ .Tag }}{{ end }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - completions/*
+      - manpages/*
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ .ShortCommit }}-snapshot"
+
+# The CHANGELOG.md is written by hand.
+changelog:
+  disable: true
+
+# Releases are installed with `make install` until the repository is public.
+release:
+  disable: true

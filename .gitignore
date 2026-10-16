@@ -11,3 +11,7 @@ coverage.html
 
 # OS
 .DS_Store
+
+# GoReleaser before hook (scripts/completions.sh)
+/completions/
+/manpages/

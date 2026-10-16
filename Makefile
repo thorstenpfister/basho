@@ -33,8 +33,8 @@ install: ## Install basho with version info (go install)
 run: ## Run basho with ARGS
 	$(GO) run ./cmd/basho $(ARGS)
 
-clean: ## Remove bin/, dist/ and coverage files (never data/ or the work cache)
-	rm -rf $(BIN) dist coverage.out coverage.html
+clean: ## Remove bin/, dist/, completions/, manpages/ and coverage files (never data/ or the work cache)
+	rm -rf $(BIN) dist completions manpages coverage.out coverage.html
 
 ## Test
 
@@ -116,8 +116,8 @@ vhs: build ## Render the README GIF from docs/demo.tape (needs VHS: brew install
 	@command -v vhs >/dev/null || { echo "make vhs: needs vhs (brew install vhs)" >&2; exit 2; }
 	vhs docs/demo.tape
 
-release-snapshot: ## Local GoReleaser test build into dist/ (phase 17)
-	$(todo)
+release-snapshot: ## Local GoReleaser test build into dist/ (archives, completions, man page, checksums)
+	goreleaser release --snapshot --clean
 
 portraits: build ## Fetch and build the pixel portraits, ARGS passed on (SPEC §8.9; CONTACT=you@example.org for the User-Agent)
 	$(BIN)/basho-data portraits update --dry-run $(ARGS)

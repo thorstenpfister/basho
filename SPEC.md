@@ -1246,7 +1246,7 @@ adjacent_days = false
 | `release-snapshot` | `goreleaser release --snapshot --clean` into `dist/` | 17 |
 | `portraits` | `basho-data portraits update` | 14 |
 | `portraits-preview` | Rebuilds only the wrestlers in `overrides.toml` into a preview sheet, from the work cache | 14 |
-| `clean` | Removes `bin/`, `dist/` and coverage files; never the work cache or `data/` | 0 |
+| `clean` | Removes `bin/`, `dist/`, the generated `completions/` and `manpages/` and coverage files; never the work cache or `data/` | 0 |
 
 - **Placeholders:** every target exists from Phase 0. Targets whose phase hasn't arrived yet print "not implemented yet (phase N)", so `make help` shows the whole picture from the start.
 - **Network targets** (`fixtures`, `record`, `snapshot`, `portraits`) print the planned number of requests and ask for confirmation unless `YES=1` is set.
@@ -1850,6 +1850,11 @@ AC status: met with two runs instead of four (owner's call); no finding open. Li
 
    Done: `make install` already set the version; `basho version` (and `--version`) gains a `data` line, "2026-10-14 (196001–202609)": the manifest's generation date and range. The CLI may not import the snapshot, so `service.Bundled` reads it and `cli.Deps.Bundle` passes it in; without it (tests, `basho-data`) the line is left out. `make tools` now requires goreleaser. Without a tag the version is the commit (`bb9bd65`); the tag comes with step 5.
 2. `.goreleaser.yaml`: targets, ldflags, archives with completions and man page, checksums. No Homebrew section yet.
+
+   Done:
+   - **Builds:** `cmd/basho` only, for the four targets in §14, with `CGO_ENABLED=0`, `-trimpath`, `-s -w` and the commit time as file time. The version ldflag is the tag with its "v", as `make install` sets it; snapshot builds are `<commit>-snapshot`.
+   - **Archives:** `tar.gz` with the binary, README, completions for bash, zsh and fish, and the man page, all written by `scripts/completions.sh` (GoReleaser's before hook, from `basho completion` and Fang's `basho man`). Generated files are ignored by git and removed by `make clean`.
+   - **Off for now:** `release` (publishing) and GoReleaser's changelog: v1.0 installs with `make install`, and `CHANGELOG.md` is written by hand. Phase 18 turns publishing on with the cask.
 3. Dry run with `make release-snapshot`.
 4. Document the snapshot release flow (update → verify → commit → patch tag → install) in `docs/releasing.md`; CHANGELOG.
 5. Tag `v1.0.0`.
