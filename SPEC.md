@@ -1848,7 +1848,7 @@ AC status: met with two runs instead of four (owner's call); no finding open. Li
 
 1. `make install` with the ldflags; `basho version` shows the snapshot date from the manifest.
 
-   Done: `make install` already set the version; `basho version` (and `--version`) gains a `data` line, "2026-10-14 (196001–202609)": the manifest's generation date and range. The CLI may not import the snapshot, so `service.Bundled` reads it and `cli.Deps.Bundle` passes it in; without it (tests, `basho-data`) the line is left out. `make tools` now requires goreleaser. Without a tag the version is the commit (`bb9bd65`); the tag comes with step 5.
+   Done: `make install` already set the version; `basho version` (and `--version`) gains a `data` line, "2026-10-14 (196001–202609)": the manifest's generation date and range. The CLI may not import the snapshot, so `service.Bundled` reads it and `cli.Deps.Bundle` passes it in; without it (tests, `basho-data`) the line is left out. `make tools` now requires goreleaser. Without a tag the version is the commit (`febf7b3`); the tag comes with step 5.
 2. `.goreleaser.yaml`: targets, ldflags, archives with completions and man page, checksums. No Homebrew section yet.
 
    Done:

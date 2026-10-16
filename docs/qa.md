@@ -120,6 +120,6 @@ Settings for single items go in `/tmp/basho-qa/config/basho/config.toml`; `basho
 
 <!-- Run, screen, what happened, what was expected. -->
 
-- **Run 1, picker:** in normal mode the picker showed no yusho until `S` was turned on and off again. The picker under the day view was never started. Fixed in 63e2fd1.
-- **Run 1, day view:** `S` on day 4 of Aki 2026 hid nothing. That tournament was revealed to the end in the state file (the run used the normal state, not `/tmp/basho-qa`), so not a bug; but nothing said so. `S` now names the horizon (a2d120f).
-- **Run 1, VS screen:** at 183 columns the head-to-head column cut techniques ("kotena…") with about 30 columns unused. It now takes the width the tape leaves (661edf8).
+- **Run 1, picker:** in normal mode the picker showed no yusho until `S` was turned on and off again. The picker under the day view was never started. Fixed in e0613c3.
+- **Run 1, day view:** `S` on day 4 of Aki 2026 hid nothing. That tournament was revealed to the end in the state file (the run used the normal state, not `/tmp/basho-qa`), so not a bug; but nothing said so. `S` now names the horizon (e5817a5).
+- **Run 1, VS screen:** at 183 columns the head-to-head column cut techniques ("kotena…") with about 30 columns unused. It now takes the width the tape leaves (b31166d).
