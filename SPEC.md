@@ -1825,6 +1825,9 @@ AC status: met.
    - **Run table:** gains the terminal's size, since portraits depend on it.
 2. The owner's four runs: Ghostty and one other terminal, light and dark. Live mode is checked during a tournament if one falls in the window.
 3. Findings are fixed one commit each and written into the spec.
+
+   Run 1 (Ghostty, dark, 183×52):
+   - **Picker without yusho:** only the top of the starting stack was started, so the picker under the day view never loaded its winners; `S` twice did, by reloading every screen. The root now starts every screen of the stack, at launch and on `t`. The picker goldens had the empty column and now show it filled.
 4. Record the README GIF (`make vhs`) and embed it in the README.
 
    - **Portraits off:** `ui.portraits = false` hid them from the start. It now has a session flag, `--no-portraits`, and the help's Data page names both, since nothing pointed to the setting before.

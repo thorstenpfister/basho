@@ -201,9 +201,22 @@ func New(ctx *Context, stack []Screen, today func() []Screen) Model {
 
 // Init implements tea.Model.
 func (m Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{m.top().Init(m.ctx), m.loadLive()}
+	cmds := []tea.Cmd{m.initStack(), m.loadLive()}
 	if m.ctx.Cfg.UI.Theme == "auto" {
 		cmds = append(cmds, tea.RequestBackgroundColor)
+	}
+	return tea.Batch(cmds...)
+}
+
+// initStack starts every screen of the stack, not just the top: the picker
+// under the day view loads its yusho before esc shows it.
+func (m Model) initStack() tea.Cmd {
+	cmds := make([]tea.Cmd, len(m.stack))
+	for i, s := range m.stack {
+		cmds[i] = s.Init(m.ctx)
+		if i < len(m.stack)-1 {
+			cmds[i] = toScreen(i, cmds[i])
+		}
 	}
 	return tea.Batch(cmds...)
 }
@@ -242,7 +255,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.deliver(msg)
 	case ResetMsg:
 		m.stack = msg.Stack
-		return m.resized(m.top().Init(m.ctx))
+		return m.resized(m.initStack())
 	case MessageMsg:
 		m.messageID++
 		m.message = msg.Text

@@ -1,6 +1,6 @@
  BASHO ─ select tournament                                                                                    [/] filter
  /aki                                                                                                                   
- ▶ 2026  Aki     09                                                                                                     
+ ▶ 2026  Aki     09  Yusho: Onosato (12-3)                                                                              
    ── 2025 ──                                                                                                           
    2025  Aki     09                                                                                                     
    ── 2024 ──                                                                                                           
@@ -37,4 +37,4 @@
    2009  Aki     09                                                                                                     
    ── 2008 ──                                                                                                           
  enter open · / filter (year, name) · g/G top/bottom · q quit                                                           
- Basho picker · 67 tournaments ───────────────────────────────────────────────────────────────────────────── ↻ · ? help 
+ Basho picker · 67 tournaments ───────────────────────────────────────────────────────── snapshot (2026-10-13) · ? help 
