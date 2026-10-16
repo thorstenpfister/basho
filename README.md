@@ -9,6 +9,19 @@ a live mode during tournaments.
 **Status:** in development. [`SPEC.md`](SPEC.md) describes what basho does,
 how it is built, and the implementation plan.
 
+## Install
+
+Requirements: the Go version in `go.mod`. From a clone:
+
+```sh
+make install                 # basho into $(go env GOPATH)/bin
+basho                        # the current tournament
+basho completion zsh > ~/.oh-my-zsh/custom/completions/_basho   # or any $fpath directory
+```
+
+Updates: `git pull && make install`. [`docs/releasing.md`](docs/releasing.md)
+has the release steps and [`CHANGELOG.md`](CHANGELOG.md) what changed.
+
 ## Development
 
 Requirements: the Go version in `go.mod` and

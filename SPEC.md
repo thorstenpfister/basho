@@ -1859,6 +1859,12 @@ AC status: met with two runs instead of four (owner's call); no finding open. Li
 
    Done: about 15 s cold, 2 s warm, for four archives and `checksums.txt`. The darwin/arm64 binary runs, `basho version` shows `<commit>-snapshot` with the data line, and zsh loads the completion. Two runs gave identical binaries but different archives: the generated files had the build time and gzip stored one. The archives now take the commit time for every file, the man page is gzipped with `-n`, and its date (mango writes today's) is replaced with the commit's; two runs now give identical checksums.
 4. Document the snapshot release flow (update → verify → commit → patch tag → install) in `docs/releasing.md`; CHANGELOG.
+
+   Done:
+   - **`docs/releasing.md`:** the data release in five steps, with the commands; a code release; completions and the man page, which `make install` doesn't install.
+   - **Rating:** a data release needs no new calibration. The evaluation stops at the tournament `params.json` names, so `TestCommittedCalibration` holds with new data.
+   - **`CHANGELOG.md`:** an unreleased v1.0.0 entry; versions are semantic, a patch ships data only.
+   - **README:** an Install section with `make install` and the zsh completion.
 5. Tag `v1.0.0`.
 
 **AC:** `make install` produces a `basho` whose `basho version` shows the tag and the snapshot date; zsh completions work; a snapshot-only patch release takes under 15 minutes of manual work.
