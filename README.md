@@ -4,6 +4,8 @@ A terminal app for browsing grand sumo tournaments: day by day, bout by bout,
 with a fighting-game-style preview of every bout, standings after any day and
 a live mode during tournaments.
 
+![basho: the day view, a bout's tale of the tape and a wrestler's career](docs/demo.gif)
+
 **Status:** in development. [`SPEC.md`](SPEC.md) describes what basho does,
 how it is built, and the implementation plan.
 

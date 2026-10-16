@@ -1836,7 +1836,9 @@ AC status: met.
 
    - **Portraits off:** `ui.portraits = false` hid them from the start. It now has a session flag, `--no-portraits`, and the help's Data page names both, since nothing pointed to the setting before.
 
-   Prepared: the tape now also shows Onosato's career page (`1` on the VS screen, a scroll down the table, `esc`), about 5 s more. Recording and the README embed wait for the owner's run.
+   Prepared: the tape now also shows Onosato's career page (`1` on the VS screen, a scroll down the table, `esc`), about 5 s more.
+
+   Done: recorded 2026-10-16 (1.5 MB) and shown under the README's introduction. VHS renders through headless Chrome; without one installed it downloads its own Chromium (about 285 MB, `~/.cache/rod`), which `make help` now says.
 
 **AC:** Phase 12's: every item in `docs/qa.md` holds in all four runs, and no finding is open.
 

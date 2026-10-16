@@ -112,7 +112,7 @@ calibrate: build ## Calibrate the rating model (no network): data/rating/params.
 
 ## Release and docs
 
-vhs: build ## Render the README GIF from docs/demo.tape (needs VHS: brew install vhs)
+vhs: build ## Render the README GIF from docs/demo.tape (needs VHS: brew install vhs; without Chrome, VHS downloads a headless Chromium to ~/.cache/rod)
 	@command -v vhs >/dev/null || { echo "make vhs: needs vhs (brew install vhs)" >&2; exit 2; }
 	vhs docs/demo.tape
 

@@ -114,7 +114,7 @@ Settings for single items go in `/tmp/basho-qa/config/basho/config.toml`; `basho
 
 - [ ] `make portraits-preview` rebuilds only the overrides in seconds; with a work cache less than a week old it makes no requests.
 - [ ] `make portraits` shows its plan, asks, then a progress line per phase; `bin/basho` afterwards has the new set.
-- [ ] `make vhs` records `docs/demo.gif` (needs VHS).
+- [x] `make vhs` records `docs/demo.gif` (needs VHS; without Chrome installed, VHS downloads a headless Chromium of about 285 MB to `~/.cache/rod`).
 
 ## Findings
 
