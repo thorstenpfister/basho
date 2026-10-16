@@ -51,6 +51,23 @@ func itoaN(n int) string {
 	return string(rune('0'+n/10)) + string(rune('0'+n%10))
 }
 
+// S names how far the tournament on screen is seen, so a tournament seen to
+// the end doesn't look as if S did nothing (QA run 1).
+func TestSpoilersMessage(t *testing.T) {
+	d, st, _ := spoilerApp(t)
+	d.Keys("S", "S") // off and on again
+	if v := d.View(); !strings.Contains(v, "Spoiler-free: Aki 2026 seen through Day 13 · Makuuchi bout 4") {
+		t.Errorf("S with a horizon:\n%s", v)
+	}
+	if err := st.Set(aki2026, spoiler.Horizon{}); err != nil {
+		t.Fatal(err)
+	}
+	d.Keys("S", "S")
+	if v := d.View(); !strings.Contains(v, "Spoiler-free: Aki 2026 nothing seen yet") {
+		t.Errorf("S before Day 1:\n%s", v)
+	}
+}
+
 // SPEC §9: space on the VS screen reveals that bout, ] walks on.
 func TestRevealOnVS(t *testing.T) {
 	d, st, _ := spoilerApp(t)

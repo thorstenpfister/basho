@@ -538,6 +538,9 @@ func (v View) popupView(ctx *tui.Context, r derive.Standing) string {
 		Render(strings.Join(lines, "\n"))
 }
 
+// Tournament implements tui.Tournamenter.
+func (v View) Tournament() domain.BashoID { return v.id }
+
 // Status implements tui.Screen.
 func (v View) Status(*tui.Context) tui.Status {
 	return tui.Status{Left: fmt.Sprintf("%s %d · %s · Standings after Day %d", v.id.Name(), v.id.Year, v.div, v.day), Prov: v.prov, Loading: v.loading}

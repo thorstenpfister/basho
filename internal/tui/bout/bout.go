@@ -550,6 +550,9 @@ func counts(top []derive.KimariteCount) string {
 	return strings.Join(parts, " · ")
 }
 
+// Tournament implements tui.Tournamenter.
+func (v VS) Tournament() domain.BashoID { return v.id }
+
 // Status implements tui.Screen.
 func (v VS) Status(*tui.Context) tui.Status {
 	return tui.Status{Left: fmt.Sprintf("%s %d · %s · Day %d · Bout %d", v.id.Name(), v.id.Year, v.div, v.day, v.match), Prov: v.prov, Loading: v.loading}

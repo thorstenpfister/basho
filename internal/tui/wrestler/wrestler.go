@@ -377,6 +377,9 @@ func (v View) table(ctx *tui.Context, width int) string {
 	return strings.Join(lines, "\n")
 }
 
+// Tournament implements tui.Tournamenter: the one the career is seen from.
+func (v View) Tournament() domain.BashoID { return v.through }
+
 // Status implements tui.Screen.
 func (v View) Status(ctx *tui.Context) tui.Status {
 	left := "Career"

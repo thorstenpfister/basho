@@ -1007,7 +1007,7 @@ Records follow the source. For the two days sumo-api lacks (Haru 1965 day 7, Nat
   - Extra key in the day view, `ctrl+r`: "reveal up to here", with a confirmation prompt.
   - Live mode still fetches data, but new results never appear in the UI; the status bar only shows "3 new results hidden".
   - CLI: `--no-spoilers` applies the stored horizon; `--reveal-to 13:19` sets it.
-- Configuration: `spoilers.mode = "show" | "hide"` (default `show`). `S` toggles it for the session.
+- Configuration: `spoilers.mode = "show" | "hide"` (default `show`). `S` toggles it for the session, and says how far the tournament on screen is seen ("Spoiler-free: Aki 2026 seen through Day 13 · Makuuchi bout 4").
 
 ---
 
@@ -1829,6 +1829,7 @@ AC status: met.
    Run 1 (Ghostty, dark, 183×52):
    - **Picker without yusho:** only the top of the starting stack was started, so the picker under the day view never loaded its winners; `S` twice did, by reloading every screen. The root now starts every screen of the stack, at launch and on `t`. The picker goldens had the empty column and now show it filled.
    - **Head-to-head cut short:** the wide layout's column was a fixed 42 cells, while the tape stops at 110, so at 183 columns about 30 stayed empty and "Shonannoumi kotenage" ended in "kotena…". The column now takes what the tape leaves (42 at least). `TestHistoryColumnWidens` walks day 13 at 183×52.
+   - **`S` seemingly doing nothing:** on a tournament already seen to the end, `S` has nothing to hide, and the message didn't say so. It now names the horizon of the tournament on screen (day view, VS screen, standings, wrestler screen through `tui.Tournamenter`): "Spoiler-free: Aki 2026 seen through Day 15 · Makuuchi bout 19", or "nothing seen yet". `TestSpoilersMessage` covers both.
 4. Record the README GIF (`make vhs`) and embed it in the README.
 
    - **Portraits off:** `ui.portraits = false` hid them from the start. It now has a session flag, `--no-portraits`, and the help's Data page names both, since nothing pointed to the setting before.

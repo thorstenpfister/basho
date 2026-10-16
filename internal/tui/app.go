@@ -123,6 +123,9 @@ type Status struct {
 // (the VS screen, SPEC §8.8).
 type QuitBacker interface{ QuitGoesBack() bool }
 
+// Tournamenter is a screen that shows one tournament; S names its horizon.
+type Tournamenter interface{ Tournament() domain.BashoID }
+
 // KeyCapturer is a screen that takes every key while it reports true, such
 // as a focused filter input; only ctrl+c stays global.
 type KeyCapturer interface{ CapturesKeys() bool }
@@ -329,9 +332,21 @@ func (m Model) toggleSpoilers() (tea.Model, tea.Cmd) {
 	text := "Spoiler-free mode off: all results shown"
 	if m.ctx.Hide {
 		text = "Spoiler-free mode on: results up to the horizon; space on a bout reveals it"
+		if s, ok := m.top().(Tournamenter); ok && !s.Tournament().IsZero() {
+			id := s.Tournament()
+			text = fmt.Sprintf("Spoiler-free: %s %d %s", id.Name(), id.Year, seen(m.ctx.Spoilers.Horizon(id)))
+		}
 	}
 	next, cmd := m.broadcast(SpoilersMsg{})
 	return next, tea.Batch(cmd, Message(text))
+}
+
+// seen says how far a horizon has revealed a tournament.
+func seen(h spoiler.Horizon) string {
+	if h.Day == 0 {
+		return "nothing seen yet"
+	}
+	return "seen through " + h.String()
 }
 
 // pop closes the top screen, keeping the last one.

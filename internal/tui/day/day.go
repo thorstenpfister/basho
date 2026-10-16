@@ -201,6 +201,9 @@ func (d Day) spin(ctx *tui.Context) (Day, tea.Cmd) {
 	return d, ctx.After(spinInterval, func(time.Time) tea.Msg { return spinMsg{} })
 }
 
+// Tournament implements tui.Tournamenter.
+func (d Day) Tournament() domain.BashoID { return d.id }
+
 // Update implements tui.Screen.
 func (d Day) Update(ctx *tui.Context, msg tea.Msg) (tui.Screen, tea.Cmd) {
 	switch msg := msg.(type) {
