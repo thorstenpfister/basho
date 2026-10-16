@@ -31,6 +31,9 @@ type Deps struct {
 	TUI func(cfg config.Config, svc *service.Service, noColor bool, st *spoiler.State) error
 	// Sleep waits between `basho watch` polls; nil: a timer.
 	Sleep func(ctx context.Context, d time.Duration) error
+	// Bundle describes the embedded snapshot for `basho version`;
+	// service.Bundled in the binary, nil: no data line.
+	Bundle func() (service.Bundle, error)
 }
 
 // app is one invocation's state: flags, configuration and the service.

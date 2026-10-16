@@ -82,7 +82,7 @@ check: fmt-check lint vuln test-race test-leaks ## All checks; run before commit
 
 tools: ## Check that external tools are installed
 	@command -v golangci-lint >/dev/null || { echo "missing golangci-lint: brew install golangci-lint"; exit 1; }
-	@command -v goreleaser >/dev/null || echo "optional until phase 17: goreleaser (brew install goreleaser)"
+	@command -v goreleaser >/dev/null || { echo "missing goreleaser: brew install goreleaser"; exit 1; }
 	@echo "tools ok"
 
 ## Data (network targets will ask before fetching unless YES=1)

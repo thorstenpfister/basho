@@ -2,12 +2,14 @@ package cli
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/charmbracelet/fang"
 	"github.com/spf13/cobra"
 
 	"github.com/thorstenpfister/basho/internal/buildinfo"
+	"github.com/thorstenpfister/basho/internal/service"
 )
 
 // Execute runs root through fang and returns the process exit code (SPEC
@@ -27,9 +29,9 @@ func errorHandler(w io.Writer, styles fang.Styles, err error) {
 
 // SetVersion makes --version print the same text as `version`. fang's own
 // version output is turned off in Execute because it shortens the commit.
-func SetVersion(root *cobra.Command, info buildinfo.Info) {
+func SetVersion(root *cobra.Command, info buildinfo.Info, data string) {
 	root.Version = info.Version
-	root.SetVersionTemplate(versionText(root.Name(), info))
+	root.SetVersionTemplate(versionText(root.Name(), info, data))
 }
 
 // NewRoot returns the basho root command with all subcommands.
@@ -59,13 +61,14 @@ func NewRoot(info buildinfo.Info, deps Deps) *cobra.Command {
 			return deps.TUI(a.cfg, svc, a.noColor, a.spoilers)
 		},
 	}
-	SetVersion(root, info)
+	data := bundleLine(deps.Bundle)
+	SetVersion(root, info, data)
 	root.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Print version information",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			_, err := io.WriteString(cmd.OutOrStdout(), versionText(cmd.Root().Name(), info))
+			_, err := io.WriteString(cmd.OutOrStdout(), versionText(cmd.Root().Name(), info, data))
 			return err
 		},
 	})
@@ -75,7 +78,7 @@ func NewRoot(info buildinfo.Info, deps Deps) *cobra.Command {
 	return root
 }
 
-func versionText(name string, info buildinfo.Info) string {
+func versionText(name string, info buildinfo.Info, data string) string {
 	text := name + " " + info.Version + "\n"
 	if info.Commit != "" {
 		text += "  commit  " + info.Commit + "\n"
@@ -83,5 +86,24 @@ func versionText(name string, info buildinfo.Info) string {
 	if info.Date != "" {
 		text += "  date    " + info.Date + "\n"
 	}
+	if data != "" {
+		text += "  data    " + data + "\n"
+	}
 	return text
+}
+
+// bundleLine is the version's data line: the snapshot's date and range,
+// "2026-10-14 (196001–202609)"; empty without one.
+func bundleLine(bundle func() (service.Bundle, error)) string {
+	if bundle == nil {
+		return ""
+	}
+	b, err := bundle()
+	switch {
+	case err != nil:
+		return "unreadable: " + err.Error()
+	case b.Newest.IsZero():
+		return "none"
+	}
+	return fmt.Sprintf("%s (%s–%s)", b.Generated.Format("2006-01-02"), b.Oldest, b.Newest)
 }

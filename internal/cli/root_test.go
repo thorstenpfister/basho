@@ -3,8 +3,11 @@ package cli
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/thorstenpfister/basho/internal/buildinfo"
+	"github.com/thorstenpfister/basho/internal/domain"
+	"github.com/thorstenpfister/basho/internal/service"
 )
 
 func TestUnknownArgumentFails(t *testing.T) {
@@ -49,6 +52,29 @@ func TestVersionOutput(t *testing.T) {
 					t.Errorf("output =\n%q\nwant\n%q", out.String(), tt.want)
 				}
 			})
+		}
+	}
+}
+
+// SPEC §14: `basho version` names the snapshot's date and range.
+func TestVersionData(t *testing.T) {
+	bundle := func() (service.Bundle, error) {
+		return service.Bundle{
+			Generated: time.Date(2026, 10, 14, 6, 36, 0, 0, time.UTC),
+			Oldest:    domain.BashoID{Year: 1960, Month: time.January},
+			Newest:    domain.BashoID{Year: 2026, Month: time.September},
+		}, nil
+	}
+	for _, args := range [][]string{{"version"}, {"--version"}} {
+		root := NewRoot(buildinfo.Info{Version: "v1.0.0"}, Deps{Bundle: bundle})
+		var out bytes.Buffer
+		root.SetOut(&out)
+		root.SetArgs(args)
+		if err := root.Execute(); err != nil {
+			t.Fatal(err)
+		}
+		if want := "basho v1.0.0\n  data    2026-10-14 (196001–202609)\n"; out.String() != want {
+			t.Errorf("%s =\n%q\nwant\n%q", args[0], out.String(), want)
 		}
 	}
 }

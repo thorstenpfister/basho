@@ -101,3 +101,20 @@ func debugLog(env config.Env) (*slog.Logger, error) {
 	}
 	return slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: slog.LevelDebug})), nil
 }
+
+// Bundle describes the snapshot compiled into the binary, for `basho
+// version`.
+type Bundle struct {
+	Generated      time.Time      // when basho-data wrote it
+	Oldest, Newest domain.BashoID // zero for an empty snapshot
+}
+
+// Bundled returns the embedded snapshot's date and range.
+func Bundled() (Bundle, error) {
+	sn, err := data.Snapshot()
+	if err != nil {
+		return Bundle{}, err
+	}
+	m := sn.Manifest()
+	return Bundle{Generated: m.GeneratedAt, Oldest: m.Oldest(), Newest: m.Newest()}, nil
+}

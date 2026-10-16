@@ -28,7 +28,8 @@ func main() {
 		Open: func(cfg config.Config) (*service.Service, error) {
 			return service.Open(cfg, info.Version, os.LookupEnv)
 		},
-		TUI: runTUI,
+		TUI:    runTUI,
+		Bundle: service.Bundled,
 	}
 	os.Exit(cli.Execute(cli.NewRoot(info, deps)))
 }

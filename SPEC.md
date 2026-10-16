@@ -1235,7 +1235,7 @@ adjacent_days = false
 | `vuln` | `go tool govulncheck ./...` | 0 |
 | `tidy` | `go mod tidy` and `go mod verify` | 0 |
 | `check` | `fmt-check lint vuln test-race test-leaks`; the full check before committing | 0 |
-| `tools` | Checks that external tools exist (golangci-lint; goreleaser from Phase 17) and prints install hints | 0 |
+| `tools` | Checks that external tools exist (golangci-lint, goreleaser) and prints install hints | 0 |
 | `fixtures` | `basho-data fixtures record`: polite recording of the test fixtures | 1 |
 | `record` | `basho-data record $(ARGS)`: live recorder (Appendix E) | 1 |
 | `snapshot` | `basho-data snapshot update` then `verify` | 3 |
@@ -1847,6 +1847,8 @@ AC status: met with two runs instead of four (owner's call); no finding open. Li
 ### Phase 17: v1.0 release (private)
 
 1. `make install` with the ldflags; `basho version` shows the snapshot date from the manifest.
+
+   Done: `make install` already set the version; `basho version` (and `--version`) gains a `data` line, "2026-10-14 (196001–202609)": the manifest's generation date and range. The CLI may not import the snapshot, so `service.Bundled` reads it and `cli.Deps.Bundle` passes it in; without it (tests, `basho-data`) the line is left out. `make tools` now requires goreleaser. Without a tag the version is the commit (`bb9bd65`); the tag comes with step 5.
 2. `.goreleaser.yaml`: targets, ldflags, archives with completions and man page, checksums. No Homebrew section yet.
 3. Dry run with `make release-snapshot`.
 4. Document the snapshot release flow (update → verify → commit → patch tag → install) in `docs/releasing.md`; CHANGELOG.
