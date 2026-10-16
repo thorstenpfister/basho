@@ -1824,6 +1824,8 @@ AC status: met.
    - **Changed since Phase 12:** VS screen items for the portraits above the names (alignment, the 40-row threshold, no flicker), plain height and weight, and `1`/`2`; `i` in the standings; `basho wrestler` and `credits --portraits`; the help's Keys and Data pages.
    - **Run table:** gains the terminal's size, since portraits depend on it.
 2. The owner's four runs: Ghostty and one other terminal, light and dark. Live mode is checked during a tournament if one falls in the window.
+
+   Done with two runs, by the owner's call: Ghostty dark (183×52) and Terminal.app light, 2026-10-16, one of each terminal and theme. `docs/qa.md` holds the table, ticks and findings. No tournament fell in the window, so live mode waits for Kyushu 2026 (with Phase 10 step 4); the data tools weren't run in the pass.
 3. Findings are fixed one commit each and written into the spec.
 
    Run 1 (Ghostty, dark, 183×52):
@@ -1837,6 +1839,8 @@ AC status: met.
    Prepared: the tape now also shows Onosato's career page (`1` on the VS screen, a scroll down the table, `esc`), about 5 s more. Recording and the README embed wait for the owner's run.
 
 **AC:** Phase 12's: every item in `docs/qa.md` holds in all four runs, and no finding is open.
+
+AC status: met with two runs instead of four (owner's call); no finding open. Live mode and the data tools are left unticked in `docs/qa.md`.
 
 ### Phase 17: v1.0 release (private)
 
