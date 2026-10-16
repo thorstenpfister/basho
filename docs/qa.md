@@ -75,7 +75,7 @@ Settings for single items go in `/tmp/basho-qa/config/basho/config.toml`; `basho
 ## Spoiler-free
 
 - [x] `S` hides every result past the horizon as `?`, everywhere: day view, VS screen, standings, recap, picker yusho, ratings, careers.
-- [ ] `S` names how far the tournament on screen is seen ("Spoiler-free: Aki 2026 seen through …" or "nothing seen yet"). New after run 1.
+- [x] `S` names how far the tournament on screen is seen ("Spoiler-free: Aki 2026 seen through …" or "nothing seen yet"). New after run 1.
 - [x] VS screen `space` reveals the bout, and its result flashes in; `ctrl+r` in the day view asks before revealing up to the cursor.
 - [x] The horizon survives quitting and starting again (`basho --no-spoilers`).
 
