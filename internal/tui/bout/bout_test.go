@@ -103,6 +103,19 @@ func TestLayouts(t *testing.T) {
 	}
 }
 
+// The wide head-to-head column takes what the tape leaves over, so long
+// names and techniques fit instead of ending in "…" (QA run 1).
+func TestHistoryColumnWidens(t *testing.T) {
+	for match := 1; match <= 19; match++ {
+		v := open(t, aki2026, domain.DivMakuuchi, 13, match, 183, 52).View()
+		for _, l := range strings.Split(v, "\n") {
+			if strings.Contains(l, "│") && strings.Contains(l, "…") {
+				t.Errorf("bout %d cuts a meeting: %q", match, l)
+			}
+		}
+	}
+}
+
 func TestFromTheDayView(t *testing.T) {
 	ctx := testContext(svc())
 	res, _ := svc().Day(t.Context(), aki2026, domain.DivMakuuchi, 13)

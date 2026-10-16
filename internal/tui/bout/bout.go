@@ -296,12 +296,14 @@ func (v VS) QuitGoesBack() bool { return true }
 // layout is the measures of one render.
 type layout struct {
 	tui.Layout
-	width  int // of the tape, without the wide history column and portraits
-	side   int // each value column
-	middle int // the label column
+	width   int // of the tape, without the wide history column and portraits
+	history int // the wide layout's head-to-head column; 0 otherwise
+	side    int // each value column
+	middle  int // the label column
 }
 
-// historyWidth is the wide layout's head-to-head column.
+// historyWidth is the wide layout's head-to-head column at least; it takes
+// the width the tape, capped at 110, leaves over.
 const historyWidth = 42
 
 func measure(width int) layout {
@@ -310,6 +312,9 @@ func measure(width int) layout {
 		l.width = width - historyWidth - 1
 	}
 	l.width = min(l.width, 110)
+	if l.Layout == tui.Wide {
+		l.history = width - l.width - 1
+	}
 	l.middle = 14
 	l.side = (l.width - l.middle - 2) / 2
 	return l
@@ -333,9 +338,9 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 		tape = v.movesetPanel(ctx, l)
 	}
 	if l.Layout == tui.Wide && v.tale != nil {
-		col := lipgloss.NewStyle().Width(historyWidth).PaddingLeft(1).
+		col := lipgloss.NewStyle().Width(l.history).PaddingLeft(1).
 			BorderStyle(lipgloss.NormalBorder()).BorderLeft(true).BorderForeground(t.Colors.Subtle).
-			Render(v.historyView(ctx, historyWidth-2, true))
+			Render(v.historyView(ctx, l.history-2, true))
 		tape = lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Width(l.width+1).Render(tape), col)
 	}
 	rest := tape + "\n" + v.resultPanel(ctx, l) + "\n" + t.Dim.Render(" [ ] prev/next · v head-to-head · m moveset · 1/2 career · esc back")
