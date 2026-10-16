@@ -1856,6 +1856,8 @@ AC status: met with two runs instead of four (owner's call); no finding open. Li
    - **Archives:** `tar.gz` with the binary, README, completions for bash, zsh and fish, and the man page, all written by `scripts/completions.sh` (GoReleaser's before hook, from `basho completion` and Fang's `basho man`). Generated files are ignored by git and removed by `make clean`.
    - **Off for now:** `release` (publishing) and GoReleaser's changelog: v1.0 installs with `make install`, and `CHANGELOG.md` is written by hand. Phase 18 turns publishing on with the cask.
 3. Dry run with `make release-snapshot`.
+
+   Done: about 15 s cold, 2 s warm, for four archives and `checksums.txt`. The darwin/arm64 binary runs, `basho version` shows `<commit>-snapshot` with the data line, and zsh loads the completion. Two runs gave identical binaries but different archives: the generated files had the build time and gzip stored one. The archives now take the commit time for every file, the man page is gzipped with `-n`, and its date (mango writes today's) is replaced with the commit's; two runs now give identical checksums.
 4. Document the snapshot release flow (update → verify → commit → patch tag → install) in `docs/releasing.md`; CHANGELOG.
 5. Tag `v1.0.0`.
 
