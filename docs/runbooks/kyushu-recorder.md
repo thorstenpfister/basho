@@ -108,10 +108,18 @@ Expect:
 
 - five entries with `"status": 200` and no `"error"`
 - `meta.json`, plus two files in `osada/` and three in `sumoapi/`
-- before the Kyushu banzuke is published (about 26 October), the line `no
-  start date from sumo-api (not published yet), using the estimate 2026-11-08`
+- a single line `… tick /tmp/basho-smoke/…: 5 requests, 0 failed`. The Kyushu
+  banzuke is out (checked 26 October), so sumo-api has the real start date and
+  there should be no `no start date from sumo-api` line. If there is one, run
+  `curl -s https://www.sumo-api.com/api/basho/202611` and look for
+  `"startDate":"2026-11-08…"`.
+- `osada/banzuke.json` may still show the September banzuke (`九月場所`). osada
+  switches around the start of the tournament, and the recorder saves whatever
+  it serves.
 
-An `error` mentioning a connection points to the firewall (step 3) or DNS.
+An `error` mentioning a connection points to the firewall (step 3) or DNS. A
+single `no such host` is usually a resolver hiccup; run the test again and
+check that all five requests succeed.
 
 ## 5. Install the LaunchDaemon (Mac)
 
