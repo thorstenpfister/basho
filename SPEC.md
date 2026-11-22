@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.20** (2026-10-15). Implemented: Phases 0–15 (Phase 10 step 4 and its real-day check wait for Kyushu 2026; Phase 12's QA pass moved to Phase 16; Phase 13's rating divisor was dropped as not needed). The full snapshot (196001–202609), the calibrated rating and 353 wrestler portraits are committed. The non-interactive CLI works offline, `basho wrestler` included. The TUI has the picker, the day view with its recap, the VS screen with portraits, the standings, the wrestler screen and a paged help overlay, and offers `ui.names` and plain modes. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Next: the QA pass (16), then the v1.0 release (17).
+> Status: **v0.20** (2026-10-15). Implemented: Phases 0–15 (Phase 10 finished with the Kyushu 2026 recordings: live mode takes sumo-api first; Phase 12's QA pass moved to Phase 16; Phase 13's rating divisor was dropped as not needed). The full snapshot (196001–202609), the calibrated rating and 353 wrestler portraits are committed. The non-interactive CLI works offline, `basho wrestler` included. The TUI has the picker, the day view with its recap, the VS screen with portraits, the standings, the wrestler screen and a paged help overlay, and offers `ui.names` and plain modes. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Next: the QA pass (16), then the v1.0 release (17).
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1563,7 +1563,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 
 **AC:** during a real tournament day the app shows new results within one poll interval of osada's update, stays within budget, and stops polling once the day is complete.
 
-AC status: met on the simulated day above. The check on a real day happens during Kyushu 2026, together with step 4.
+AC status: met. On the simulated day above, and on real days: during Kyushu 2026 the owner followed live mode in the TUI, playoff included (the build from before step 4), and `TestLiveReplay` replays the recorded days. The step 4 policy (sumo-api first) has run on the replays and the simulated day only; Hatsu 2027 is its first real day.
 
 ### Phase 11: Spoiler-free mode and `basho watch`
 
