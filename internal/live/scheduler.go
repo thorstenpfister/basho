@@ -13,7 +13,10 @@ const (
 	Jitter       = 15 * time.Second // ± around each interval
 	FinalCheck   = 30 * time.Minute // after the day is complete
 	firstBackoff = 2 * time.Minute
-	unchangedMax = 2 // polls without a new update stamp before doubling
+	// unchangedMax is how many polls without a change double the
+	// interval: three, as Makuuchi results come about every 6 minutes
+	// (Kyushu 2026), so two can miss one by a second.
+	unchangedMax = 3
 )
 
 // State is what live mode is doing (SPEC §10.3).
@@ -42,7 +45,7 @@ type Config struct {
 
 // Result is what a poll found.
 type Result struct {
-	UpdatedAt time.Time // the source's update stamp (osada's resultUpdatedAt)
+	UpdatedAt time.Time // when the results last changed (service.LivePoll.UpdatedAt)
 	Complete  bool      // every bout of today in both divisions decided, no playoff pending
 	Err       error     // the primary source failed (the fallback may still have answered)
 	Fallback  string    // the source that answered instead, if any

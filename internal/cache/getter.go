@@ -68,7 +68,15 @@ type Getter struct {
 	Cache   *Cache
 	Next    httpx.Getter
 	Policy  Policy
-	Offline bool // never use the network: --offline
+	Offline bool             // never use the network: --offline
+	Now     func() time.Time // nil: time.Now; tests pass their fake clock
+}
+
+func (g *Getter) now() time.Time {
+	if g.Now != nil {
+		return g.Now()
+	}
+	return time.Now()
 }
 
 // Get implements httpx.Getter. 200 and 404 answers are cached; Stale marks an
@@ -76,13 +84,13 @@ type Getter struct {
 func (g *Getter) Get(ctx context.Context, url string, v httpx.Validators) (*httpx.Response, error) {
 	entry, cached := g.Cache.Get(url)
 	if cached {
-		ttl, pinned := g.Policy(url, entry.Status, entry.Body, time.Now())
+		ttl, pinned := g.Policy(url, entry.Status, entry.Body, g.now())
 		if pinned && !entry.Pinned { // became final since it was stored
 			if err := g.Cache.Pin(url); err != nil {
 				return nil, err
 			}
 		}
-		if entry.Pinned || pinned || time.Since(entry.FetchedAt) <= ttl && !revalidate(ctx) {
+		if entry.Pinned || pinned || g.now().Sub(entry.FetchedAt) <= ttl && !revalidate(ctx) {
 			return fromEntry(entry, false), nil
 		}
 	}
@@ -103,13 +111,13 @@ func (g *Getter) Get(ctx context.Context, url string, v httpx.Validators) (*http
 	case err != nil:
 		return nil, err
 	case resp.NotModified() && cached:
-		entry.FetchedAt = time.Now()
+		entry.FetchedAt = g.now()
 		if err := g.Cache.Touch(url, entry.FetchedAt, keep(resp.Validators, entry.Validators)); err != nil {
 			return nil, err
 		}
 		return fromEntry(entry, false), nil
 	case resp.OK() || resp.Status == 404:
-		now := time.Now()
+		now := g.now()
 		_, pinned := g.Policy(url, resp.Status, resp.Body, now)
 		e := Entry{Key: url, Status: resp.Status, FetchedAt: now, Validators: resp.Validators, Pinned: pinned, Body: resp.Body}
 		if err := g.Cache.Put(e); err != nil {

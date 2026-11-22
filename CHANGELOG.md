@@ -13,7 +13,9 @@ The first release, private and installed with `make install`.
   moveset, win chance, portraits), standings with the yusho race and the
   results grid, and a wrestler's career page.
 - The current tournament from osada.us and sumo-api, with live mode during
-  the broadcast and spoiler-free mode for watching later.
+  the broadcast and spoiler-free mode for watching later. Live mode takes
+  each result from whichever source has it first, and was checked against
+  recordings of Kyushu 2026, playoff included.
 - Command line: `day`, `bout`, `standings`, `info`, `list`, `ratings`,
   `wrestler`, `watch`, `credits` and `config`, each with `--json`.
 - Names in romaji, kanji or both (`ui.names`); `--ascii` and `--no-color`.

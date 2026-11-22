@@ -368,7 +368,7 @@ The resolver chooses sources **per data type and tournament state**, and records
 |---|---|---|
 | Basho metadata | sumo-api | sumo-api, then osada for the dates |
 | Banzuke (ranks) | sumo-api | sumo-api, then osada |
-| Day results and records | sumo-api | **osada**, then sumo-api |
+| Day results and records | sumo-api | **osada**, then sumo-api; in a live poll sumo-api's newer results laid over osada's (§10.2) |
 | Day schedule (future days) | — | **osada**, then sumo-api |
 | Profiles (incl. height, weight) | sumo-api (no fallback; fields left empty) | same |
 | Matches, kinboshi, head-to-head | sumo-api (no fallback) | same, plus results from the live snapshot for today |
@@ -681,8 +681,8 @@ There is no public sumo rating API. Ozeki Analytics published an Elo analysis co
 | Open a VS screen | **0** (all statistics come from the bout index); ≤ 4 without a snapshot | 0 |
 | Wrestler index | 1 request (active wrestlers) in the background, only when the snapshot's index is older than 7 days | 0 |
 | Prefetch | **none by default**. Optional (`prefetch.adjacent_days = true`): the next day only, and only when idle for more than 2 s. | |
-| Live mode, per poll | 1 conditional GET to osada (usually 304 or a small body) | |
-| Live mode, per tournament day | ≈ 1 request every 3 min over ≈ 4.5 h ≈ **≤ 90 requests**, mostly 304; simulated: 73 (Phase 10) | |
+| Live mode, per poll | sumo-api's 2 bout lists (≈ 6 KB each; sumo-api cannot answer 304); osada's conditional GET every 15 min | |
+| Live mode, per tournament day | ≈ 90 polls × 2 sumo-api + ≈ 18 osada + osada's banzuke every 30 min ≈ **≤ 200 requests**, ≈ 1.2 MB; simulated: 151 sumo-api, 23 osada (Phase 10 step 4) | |
 
 ---
 
@@ -1024,9 +1024,9 @@ Records follow the source. For the two days sumo-api lacks (Haru 1965 day 7, Nat
 
 ### 10.2 Polling behaviour
 
-- Each tick does one `Current()` call through the resolver: osada with `If-None-Match`, then sumo-api `Torikumi(today)` for both divisions as fallback.
-- **Interval:** default 3 min, matching osada's cron. Enforced minimum **2 min**. Plus ±15 s jitter so we don't land on exact minutes.
-- If the source's update timestamp hasn't changed for 2 polls in a row, the interval doubles (maximum 10 min). It goes back to the base interval on any change.
+- Each tick asks sumo-api `Torikumi(today)` for both divisions: sumo-api has most results first (V1). osada's `Current()` (with `If-None-Match`) is revalidated **every 15 minutes**, at every tick once day 15's regular bouts are all decided (only osada lists playoffs), and on any tick where sumo-api fails. Otherwise osada answers from the cache, and its bouts, names and playoffs stay the base, with sumo-api's newer results laid over them.
+- **Interval:** default 3 min. Enforced minimum **2 min**. Plus ±15 s jitter so we don't land on exact minutes. Kyushu 2026 had a Makuuchi result about every 6 minutes and an osada batch about every 13 (`docs/v1-latency.md`).
+- If the results haven't changed for 3 polls in a row, the interval doubles (maximum 10 min). It goes back to the base interval on any change. Two would double it in the middle of Makuuchi whenever a result lands just after a poll.
 - **Stop conditions:**
   - All of today's bouts in **both** divisions are decided and no playoff is pending: state becomes "Done for today". One final check runs 30 min later to catch corrections.
   - The window ends.
@@ -1534,7 +1534,7 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
 
 1. `live.Scheduler`, pure and testable with a fake clock: windows from config, day 15 extension, jitter, doubling when nothing changes, stop conditions, final check, error backoff.
 
-   Done: every method takes the time. `State` (off, waiting, polling, backoff, done, unavailable), `Due` and `Wake` (the next poll, the window opening, the final check, or tomorrow's window) drive the TUI's timer; `Polled` takes a poll's update stamp, completeness and error. Doubling counts two polls in a row with the same stamp; backoff runs 2, 4, 8, 10 minutes; a new date starts the day afresh. The final check runs even after the window has closed, as one more poll.
+   Done: every method takes the time. `State` (off, waiting, polling, backoff, done, unavailable), `Due` and `Wake` (the next poll, the window opening, the final check, or tomorrow's window) drive the TUI's timer; `Polled` takes a poll's update stamp, completeness and error. Doubling counts two polls in a row with the same stamp (three since step 4); backoff runs 2, 4, 8, 10 minutes; a new date starts the day afresh. The final check runs even after the window has closed, as one more poll.
 2. Wire it into the TUI:
    - `liveTickMsg` / `liveSnapshotMsg`, merged into the service cache, bout index and ratings
    - `NEW` badges, selection kept stable
@@ -1552,12 +1552,14 @@ Done 2026-10-14. The acceptance tests run on the embedded snapshot: 202609 stand
    Done: tested end to end over HTTP servers with ETags through the production cache stack. After the first poll, each poll is exactly one request, a 304 for `torikumi.json`, and no sumo-api requests. The first poll fetches whatever was never cached (osada's two files, sumo-api's metadata and banzuke) and then does not revalidate again. Each live poll revalidates once per source: the bout list's osada read, and sumo-api's bout lists only when osada fails. A source that can answer only from an expired copy counts as failed (`resolver.ErrStale`), so the next source is asked on the same tick and live mode backs off. When everything fails, the status bar says "osada unreachable, showing the cached copy".
 4. Use the Kyushu 2026 recordings and the V1 result to adjust the default interval and source priorities.
 
-   **Waiting for data:** the recordings are made during Kyushu 2026 (2026-11-08 to 22, Appendix E). Until then the defaults stay at a 3-minute interval and osada first.
+   Done 2026-11-22, the owner's choice: **sumo-api first in live polls**, osada as a slower check. Each poll revalidates sumo-api's two bout lists; osada's `torikumi.json` every `service.OsadaEvery` (15 minutes), at every poll during day 15's playoff watch (all regular bouts decided, the day not complete), and on any poll where a sumo-api bout list fails. osada's bouts stay the base of the merge (names, playoffs, absences) with sumo-api's newer results laid over them; `resolver.Live(ctx, osada)` takes the poll's choice and revalidates each request once per poll. `LivePoll.UpdatedAt` is now when the results last changed (or osada's stamp, if later), since osada's stamp barely moves between its revalidations. Doubling waits for three unchanged polls instead of two. The budget goes from ≤ 90 to ≤ 200 requests a day, accepted by the owner. `cache.Getter.Now` lets the live tests run the cache on their fake clock; before, it judged by the real date, which hid osada's banzuke TTL (the simulated day now refetches it every 30 minutes, as the app does) and would have broken the replays once Kyushu 2026 turned final.
 
    Recordings in: all 15 days, 32 ticks each, no failed request. `testdata/live/` keeps 20 ticks of day 1, day 5 and day 15, with sumo-api's 202611 banzuke (fetched afterwards; the recorder does not save it). `TestLiveReplay` polls each tick and checks the decided bouts and completeness. Day 15 ended in a Makuuchi playoff (Onosato beat Wakamotoharu): at 17:40 all regular bouts are in, nothing lists the playoff yet, and the day stays open; osada lists it with its result at 17:42. sumo-api never lists the playoff bout, so a day 15 that falls back to sumo-api stays open. From 19:03 osada also lists the playoff in the schedule, undecided; the result wins. The replay found the standings without a yusho after the playoff, since it came only from sumo-api's tournament data; it now comes from the playoff (§6.5). `record analyze` over the full set (`docs/v1-latency.md`): sumo-api had 58% of the 514 results a tick earlier than osada and never later (median lead 10 minutes, Juryo 69%). osada publishes in batches about 13 minutes apart and nothing of a day before about 15:04, while sumo-api has the first Juryo results from 14:10–15:00. sumo-api sends no ETag or Last-Modified, so each of its requests is a full answer. No disagreements or corrections; the only bout one source lacks is the playoff.
 5. Scheduler and request-budget tests (≤ 90 requests per day, mostly 304).
 
    Done: `TestLiveDay` runs the scheduler and `LivePoll` on a fake clock against a simulated osada. Its cron publishes day 13's results every 3 minutes as the bouts end (Juryo from 14:30, Makuuchi from 16:00, the last at 17:54). The run takes 72 polls from 14:00, and the day is complete at 17:58. One final check follows at 18:28, then no more polls. That is 73 osada requests: the banzuke once and one bout list per poll, 39 of them 304. While results come in every cron run, most answers are new data rather than 304s, so "mostly 304" holds for quiet stretches. Results show within the base interval plus jitter. Only the first ones after the quiet start may take up to the doubled interval (10 minutes at most).
+
+   Redone with step 4: the simulation is timed like Kyushu 2026. sumo-api shows each result a minute after the bout, osada publishes in batches every 13 minutes from 15:04. The run takes 74 polls from 14:00 to the final check at 18:26: 151 sumo-api requests (the two bout lists per poll, the metadata and banzuke once) and 23 osada requests (15 revalidations of `torikumi.json`, the banzuke every 30 minutes). Every result shows within one poll interval of sumo-api having it, at most two of them only after the doubled interval following a quiet stretch.
 
 **AC:** during a real tournament day the app shows new results within one poll interval of osada's update, stays within budget, and stops polling once the day is complete.
 

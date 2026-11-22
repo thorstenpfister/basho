@@ -2,12 +2,12 @@ package tui_test
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/thorstenpfister/basho/internal/cache"
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/config"
 	"github.com/thorstenpfister/basho/internal/domain"
@@ -70,7 +70,8 @@ func newLiveApp(t *testing.T, now time.Time, auto bool, setup ...func(*changing)
 	for _, f := range setup {
 		f(ch)
 	}
-	sg := resolver.Record(uncached{fixture.Getter{Dir: "../../testdata/sumoapi", Base: sumoapi.DefaultBaseURL}}, resolver.SumoAPI, clk.Now)
+	held := func() bool { return ch.edit != nil }
+	sg := resolver.Record(behind{fixture.Getter{Dir: "../../testdata/sumoapi", Base: sumoapi.DefaultBaseURL}, held}, resolver.SumoAPI, clk.Now)
 	res := &resolver.Resolver{Historical: sumoapi.New(sg, sumoapi.DefaultBaseURL), Current: ch, Now: clk.Now}
 	svc := service.New(service.Options{Remote: res, Wrestlers: wrestlers{}, Clock: clk})
 	res.IDs = svc.IDs
@@ -187,13 +188,28 @@ func TestLiveManual(t *testing.T) {
 	}
 }
 
-// uncached is sumo-api with a cache that lacks the bout lists: osada's
-// undecided bouts stay undecided.
-type uncached struct{ next httpx.Getter }
+// behind is sumo-api without day 13's Makuuchi bout 19 decided while held,
+// like osada's edit: live polls ask sumo-api's bout lists first.
+type behind struct {
+	next httpx.Getter
+	held func() bool
+}
 
-func (u uncached) Get(ctx context.Context, url string, v httpx.Validators) (*httpx.Response, error) {
-	if cache.IsCachedOnly(ctx) && strings.Contains(url, "/torikumi/") {
-		return nil, cache.ErrOffline
+func (b behind) Get(ctx context.Context, url string, v httpx.Validators) (*httpx.Response, error) {
+	resp, err := b.next.Get(ctx, url, v)
+	if err != nil || !b.held() || !strings.HasSuffix(url, "/torikumi/Makuuchi/13") {
+		return resp, err
 	}
-	return u.next.Get(ctx, url, v)
+	var t map[string]any
+	if err := json.Unmarshal(resp.Body, &t); err != nil {
+		return nil, err
+	}
+	for _, m := range t["torikumi"].([]any) {
+		if bout := m.(map[string]any); bout["matchNo"] == float64(19) {
+			bout["winnerId"], bout["winnerEn"], bout["kimarite"] = 0, "", ""
+		}
+	}
+	held := *resp
+	held.Body, err = json.Marshal(t)
+	return &held, err
 }

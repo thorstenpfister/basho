@@ -54,6 +54,9 @@ type Service struct {
 
 	mu    sync.Mutex
 	later map[domain.BashoID]*laterTournament // after the snapshot: the days loaded so far
+
+	liveMu sync.Mutex
+	live   liveState // the live poll's day
 }
 
 // laterTournament collects what the remote layers returned for a tournament

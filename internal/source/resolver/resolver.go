@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -176,13 +177,28 @@ func (r *Resolver) Banzuke(ctx context.Context, id domain.BashoID, div domain.Di
 
 // Torikumi returns a division's bouts of one day: osada for the current
 // tournament, with sumo-api's cached copy filling in what osada lacks, then
-// sumo-api.
+// sumo-api. In a live poll sumo-api's bout list is revalidated and fills in
+// what osada does not have yet: it has most results earlier (V1).
 func (r *Resolver) Torikumi(ctx context.Context, id domain.BashoID, div domain.Division, day int) ([]domain.Bout, error) {
+	key := fmt.Sprintf("%s/%s/%s/%d", SumoAPI, id, div, day)
 	sumo := step[[]domain.Bout]{name: SumoAPI, fn: func(ctx context.Context) ([]domain.Bout, error) {
-		return r.Historical.Torikumi(polled(ctx, SumoAPI), id, div, day)
+		return r.Historical.Torikumi(polled(ctx, key), id, div, day)
 	}}
 	osada := func(merge bool) step[[]domain.Bout] {
 		return step[[]domain.Bout]{name: Osada, fn: func(ctx context.Context) ([]domain.Bout, error) {
+			var theirs []domain.Bout
+			var theirsErr error
+			if t := live(ctx); merge && t != nil {
+				theirs, theirsErr = r.Historical.Torikumi(polled(ctx, key), id, div, day)
+				if theirsErr == nil && trackOf(ctx).stale(SumoAPI) {
+					theirsErr = ErrStale // the expired copy still fills in below
+					trackOf(ctx).clearStale(SumoAPI)
+				}
+				if theirsErr != nil && !errors.Is(theirsErr, cache.ErrOffline) {
+					trackOf(ctx).fail(SumoAPI, theirsErr)
+					t.osadaDue.Store(true) // osada stands in this poll
+				}
+			}
 			cur, err := r.osadaPolled(ctx, id)
 			if err != nil {
 				return nil, err
@@ -199,9 +215,11 @@ func (r *Resolver) Torikumi(ctx context.Context, id domain.BashoID, div domain.D
 			if !merge {
 				return bouts, nil
 			}
-			// "Behind" without a request: sumo-api's copy only if cached.
-			theirs, err := r.Historical.Torikumi(cache.CachedOnly(ctx), id, div, day)
-			if err != nil {
+			if live(ctx) == nil {
+				// "Behind" without a request: sumo-api's copy only if cached.
+				theirs, theirsErr = r.Historical.Torikumi(cache.CachedOnly(ctx), id, div, day)
+			}
+			if theirs == nil && theirsErr != nil {
 				return bouts, nil
 			}
 			out, sources := r.mergeBouts(bouts, theirs, day == m.today(r.now()))
@@ -231,19 +249,24 @@ func (r *Resolver) osada(ctx context.Context, id domain.BashoID) (source.Current
 	}
 	cur, err := r.current(cache.CachedOnly(ctx), id)
 	if errors.Is(err, cache.ErrOffline) { // never fetched: fetched now, so the poll need not revalidate
-		live(ctx).osada.Store(false)
+		live(ctx).done(Osada)
 		return r.current(ctx, id)
 	}
 	trackOf(ctx).clearStale(Osada) // expired on purpose
 	return cur, err
 }
 
-// osadaPolled is the bout list's read: revalidated once per live poll.
+// osadaPolled is the bout list's read: in a live poll revalidated once when
+// osada is due, otherwise from the cache like osada's other reads.
 func (r *Resolver) osadaPolled(ctx context.Context, id domain.BashoID) (source.Current, error) {
-	if live(ctx) == nil {
+	t := live(ctx)
+	switch {
+	case t == nil:
 		return r.current(ctx, id)
+	case t.osadaDue.Load():
+		return r.current(polled(ctx, Osada), id)
 	}
-	return r.current(polled(ctx, Osada), id)
+	return r.osada(ctx, id)
 }
 
 func (r *Resolver) current(ctx context.Context, id domain.BashoID) (source.Current, error) {
@@ -280,19 +303,31 @@ type step[T any] struct {
 
 type liveKey struct{}
 
-// tick is one live poll: each source is revalidated once in it.
-type tick struct{ osada, sumo atomic.Bool }
+// tick is one live poll: each request is revalidated once in it.
+type tick struct {
+	osadaDue    atomic.Bool // osada's bout list is revalidated in this poll
+	mu          sync.Mutex
+	revalidated map[string]bool // by request key: Osada, or sumo-api's bout list
+}
 
-// Live marks ctx as one live poll (SPEC §10.2). The bout list is what the
-// poll is for: the first osada request of the poll revalidates (osada.us's
-// banzuke never does), and so does the first sumo-api bout list, should
-// osada fail. sumo-api's metadata and banzuke come from the cache, even
-// expired, with osada's results laid over them. A poll thus costs one
-// conditional GET to osada.
-func Live(ctx context.Context) context.Context {
-	t := &tick{}
-	t.osada.Store(true)
-	t.sumo.Store(true)
+// done marks a request as revalidated in this poll.
+func (t *tick) done(key string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.revalidated[key] = true
+}
+
+// Live marks ctx as one live poll (SPEC §10.2). The bout lists are what the
+// poll is for: sumo-api's two are revalidated, as they have most results
+// first (V1) and cannot answer 304. osada's torikumi.json is revalidated
+// when osada is true (the caller's schedule) or a sumo-api bout list
+// fails; otherwise it comes from the cache, even expired. osada still names
+// the wrestlers and lists the playoffs. osada.us's banzuke keeps its
+// 30-minute TTL; sumo-api's metadata and banzuke come from the cache, even
+// expired.
+func Live(ctx context.Context, osada bool) context.Context {
+	t := &tick{revalidated: map[string]bool{}}
+	t.osadaDue.Store(osada)
 	return context.WithValue(ctx, liveKey{}, t)
 }
 
@@ -301,21 +336,20 @@ func live(ctx context.Context) *tick {
 	return t
 }
 
-// polled is the context of a live poll's request to a source: revalidated
-// the first time in the poll.
-func polled(ctx context.Context, name string) context.Context {
+// polled is the context of a live poll's request: revalidated the first
+// time in the poll.
+func polled(ctx context.Context, key string) context.Context {
 	t := live(ctx)
 	if t == nil {
 		return ctx
 	}
-	flag := &t.sumo
-	if name == Osada {
-		flag = &t.osada
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.revalidated[key] {
+		return ctx
 	}
-	if flag.CompareAndSwap(true, false) {
-		return cache.Revalidate(ctx)
-	}
-	return ctx
+	t.revalidated[key] = true
+	return cache.Revalidate(ctx)
 }
 
 // settled makes a sumo-api step of a live poll answer from the cache, even

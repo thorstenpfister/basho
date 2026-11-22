@@ -87,7 +87,7 @@ func TestInterval(t *testing.T) {
 	if s.Due(now.Add(2 * time.Minute)) {
 		t.Error("due early")
 	}
-	// The same stamp twice: the interval doubles, up to 10 minutes.
+	// The same stamp three times: the interval doubles, up to 10 minutes.
 	var gaps []time.Duration
 	for range 6 {
 		now = s.Wake(now)
@@ -97,7 +97,7 @@ func TestInterval(t *testing.T) {
 		s.Polled(now, Result{UpdatedAt: stamp})
 		gaps = append(gaps, s.Wake(now).Sub(now))
 	}
-	want := []time.Duration{3, 6, 6, 10, 10, 10}
+	want := []time.Duration{3, 3, 6, 6, 6, 10}
 	for i, g := range gaps {
 		if g != want[i]*time.Minute {
 			t.Errorf("gaps %v; want %v minutes", gaps, want)

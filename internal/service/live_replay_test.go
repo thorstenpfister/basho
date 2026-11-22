@@ -98,7 +98,7 @@ func replayStack(t *testing.T, date string, start time.Time) (*Service, *replay,
 	}
 	client := httpx.New(httpx.Options{UserAgent: "basho-test"})
 	cached := func(name string, p cache.Policy) httpx.Getter {
-		return resolver.Record(&cache.Getter{Cache: c, Next: client, Policy: p}, name, clk.Now)
+		return resolver.Record(&cache.Getter{Cache: c, Next: client, Policy: p, Now: clk.Now}, name, clk.Now)
 	}
 	res := &resolver.Resolver{
 		Historical: sumoapi.New(cached(resolver.SumoAPI, sumoapi.Freshness{}.Policy), sumoSrv.URL),
@@ -124,7 +124,7 @@ func decided(rows []BoutRow) int {
 func TestLiveReplay(t *testing.T) {
 	type tick struct {
 		at              string
-		juryo, makuuchi int // decided regular bouts
+		juryo, makuuchi int // decided regular bouts: osada's, with sumo-api's newer ones
 		playoffs        int // decided Makuuchi playoff bouts
 		complete        bool
 	}
@@ -136,15 +136,15 @@ func TestLiveReplay(t *testing.T) {
 	}{
 		{"20261108", 1, 14, 21, []tick{
 			{"1400", 0, 0, 0, false}, // osada has only the schedule until about 15:04
-			{"1510", 8, 0, 0, false},
+			{"1510", 9, 0, 0, false}, // sumo-api is a result ahead (V1)
 			{"1540", 14, 0, 0, false},
-			{"1620", 14, 1, 0, false},
+			{"1620", 14, 3, 0, false},
 			{"1700", 14, 11, 0, false},
 			{"1800", 14, 21, 0, true},
 		}},
 		{"20261112", 5, 13, 21, []tick{
 			{"1400", 0, 0, 0, false},
-			{"1510", 4, 0, 0, false},
+			{"1510", 5, 0, 0, false},
 			{"1550", 13, 0, 0, false},
 			{"1700", 13, 11, 0, false},
 			{"1750", 13, 20, 0, false},
@@ -153,10 +153,12 @@ func TestLiveReplay(t *testing.T) {
 		{"20261122", 15, 14, 20, []tick{
 			{"1400", 0, 0, 0, false},
 			{"1530", 14, 0, 0, false},
-			{"1700", 14, 15, 0, false},
-			{"1730", 14, 19, 0, false},
-			// Every regular bout decided, Onosato and Wakamotoharu level
-			// at the top and no playoff listed yet: not complete.
+			{"1700", 14, 16, 0, false},
+			// Every regular bout decided (sumo-api's last, osada still
+			// a bout behind), Onosato and Wakamotoharu level at the top and
+			// no playoff listed yet: not complete, and osada is asked at
+			// every poll from now on.
+			{"1730", 14, 20, 0, false},
 			{"1740", 14, 20, 0, false},
 			{"1750", 14, 20, 1, true}, // the playoff, listed with its result
 			{"1820", 14, 20, 1, true},

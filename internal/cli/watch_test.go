@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/thorstenpfister/basho/data"
-	"github.com/thorstenpfister/basho/internal/cache"
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/config"
 	"github.com/thorstenpfister/basho/internal/domain"
@@ -41,15 +40,30 @@ func (p *pending) Current(ctx context.Context) (source.Current, error) {
 	return cur, nil
 }
 
-// noBoutCache is sumo-api with a cache that lacks the bout lists, so it does
-// not fill in what osada has undecided.
-type noBoutCache struct{ next httpx.Getter }
+// pendingSumo is sumo-api with the same bouts undecided as p: live polls
+// ask sumo-api's bout lists first.
+type pendingSumo struct {
+	next httpx.Getter
+	p    *pending
+}
 
-func (n noBoutCache) Get(ctx context.Context, url string, v httpx.Validators) (*httpx.Response, error) {
-	if cache.IsCachedOnly(ctx) && strings.Contains(url, "/torikumi/") {
-		return nil, cache.ErrOffline
+func (s pendingSumo) Get(ctx context.Context, url string, v httpx.Validators) (*httpx.Response, error) {
+	resp, err := s.next.Get(ctx, url, v)
+	if err != nil || s.p.after == 0 || !strings.HasSuffix(url, "/torikumi/Makuuchi/13") {
+		return resp, err
 	}
-	return n.next.Get(ctx, url, v)
+	var t map[string]any
+	if err := json.Unmarshal(resp.Body, &t); err != nil {
+		return nil, err
+	}
+	for _, m := range t["torikumi"].([]any) {
+		if b := m.(map[string]any); b["matchNo"].(float64) > float64(s.p.after) {
+			b["winnerId"], b["winnerEn"], b["kimarite"] = 0, "", ""
+		}
+	}
+	out := *resp
+	out.Body, err = json.Marshal(t)
+	return &out, err
 }
 
 type activeWrestlers struct{}
@@ -70,7 +84,7 @@ func watchDeps(t *testing.T, at time.Time, after int) (Deps, *clock.Fake, *[]tim
 	clk := clock.NewFake(at)
 	src := &pending{next: osada.New(fixture.Getter{Dir: "../../testdata/osada", Base: osada.DefaultBaseURL}, osada.DefaultBaseURL), after: after}
 	res := &resolver.Resolver{
-		Historical: sumoapi.New(noBoutCache{fixture.Getter{Dir: "../../testdata/sumoapi", Base: sumoapi.DefaultBaseURL}}, sumoapi.DefaultBaseURL),
+		Historical: sumoapi.New(pendingSumo{fixture.Getter{Dir: "../../testdata/sumoapi", Base: sumoapi.DefaultBaseURL}, src}, sumoapi.DefaultBaseURL),
 		Current:    src, Now: clk.Now,
 	}
 	svc := service.New(service.Options{Remote: res, Wrestlers: activeWrestlers{}, Clock: clk})
