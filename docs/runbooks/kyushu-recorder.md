@@ -190,17 +190,22 @@ Copy the recordings to the laptop. Keep the full set outside the repository:
 rsync -av <you>@<host>:basho-live/ ~/basho-live-kyushu-2026/
 ```
 
-Then trim for `testdata/live/`. Keep about 6 ticks on each of three days:
-day 1, a weekday in the middle, and day 15 for a possible playoff. Every tick
-folder is self-contained, so you can just copy the folders you want:
+Then trim for `testdata/live/`. Every tick folder is self-contained, so you
+can just copy the folders you want. For Kyushu 2026 these were kept: the
+start, osada's first results (about 15:05), and the end of each division, plus
+the playoff on day 15:
 
 ```sh
-for d in 20261108 20261112 20261122; do
-  for t in 1400 1500 1600 1700 1800 1900; do
-    mkdir -p testdata/live/$d && cp -R ~/basho-live-kyushu-2026/$d/$t testdata/live/$d/
-  done
-done
+copy() { d=$1; shift; for t in "$@"; do
+  mkdir -p testdata/live/$d && cp -R ~/basho-live-kyushu-2026/$d/$t testdata/live/$d/
+done; }
+copy 20261108 1400 1510 1540 1620 1700 1800
+copy 20261112 1400 1510 1550 1700 1750 1810
+copy 20261122 1400 1530 1700 1730 1740 1750 1820 1910
 ```
+
+The recorder does not save sumo-api's banzuke, which the app caches before the
+day; `testdata/live/sumoapi/` holds it, fetched once afterwards.
 
 `basho-data record analyze`, the V1 latency comparison, is built after the
 tournament, on the full set.

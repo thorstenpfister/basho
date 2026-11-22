@@ -1,0 +1,44 @@
+[
+  {
+    "name": "osada/torikumi.json",
+    "url": "https://osada.us/api/v1/torikumi.json",
+    "fetchedAt": "2026-11-12T09:09:59.999476Z",
+    "status": 200,
+    "etag": "W/\"70d55a5be03d32fab0cb03cb59f94b0a\"",
+    "bytes": 312313,
+    "durationMs": 794
+  },
+  {
+    "name": "osada/banzuke.json",
+    "url": "https://osada.us/api/v1/banzuke.json",
+    "fetchedAt": "2026-11-12T09:10:00.795822Z",
+    "status": 200,
+    "etag": "W/\"a7a0500309dce7430ab746fbb6131d3e\"",
+    "bytes": 35876,
+    "durationMs": 271
+  },
+  {
+    "name": "sumoapi/basho_202611.json",
+    "url": "https://www.sumo-api.com/api/basho/202611",
+    "fetchedAt": "2026-11-12T09:10:20.274632Z",
+    "status": 200,
+    "bytes": 98,
+    "durationMs": 609
+  },
+  {
+    "name": "sumoapi/basho_202611_torikumi_Makuuchi_5.json",
+    "url": "https://www.sumo-api.com/api/basho/202611/torikumi/Makuuchi/5",
+    "fetchedAt": "2026-11-12T09:10:20.885783Z",
+    "status": 200,
+    "bytes": 6567,
+    "durationMs": 200
+  },
+  {
+    "name": "sumoapi/basho_202611_torikumi_Juryo_5.json",
+    "url": "https://www.sumo-api.com/api/basho/202611/torikumi/Juryo/5",
+    "fetchedAt": "2026-11-12T09:10:21.47843Z",
+    "status": 200,
+    "bytes": 3936,
+    "durationMs": 204
+  }
+]
