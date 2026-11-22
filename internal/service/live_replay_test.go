@@ -196,7 +196,7 @@ func TestLiveReplay(t *testing.T) {
 }
 
 // Day 15's playoff: pending once the regular bouts left a shared lead,
-// then listed with its result.
+// then listed with its result, which names the yusho.
 func TestLiveReplayPlayoff(t *testing.T) {
 	date := time.Date(2026, time.November, 22, 0, 0, 0, 0, domain.JST)
 	svc, _, _, clk := replayStack(t, "20261122", date.Add(17*time.Hour+40*time.Minute))
@@ -223,6 +223,15 @@ func TestLiveReplayPlayoff(t *testing.T) {
 	b := po[0]
 	if b.East.Shikona.En != "Onosato" || b.West.Shikona.En != "Wakamotoharu" || b.Winner != domain.East || b.Kimarite.Kimarite != "watashikomi" {
 		t.Errorf("playoff: %s vs %s, winner %v by %q", b.East.Shikona.En, b.West.Shikona.En, b.Winner, b.Kimarite.Kimarite)
+	}
+	// The yusho from the playoff: sumo-api names it only from 18:20, and
+	// live polls do not ask it again.
+	st, err = svc.Standings(t.Context(), kyushu2026, domain.DivMakuuchi, 15)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Value.Yusho == nil || st.Value.Yusho.Shikona.En != "Onosato" {
+		t.Errorf("17:50: yusho %v; want Onosato", st.Value.Yusho)
 	}
 }
 
@@ -253,5 +262,29 @@ func TestLiveReplayPlayoffFallback(t *testing.T) {
 func setClock(clk *clock.Fake, at time.Time) {
 	if d := at.Sub(clk.Now()); d > 0 {
 		clk.Advance(d)
+	}
+}
+
+// A three-way playoff: the last bout's winner, once every listed bout is
+// decided.
+func TestPlayoffWinner(t *testing.T) {
+	bout := func(no int, east, west domain.RikishiID, w domain.Side) domain.Bout {
+		return domain.Bout{MatchNo: no, IsPlayoff: true, East: domain.BoutSide{RikishiID: east}, West: domain.BoutSide{RikishiID: west}, Winner: w}
+	}
+	regular := domain.Bout{MatchNo: 20, East: domain.BoutSide{RikishiID: 9}, Winner: domain.East}
+	for _, c := range []struct {
+		name  string
+		bouts []domain.Bout
+		want  domain.RikishiID
+		ok    bool
+	}{
+		{"none", []domain.Bout{regular}, 0, false},
+		{"one", []domain.Bout{regular, bout(21, 1, 2, domain.West)}, 2, true},
+		{"three-way", []domain.Bout{regular, bout(23, 3, 1, domain.West), bout(21, 1, 2, domain.East), bout(22, 1, 3, domain.East)}, 1, true},
+		{"last pending", []domain.Bout{regular, bout(21, 1, 2, domain.East), bout(22, 1, 3, 0)}, 0, false},
+	} {
+		if got, ok := playoffWinner(c.bouts); got != c.want || ok != c.ok {
+			t.Errorf("%s: %d %v, want %d %v", c.name, got, ok, c.want, c.ok)
+		}
 	}
 }

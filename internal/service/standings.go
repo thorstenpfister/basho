@@ -35,12 +35,39 @@ func (s *Service) Standings(ctx context.Context, id domain.BashoID, div domain.D
 	if out.Opponents, err = s.opponents(id, d); err != nil {
 		return Result[Standings]{}, err
 	}
-	if w, ok := d.basho.Yusho[div]; ok && day == domain.BashoDays && finalShown(ctx, id) {
+	w, ok := d.basho.Yusho[div]
+	if !ok && day == domain.BashoDays {
+		w, ok = playoffWinner(d.bouts)
+	}
+	if ok && day == domain.BashoDays && finalShown(ctx, id) {
 		if e, ok := byID(d.entries)[w]; ok {
 			out.Yusho = &Wrestler{RikishiID: e.RikishiID, Shikona: e.Shikona, Rank: e.Rank}
 		}
 	}
 	return Result[Standings]{Value: out, Prov: d.prov}, nil
+}
+
+// playoffWinner is the winner of a day's last playoff bout, once every
+// listed playoff bout is decided: the yusho before the source names it
+// (sumo-api names it some 40 minutes later, osada not at all).
+func playoffWinner(bouts []domain.Bout) (domain.RikishiID, bool) {
+	var last *domain.Bout
+	for i, b := range bouts {
+		if !b.IsPlayoff {
+			continue
+		}
+		if b.Winner == 0 {
+			return 0, false
+		}
+		if last == nil || b.MatchNo > last.MatchNo {
+			last = &bouts[i]
+		}
+	}
+	if last == nil {
+		return 0, false
+	}
+	w, _, _ := last.Result()
+	return w.RikishiID, true
 }
 
 // Recap is the summary of one day (SPEC §8.4).
