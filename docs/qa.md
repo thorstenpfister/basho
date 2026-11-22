@@ -9,7 +9,7 @@ The QA pass (SPEC §17, Phase 16), which is also Phase 12's acceptance check: th
 | 3 | Terminal.app | dark | | | not run |
 | 4 | Terminal.app | light | | 2026-10-16 | pass |
 
-The 2026 pass stopped after runs 1 and 4, one of each terminal and theme, by the owner's call. Live mode waits for Kyushu 2026, and the data tools were not run in it.
+The 2026 pass stopped after runs 1 and 4, one of each terminal and theme, by the owner's call. Live mode waits for Kyushu 2026, and the data tools were not run in it. Both were signed off by the owner on 2026-11-22: live mode was watched during Kyushu 2026, playoff day included.
 
 Setup: `make build` (or `make install`), then for a clean first run:
 
@@ -94,10 +94,10 @@ Settings for single items go in `/tmp/basho-qa/config/basho/config.toml`; `basho
 
 ## Live mode (during a tournament, 14:00–18:45 JST)
 
-- [ ] The status bar shows ● LIVE with the next poll; new results arrive with NEW badges.
-- [ ] `L` turns it off and on; `R` polls now.
-- [ ] Outside the window: ◌ and when it opens.
-- [ ] `basho watch` prints each result as it comes in; `--json` one event per line.
+- [x] The status bar shows ● LIVE with the next poll; new results arrive with NEW badges.
+- [x] `L` turns it off and on; `R` polls now.
+- [x] Outside the window: ◌ and when it opens.
+- [x] `basho watch` prints each result as it comes in; `--json` one event per line.
 
 ## CLI
 
@@ -112,8 +112,8 @@ Settings for single items go in `/tmp/basho-qa/config/basho/config.toml`; `basho
 
 ## Data tools (once, not per run)
 
-- [ ] `make portraits-preview` rebuilds only the overrides in seconds; with a work cache less than a week old it makes no requests.
-- [ ] `make portraits` shows its plan, asks, then a progress line per phase; `bin/basho` afterwards has the new set.
+- [x] `make portraits-preview` rebuilds only the overrides in seconds; with a work cache less than a week old it makes no requests.
+- [x] `make portraits` shows its plan, asks, then a progress line per phase; `bin/basho` afterwards has the new set.
 - [x] `make vhs` records `docs/demo.gif` (needs VHS; without Chrome installed, VHS downloads a headless Chromium of about 285 MB to `~/.cache/rod`).
 
 ## Findings

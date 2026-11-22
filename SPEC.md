@@ -153,7 +153,7 @@ Endpoints used:
 | ~~`GET /measurements?bashoId={id}`~~ | Not used: it only lists the tournament's **newcomers**, because sumo-api records height and weight once, at a wrestler's debut (Phase 1 finding) | Height and weight come from the wrestler index (current values) |
 | `GET /rikishi/{a}/matches/{b}` | Head-to-head summary and list of matches | Optional; can be computed from the cached matches instead |
 
-Freshness: tournament data is updated during the tournament (some profiles had `updatedAt` 2026-09-17). How quickly bout results appear is **not documented and not yet measured** (§16 V1).
+Freshness: tournament data is updated during the tournament (some profiles had `updatedAt` 2026-09-17). How quickly bout results appear is not documented; measured during Kyushu 2026 (§16 V1, `docs/v1-latency.md`), sumo-api had every result no later than osada and 58% of them at least one 10-minute tick earlier, from about 14:10 on.
 
 ### 4.2 osada.us / o-sumo (primary for the live current tournament)
 
@@ -1846,7 +1846,7 @@ AC status: met.
 
 **AC:** Phase 12's: every item in `docs/qa.md` holds in all four runs, and no finding is open.
 
-AC status: met with two runs instead of four (owner's call); no finding open. Live mode and the data tools are left unticked in `docs/qa.md`.
+AC status: met with two runs instead of four (owner's call); no finding open. Live mode and the data tools, left unticked in October, were signed off by the owner on 2026-11-22 after Kyushu 2026.
 
 ### Phase 17: v1.0 release (private)
 
