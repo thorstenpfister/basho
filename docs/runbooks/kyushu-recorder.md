@@ -207,5 +207,8 @@ copy 20261122 1400 1530 1700 1730 1740 1750 1820 1910
 The recorder does not save sumo-api's banzuke, which the app caches before the
 day; `testdata/live/sumoapi/` holds it, fetched once afterwards.
 
-`basho-data record analyze`, the V1 latency comparison, is built after the
-tournament, on the full set.
+Run the V1 latency comparison on the full set; it writes `docs/v1-latency.md`:
+
+```sh
+basho-data record analyze ~/basho-live-kyushu-2026
+```

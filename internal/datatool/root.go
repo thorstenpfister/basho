@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -90,6 +92,44 @@ func newRecordCmd(info buildinfo.Info) *cobra.Command {
 	f.StringVar(&until, "until", "19:15", "window end, JST")
 	f.StringVar(&tournament, "tournament", "", "tournament as YYYYMM (default: this month's, or the upcoming one in even months)")
 	f.BoolVar(&cfg.Once, "once", false, "record one tick now, ignoring the window and tournament days (installation test)")
+	cmd.AddCommand(newAnalyzeCmd())
+	return cmd
+}
+
+func newAnalyzeCmd() *cobra.Command {
+	var report string
+	cmd := &cobra.Command{
+		Use:   "analyze [DIR]",
+		Short: "Compare when results appear in osada and sumo-api in the recordings (V1)",
+		Long: "analyze reads every tick under DIR (default testdata/live), as written by record,\n" +
+			"and writes when each result first appeared in osada.us and in sumo-api.com\n" +
+			"(SPEC Appendix E, V1). It makes no requests.",
+		Args: cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			dir := "testdata/live"
+			if len(args) == 1 {
+				dir = args[0]
+			}
+			a, err := AnalyzeRecordings(cmd.Context(), dir)
+			if err != nil {
+				return err
+			}
+			var b strings.Builder
+			if err := a.WriteReport(&b); err != nil {
+				return err
+			}
+			if report == "-" {
+				_, err = io.WriteString(cmd.OutOrStdout(), b.String())
+				return err
+			}
+			if err := atomicfile.Write(report, []byte(b.String())); err != nil {
+				return err
+			}
+			_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s: %d days\n", report, len(a.Days))
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&report, "report", "docs/v1-latency.md", `report to write ("-": standard output)`)
 	return cmd
 }
 
