@@ -3,7 +3,7 @@
 All notable changes to basho. Versions follow [semantic
 versioning](https://semver.org): a patch release ships new data only.
 
-## Unreleased
+## v1.1.0 (2026-11-25)
 
 - Install with Homebrew: `brew tap thorstenpfister/basho
   https://github.com/thorstenpfister/basho`, then `brew install --cask
