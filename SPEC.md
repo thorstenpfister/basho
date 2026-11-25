@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v1.0** (2026-11-25), the spec of basho v1.0.0. Implemented: Phases 0–17 (Phase 10 finished with the Kyushu 2026 recordings: live mode takes sumo-api first; Phase 12's QA pass moved to Phase 16, done with two runs; Phase 13's rating divisor was dropped as not needed). The snapshot (196001–202611), the calibrated rating and 353 wrestler portraits are committed. The non-interactive CLI works offline, `basho wrestler` included. The TUI has the picker, the day view with its recap, the VS screen with portraits, the standings, the wrestler screen and a paged help overlay, and offers `ui.names` and plain modes. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Next: Phase 18 (public repository and Homebrew tap), once the owner decides to go public.
+> Status: **v1.0** (2026-11-25), the spec of basho v1.0.0. Implemented: Phases 0–17 (Phase 10 finished with the Kyushu 2026 recordings: live mode takes sumo-api first; Phase 12's QA pass moved to Phase 16, done with two runs; Phase 13's rating divisor was dropped as not needed). The snapshot (196001–202611), the calibrated rating and 353 wrestler portraits are committed. The non-interactive CLI works offline, `basho wrestler` included. The TUI has the picker, the day view with its recap, the VS screen with portraits, the standings, the wrestler screen and a paged help overlay, and offers `ui.names` and plain modes. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Phase 18 followed the same day: the repository is public and v1.1.0 installs with Homebrew (§14.3). Next: data releases after each tournament (`docs/releasing.md`) and the ideas in §15.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -1899,13 +1899,19 @@ AC status: the data line reads "2026-11-25 (196001–202611)"; zsh loads the com
    - **README:** Install leads with the tap and cask, then `go install …@latest` (its `basho version` is the module version), the release archives and `make install`.
    - **GitHub:** description and topics set.
 3. Release, then check `brew tap … && brew install --cask thorstenpfister/basho/basho` on a clean user account.
+
+   Done 2026-11-25 by the owner: repository public, `v1.1.0` tagged and published with `make release` (four archives and `checksums.txt`; GoReleaser committed `Casks/basho.rb`, 01388ba). The archive downloads without credentials (HTTP 200). Installed on the owner's own account rather than a fresh one, which was checked to be clean enough: no basho tap, completion or man page before, no `HOMEBREW_GITHUB_API_TOKEN` and no `HOMEBREW_CASK_OPTS` (so the download was quarantined), and the old `make install` binary removed. basho ran without a Gatekeeper prompt; `basho version` reads `v1.1.0` with data `2026-11-25 (196001–202611)`, and the man page and zsh completion are in Homebrew's directories.
 4. Add the tap and cask to the Brewfile in `macos-setup`.
+
+   Done: `Brewfiles/apps-personal.Brewfile` (skipped on company Macs), and `verify.sh` checks the cask with the other personal apps (macos-setup 1ac99ab). `brew bundle check` is satisfied.
 
 **AC:** `brew install` works on Apple Silicon without manual Gatekeeper steps; `basho version` matches the tag.
 
+AC status: met (step 3).
+
 ---
 
-*Spec v1.0 after the final read before tagging (2026-11-25). Next: Phase 18, when the owner decides to go public.*
+*Spec v1.0 after the final read before tagging (2026-11-25). Phase 18 done the same day: public, v1.1.0 on Homebrew.*
 
 ---
 
