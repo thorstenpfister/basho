@@ -131,7 +131,11 @@ func TestTableAndKeys(t *testing.T) {
 }
 
 func TestErrorAndLateAnswers(t *testing.T) {
-	_, d := open(t, domain.BashoID{Year: 2026, Month: time.November}, 1, 100, 30)
+	b, err := service.Bundled()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, d := open(t, b.Newest.Next(), 1, 100, 30)
 	if v := d.View(); !strings.Contains(v, "Not available") {
 		t.Errorf("a tournament after the snapshot without remote:\n%s", v)
 	}

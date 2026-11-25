@@ -22,6 +22,16 @@ var (
 	testNow    = time.Date(2026, time.October, 14, 12, 0, 0, 0, domain.JST)
 )
 
+// afterSnapshot is the first tournament the embedded snapshot doesn't hold,
+// so the tests that need one survive each data release.
+var afterSnapshot = sync.OnceValue(func() domain.BashoID {
+	b, err := Bundled()
+	if err != nil {
+		panic(err)
+	}
+	return b.Newest.Next()
+})
+
 // embedded is a service over the embedded snapshot with no remote layers;
 // it is built once, as the bout index and ratings take a moment.
 var embedded = sync.OnceValue(func() *Service {
@@ -115,8 +125,9 @@ func TestInfoAndList(t *testing.T) {
 		t.Fatal(err)
 	}
 	in := res.Value
-	// Makushita's winner (Inami) is not a sekitori in the snapshot: left out.
-	if in.Status != Finished || in.Name != "Aki" || len(in.Yusho) != 2 || in.Yusho[0].Division != domain.DivMakuuchi || in.Yusho[0].Shikona.En != "Onosato" || len(in.Prizes) != 2 {
+	// Makushita's winner (Inami) is named: he reached Juryo later, so the
+	// snapshot's index has him.
+	if in.Status != Finished || in.Name != "Aki" || len(in.Yusho) != 3 || in.Yusho[0].Division != domain.DivMakuuchi || in.Yusho[0].Shikona.En != "Onosato" || in.Yusho[2].Shikona.En != "Inami" || len(in.Prizes) != 2 {
 		t.Errorf("info %+v", in)
 	}
 	cancelled, _ := embedded().Info(t.Context(), domain.BashoID{Year: 2020, Month: time.May})
@@ -202,9 +213,10 @@ func (f *fakeRemote) Torikumi(_ context.Context, id domain.BashoID, div domain.D
 }
 
 func TestLaterTournament(t *testing.T) {
-	fake := &fakeRemote{start: domain.NewDate(2026, time.November, 8)}
+	later := afterSnapshot()
+	fake := &fakeRemote{start: later.EstimatedStart()}
 	s := New(Options{Snapshot: data.Snapshot, Params: data.RatingParams, Remote: fake, Clock: clock.NewFake(testNow)})
-	res, err := s.Day(t.Context(), kyushu2026, domain.DivMakuuchi, 1)
+	res, err := s.Day(t.Context(), later, domain.DivMakuuchi, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -213,28 +225,28 @@ func TestLaterTournament(t *testing.T) {
 	}
 	// The day went into the bout index and the ratings.
 	x, _ := s.index()
-	if len(x.Tournament(kyushu2026)) != 1 {
+	if len(x.Tournament(later)) != 1 {
 		t.Error("not in the bout index")
 	}
 	r, _ := s.Ratings()
-	before := r.At(8850, fakeY1, derive.BeforeDay(kyushu2026, 1)).Value
+	before := r.At(8850, fakeY1, derive.BeforeDay(later, 1)).Value
 	if after := r.At(8850, fakeY1, derive.NoCutoff).Value; after <= before {
 		t.Errorf("rating %.1f → %.1f after a win", before, after)
 	}
-	// Onosato's last 5 crosses into the snapshot's Aki.
-	tale, err := s.Bout(t.Context(), kyushu2026, domain.DivMakuuchi, 1, 1)
+	// Onosato's last 5 crosses into the snapshot.
+	tale, err := s.Bout(t.Context(), later, domain.DivMakuuchi, 1, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if l := tale.Value.East.Last5.Results; len(l) != 5 || l[4].Basho != aki2026 {
+	if l := tale.Value.East.Last5.Results; len(l) != 5 || l[4].Basho.Compare(later) >= 0 {
 		t.Errorf("last 5 %+v", l)
 	}
-	if _, err := s.Day(t.Context(), kyushu2026, domain.DivMakuuchi, 2); !errors.Is(err, source.ErrNotYetAvailable) {
+	if _, err := s.Day(t.Context(), later, domain.DivMakuuchi, 2); !errors.Is(err, source.ErrNotYetAvailable) {
 		t.Errorf("day 2: %v", err)
 	}
 
 	snapOnly := New(Options{Snapshot: data.Snapshot, Params: data.RatingParams, Clock: clock.NewFake(testNow)})
-	if _, err := snapOnly.Day(t.Context(), kyushu2026, domain.DivMakuuchi, 1); !errors.Is(err, source.ErrNotYetAvailable) {
+	if _, err := snapOnly.Day(t.Context(), later, domain.DivMakuuchi, 1); !errors.Is(err, source.ErrNotYetAvailable) {
 		t.Errorf("without a remote: %v", err)
 	}
 	noSnap := New(Options{Remote: fake, Clock: clock.NewFake(testNow)})

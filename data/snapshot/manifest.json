@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generator": "3f5699b",
-  "generatedAt": "2026-10-14T06:36:34Z",
+  "generator": "7aa3566",
+  "generatedAt": "2026-11-25T06:34:47Z",
   "source": "sumo-api.com",
   "basho": [
     "196001",
@@ -402,9 +402,10 @@
     "202603",
     "202605",
     "202607",
-    "202609"
+    "202609",
+    "202611"
   ],
-  "indexThrough": "202609",
+  "indexThrough": "202611",
   "files": {
     "basho/196001.json.zst": "f492fff3c61c74deb6b1f8172109718cccf7e282f125287c05aa40890dfc6f39",
     "basho/196003.json.zst": "38ce77506d17135c79f5b57cb6cf585ce835feda3af7c6d9e1461137d187c0bf",
@@ -805,6 +806,7 @@
     "basho/202605.json.zst": "221015ac9bbcec6cc1d87b93deecc62941edffa07f7832efb0ef8a10fc3f6a7d",
     "basho/202607.json.zst": "c80a00d70f85c905c830906c63463f64ee155ae6d724a4f732151b685ff32f16",
     "basho/202609.json.zst": "a156f71c14af38438a00e39d3f728b033d7e4ea09c83aa56d6c290ae07a846f7",
-    "rikishi.json.zst": "0bc5a8957b3973e6ee25d97fc246d16459b23ef8fbba1fe3f782701e3f98ee75"
+    "basho/202611.json.zst": "7903f84e1973e38bae1d92b9db5fa397d1ecb699f6b3dafb266e28d8cb289436",
+    "rikishi.json.zst": "9e7942d4b2f3e6f32e6fe550ef5ec71c45a579c2f29463f8f72070acae22372f"
   }
 }
