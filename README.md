@@ -20,7 +20,7 @@ basho                        # the current tournament
 ```
 
 The cask installs the man page and the bash, zsh and fish completions too.
-Update with `brew upgrade --cask basho`. The tap needs its URL, because this
+Update with `brew update && brew upgrade --cask basho`. The tap needs its URL, because this
 repository isn't named `homebrew-…`. basho isn't signed; the cask removes
 macOS's quarantine flag so it runs without a Gatekeeper prompt.
 

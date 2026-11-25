@@ -67,7 +67,7 @@ yusho winner (§7.2). Before that, `make snapshot` skips it.
    git tag -a v1.0.1 -m "v1.0.1: data through Hatsu 2027"
    git push origin main v1.0.1
    make release                 # asks first; YES=1 skips the question
-   brew upgrade --cask basho    # or: make install
+   brew update && brew upgrade --cask basho    # or: make install
    basho version
    ```
 
@@ -76,6 +76,9 @@ yusho winner (§7.2). Before that, `make snapshot` skips it.
    is not on the commit you built. `make release` refuses an untagged HEAD,
    a dirty tree, a tag not yet pushed, or a tag without a CHANGELOG entry
    `## v1.0.1 (…)`; afterwards it pulls the cask commit GoReleaser made.
+   Right after a release, `brew upgrade` alone may still see the old cask:
+   Homebrew refreshes taps at most once a day by itself, so `brew update`
+   first.
 
 ## Code release
 
