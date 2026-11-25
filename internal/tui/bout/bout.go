@@ -355,12 +355,13 @@ func (v VS) View(ctx *tui.Context, width, height int) string {
 func (v VS) heading() string {
 	s := fmt.Sprintf("%s %d · Day %d · Bout %d", v.id.Name(), v.id.Year, v.day, v.match)
 	if v.tale != nil {
-		s += fmt.Sprintf("/%d", v.tale.Of)
 		switch {
-		case v.tale.Playoff:
+		case v.tale.Playoff: // no "/20": Of counts the regular bouts
 			s += " · KETTEI-SEN"
 		case v.tale.Musubi:
-			s += " · MUSUBI-NO-ICHIBAN"
+			s += fmt.Sprintf("/%d · MUSUBI-NO-ICHIBAN", v.tale.Of)
+		default:
+			s += fmt.Sprintf("/%d", v.tale.Of)
 		}
 	} else if v.row.Musubi {
 		s += " · MUSUBI-NO-ICHIBAN"

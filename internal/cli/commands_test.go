@@ -10,6 +10,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/charmbracelet/x/ansi"
+
 	"github.com/thorstenpfister/basho/internal/buildinfo"
 	"github.com/thorstenpfister/basho/internal/clock"
 	"github.com/thorstenpfister/basho/internal/config"
@@ -298,5 +300,24 @@ func TestNoPortraitsFlag(t *testing.T) {
 	}
 	if _, code := run(t, deps, "--no-portraits"); code != exitOK || portraits {
 		t.Errorf("--no-portraits: exit %d, portraits %v", code, portraits)
+	}
+}
+
+// The fixture snapshot has no playoff bouts: the heading is checked on the
+// renderer. A playoff has no "/20", since the total counts the regular bouts.
+func TestTaleHeading(t *testing.T) {
+	kyushu := domain.BashoID{Year: 2026, Month: time.November}
+	for _, tt := range []struct {
+		tale service.Tale
+		want string
+	}{
+		{service.Tale{MatchNo: 21, Of: 20, Playoff: true}, "Kyushu 2026 · Day 15 · Bout 21 · KETTEI-SEN"},
+		{service.Tale{MatchNo: 20, Of: 20, Musubi: true}, "Kyushu 2026 · Day 15 · Bout 20/20 · MUSUBI-NO-ICHIBAN"},
+		{service.Tale{MatchNo: 3, Of: 20}, "Kyushu 2026 · Day 15 · Bout 3/20\n"},
+	} {
+		tt.tale.Basho, tt.tale.Name, tt.tale.Day = kyushu, kyushu.Name(), 15
+		if got := ansi.Strip(renderTale(unicodeGlyphs, tt.tale, service.Provenance{})); !strings.Contains(got, tt.want) {
+			t.Errorf("want %q in:\n%s", tt.want, got)
+		}
 	}
 }

@@ -54,6 +54,14 @@ func open(t *testing.T, id domain.BashoID, div domain.Division, day, match, widt
 
 func screen(d *tuitest.Driver) VS { return d.M.(tui.Model).Top().(VS) }
 
+// A playoff's heading has no "/20": the total counts the regular bouts.
+func TestPlayoffHeading(t *testing.T) {
+	d := open(t, domain.BashoID{Year: 2026, Month: time.November}, domain.DivMakuuchi, 15, 21, 100, 40)
+	if v := d.View(); !strings.Contains(v, "Kyushu 2026 · Day 15 · Bout 21 · KETTEI-SEN") {
+		t.Errorf("heading:\n%s", v)
+	}
+}
+
 func TestTape(t *testing.T) {
 	d := open(t, aki2026, domain.DivMakuuchi, 13, 19, 100, 40)
 	v := d.View()

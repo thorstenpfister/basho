@@ -9,6 +9,8 @@ versioning](https://semver.org): a patch release ships new data only.
   it went missing when the tournament moved into the bundled data, whose
   source lists no playoffs. Playoffs now come from osada.us when a
   tournament is added.
+- A playoff's VS heading reads "Bout 21 · KETTEI-SEN" instead of "Bout
+  21/20".
 
 ## v1.1.0 (2026-11-25)
 

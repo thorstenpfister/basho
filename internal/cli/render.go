@@ -231,12 +231,14 @@ func taleRecord(t service.TaleSide) string {
 // profiles (SPEC §6.7, §8.5).
 func renderTale(g glyphs, t service.Tale, p service.Provenance) string {
 	var b strings.Builder
-	head := fmt.Sprintf("%s %d · Day %d · Bout %d/%d", t.Name, t.Basho.Year, t.Day, t.MatchNo, t.Of)
+	head := fmt.Sprintf("%s %d · Day %d · Bout %d", t.Name, t.Basho.Year, t.Day, t.MatchNo)
 	switch {
-	case t.Playoff:
+	case t.Playoff: // no "/20": Of counts the regular bouts
 		head += " · KETTEI-SEN"
 	case t.Musubi:
-		head += " · MUSUBI-NO-ICHIBAN"
+		head += fmt.Sprintf("/%d · MUSUBI-NO-ICHIBAN", t.Of)
+	default:
+		head += fmt.Sprintf("/%d", t.Of)
 	}
 	b.WriteString(title.Render(head) + "\n\n")
 	e, w := t.East, t.West

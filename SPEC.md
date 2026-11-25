@@ -823,6 +823,7 @@ BASHO ─ select tournament                                            [/] filte
 (The values in the mockup are illustrative. In the STYLE bars, each segment has its own colour and texture. See §6.7.)
 
 - Layout: mirrored columns around a centre column of labels. The left column is right-aligned towards the centre and the right column left-aligned (both "face" the middle).
+- **Heading:** tournament, day and "Bout N/total", where the total counts the day's regular bouts; the last one adds MUSUBI-NO-ICHIBAN. A playoff bout reads "Bout 21 · KETTEI-SEN", without the total, which it would exceed ("21/20" until 2026-11-25).
 - **Height and weight:** the latest values (§6.6), as text. The bars that once scaled them to the division's range were dropped on 2026-10-15, together with the portraits' move above the names: they drew the eye away from the comparison.
 - **Result panel:**
   - Normal mode: visible when the bout is decided.
