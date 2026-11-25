@@ -1,9 +1,9 @@
 # Releasing
 
-basho v1 is installed from source with `make install`; the repository is
-private and nothing is published (SPEC §14.2). A release is a tag, so that
-`basho version` names it. Publishing to GitHub and the Homebrew cask come
-with Phase 18 (§14.3).
+A release is a tag, published with `make release`: GoReleaser builds the
+archives, creates the GitHub release with the tag's CHANGELOG entry as its
+notes, and commits the Homebrew cask (`Casks/basho.rb`) to `main` (SPEC
+§14.3). It needs `goreleaser` and `gh` (logged in, `gh auth status`).
 
 Versions: a **patch** (`v1.0.1`) ships new data only, a **minor** (`v1.1.0`)
 new features or fixes. The CHANGELOG has an entry for each.
@@ -51,18 +51,21 @@ yusho winner (§7.2). Before that, `make snapshot` skips it.
 4. **CHANGELOG:** add the version with one line, "Data through Hatsu 2027",
    and commit it.
 
-5. **Tag, push, install:**
+5. **Tag, push, publish, install:**
 
    ```sh
    git tag -a v1.0.1 -m "v1.0.1: data through Hatsu 2027"
    git push origin main v1.0.1
-   make install
+   make release                 # asks first; YES=1 skips the question
+   brew upgrade --cask basho    # or: make install
    basho version
    ```
 
    `basho version` must show the tag (not a commit ID) and the new data
    line, e.g. `data 2027-01-27 (196001–202701)`. A commit ID means the tag
-   is not on the commit you built.
+   is not on the commit you built. `make release` refuses an untagged HEAD,
+   a dirty tree, a tag not yet pushed, or a tag without a CHANGELOG entry
+   `## v1.0.1 (…)`; afterwards it pulls the cask commit GoReleaser made.
 
 ## Code release
 
@@ -71,7 +74,7 @@ yusho winner (§7.2). Before that, `make snapshot` skips it.
 3. `make release-snapshot` as a dry run: archives for the four targets,
    completions and man page, checksums, all in `dist/`. Two runs on the
    same commit give the same checksums.
-4. Tag, push and install as in step 5 above.
+4. Tag, push, publish and install as in step 5 above.
 
 ## Completions and man page
 

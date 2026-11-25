@@ -3,6 +3,15 @@
 All notable changes to basho. Versions follow [semantic
 versioning](https://semver.org): a patch release ships new data only.
 
+## Unreleased
+
+- Install with Homebrew: `brew tap thorstenpfister/basho
+  https://github.com/thorstenpfister/basho`, then `brew install --cask
+  thorstenpfister/basho/basho`. The cask brings the man page and the bash,
+  zsh and fish completions.
+- Releases are published on GitHub, with archives for macOS and Linux.
+- MIT licence for the code.
+
 ## v1.0.0 (2026-11-25)
 
 The first release, private and installed with `make install`.

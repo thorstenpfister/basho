@@ -1235,7 +1235,7 @@ adjacent_days = false
 | `vuln` | `go tool govulncheck ./...` | 0 |
 | `tidy` | `go mod tidy` and `go mod verify` | 0 |
 | `check` | `fmt-check lint vuln test-race test-leaks`; the full check before committing | 0 |
-| `tools` | Checks that external tools exist (golangci-lint, goreleaser) and prints install hints | 0 |
+| `tools` | Checks that external tools exist (golangci-lint, goreleaser, gh) and prints install hints | 0 |
 | `fixtures` | `basho-data fixtures record`: polite recording of the test fixtures | 1 |
 | `record` | `basho-data record $(ARGS)`: live recorder (Appendix E) | 1 |
 | `snapshot` | `basho-data snapshot update` then `verify` | 3 |
@@ -1244,6 +1244,7 @@ adjacent_days = false
 | `calibrate` | `basho-data rating calibrate`; writes `data/rating/params.json` and `docs/rating.md` | 5 |
 | `vhs` | Renders the README GIF from `docs/demo.tape` (needs VHS: `brew install vhs`) | 12 |
 | `release-snapshot` | `goreleaser release --snapshot --clean` into `dist/` | 17 |
+| `release` | `scripts/release.sh`: checks that HEAD's tag is pushed and has a CHANGELOG entry, then `goreleaser release` publishes the GitHub release and commits the cask | 18 |
 | `portraits` | `basho-data portraits update` | 14 |
 | `portraits-preview` | Rebuilds only the wrestlers in `overrides.toml` into a preview sheet, from the work cache | 14 |
 | `clean` | Removes `bin/`, `dist/`, the generated `completions/` and `manpages/` and coverage files; never the work cache or `data/` | 0 |
@@ -1257,15 +1258,15 @@ adjacent_days = false
 - **GoReleaser v2** for reproducible builds:
   - archives for the targets above, checksums, completions and man page (from Fang)
   - `make release-snapshot` (`goreleaser release --snapshot --clean`) for local test builds
-- **Release flow after a snapshot update:** commit the snapshot, tag the next patch version (`v1.2.3` → `v1.2.4`), run `make install`.
+- **Release flow after a snapshot update:** commit the snapshot, tag the next patch version (`v1.2.3` → `v1.2.4`), push, `make release` (§14.3).
 - **Brewfile in `macos-setup`:** nothing for v1.0. Optionally a `config.toml` in its `home/` directory.
 
 ### 14.3 After 1.0: public repository and Homebrew tap
 
 Only once you have decided to make the repository public (D9, D22).
 
-- GoReleaser's `homebrew_casks` section has `repository: {owner: thorstenpfister, name: basho, branch: main}` and `directory: Casks`. On every release it commits `Casks/basho.rb` to `main`.
-- Releases run locally: `GITHUB_TOKEN=$(gh auth token) goreleaser release --clean` after tagging. It publishes the GitHub release and commits the cask (D28).
+- GoReleaser's `homebrew_casks` section has `repository: {owner: thorstenpfister, name: basho, branch: main}` and `directory: Casks`. On every release it commits `Casks/basho.rb` to `main` ("cask: basho v1.2.3"). The cask installs the binary, the man page and the bash, zsh and fish completions from the archive.
+- Releases run locally (D28): `make release` after tagging and pushing. `scripts/release.sh` refuses an untagged HEAD, a dirty tree, a tag not on `origin` or one without a CHANGELOG entry, then runs `GITHUB_TOKEN=$(gh auth token) goreleaser release --clean` with that entry as the release notes, and pulls the cask commit.
 - Installing needs an explicit URL, because the repository isn't named `homebrew-*`:
   ```
   brew tap thorstenpfister/basho https://github.com/thorstenpfister/basho
@@ -1277,7 +1278,7 @@ Only once you have decided to make the repository public (D9, D22).
   cask "thorstenpfister/basho/basho"
   ```
 - **The repository must be public**: Homebrew downloads release assets without credentials.
-- **Unsigned (D25):** the cask gets a `postflight` hook that removes the quarantine attribute (the approach GoReleaser documents for unsigned casks).
+- **Unsigned (D25):** the cask's `postflight_steps` remove the quarantine attribute on macOS (`xattr -dr com.apple.quarantine`), the approach GoReleaser documents for unsigned casks. GoReleaser's Ruby `hooks.post.install` is deprecated since v2.19 (Homebrew replaced `postflight` with declarative steps); the config uses `hooks.post.install_steps`.
 - The tap clones the whole repository, including the data snapshot (a few MB, growing slowly), which is acceptable.
 - Linux: release tarballs and `go install github.com/thorstenpfister/basho/cmd/basho@latest`.
 
@@ -1891,6 +1892,12 @@ AC status: the data line reads "2026-11-25 (196001–202611)"; zsh loads the com
    - **`testdata/`:** the raw osada.us and sumo-api responses stay, owner's choice; `testdata/README.md` names the sources, dates and osada's policy (no AI training, cite the source).
    - **Going public** (`gh repo edit --visibility public`) is the owner's step, with steps 2–3.
 2. Add `homebrew_casks` to `.goreleaser.yaml` (§14.3) with the quarantine `postflight` hook; release locally with `goreleaser release` (§14.3).
+
+   Done 2026-11-25:
+   - **`.goreleaser.yaml`:** the GitHub release is on; `homebrew_casks` as in §14.3, with `postflight_steps` for the quarantine flag (the Ruby hook is deprecated), man page and completions. `goreleaser check` passes; `make release-snapshot` writes `dist/homebrew/Casks/basho.rb`. Homebrew 7 knows `postflight_steps` but no longer audits a cask loaded from a path, so the cask is checked by installing it (step 3).
+   - **`make release`** (`scripts/release.sh`, §14.1): the release notes are the tag's CHANGELOG entry, since GoReleaser's changelog stays off.
+   - **README:** Install leads with the tap and cask, then `go install …@latest` (its `basho version` is the module version), the release archives and `make install`.
+   - **GitHub:** description and topics set.
 3. Release, then check `brew tap … && brew install --cask thorstenpfister/basho/basho` on a clean user account.
 4. Add the tap and cask to the Brewfile in `macos-setup`.
 

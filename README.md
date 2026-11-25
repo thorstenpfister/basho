@@ -11,16 +11,31 @@ how it is built, and the implementation plan.
 
 ## Install
 
-Requirements: the Go version in `go.mod`. From a clone:
+With [Homebrew](https://brew.sh), on macOS or Linux:
 
 ```sh
-make install                 # basho into $(go env GOPATH)/bin
+brew tap thorstenpfister/basho https://github.com/thorstenpfister/basho
+brew install --cask thorstenpfister/basho/basho
 basho                        # the current tournament
-basho completion zsh > ~/.oh-my-zsh/custom/completions/_basho   # or any $fpath directory
 ```
 
-Updates: `git pull && make install`. [`docs/releasing.md`](docs/releasing.md)
-has the release steps and [`CHANGELOG.md`](CHANGELOG.md) what changed.
+The cask installs the man page and the bash, zsh and fish completions too.
+Update with `brew upgrade --cask basho`. The tap needs its URL, because this
+repository isn't named `homebrew-…`. basho isn't signed; the cask removes
+macOS's quarantine flag so it runs without a Gatekeeper prompt.
+
+With Go (the version in `go.mod`):
+
+```sh
+go install github.com/thorstenpfister/basho/cmd/basho@latest
+```
+
+The [releases](https://github.com/thorstenpfister/basho/releases) have
+archives for macOS and Linux (arm64 and amd64), with completions and the man
+page. From a clone, `make install`.
+
+[`CHANGELOG.md`](CHANGELOG.md) says what changed; the data bundled in basho
+is updated after each tournament.
 
 ## Development
 

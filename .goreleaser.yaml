@@ -1,5 +1,5 @@
-# GoReleaser v2 (SPEC §14.2): `make release-snapshot` builds into dist/.
-# Publishing and the Homebrew cask come after 1.0 (Phase 18, §14.3).
+# GoReleaser v2 (SPEC §14.2, §14.3): `make release-snapshot` builds into
+# dist/; `make release` publishes the GitHub release and commits the cask.
 version: 2
 
 before:
@@ -52,6 +52,38 @@ snapshot:
 changelog:
   disable: true
 
-# Releases are installed with `make install` until the repository is public.
+# The GitHub release; its notes are the tag's CHANGELOG entry
+# (`make release` passes them with --release-notes).
 release:
-  disable: true
+  github:
+    owner: thorstenpfister
+    name: basho
+  name_template: "{{ .Tag }}"
+
+# The tap is this repository (D22): each release commits Casks/basho.rb to
+# main. Install: brew install --cask thorstenpfister/basho/basho
+homebrew_casks:
+  - name: basho
+    repository:
+      owner: thorstenpfister
+      name: basho
+      branch: main
+    directory: Casks
+    homepage: https://github.com/thorstenpfister/basho
+    description: Grand sumo tournaments in the terminal, from 1960 to today's bouts
+    license: MIT
+    binaries: [basho]
+    manpages: [manpages/basho.1.gz]
+    completions:
+      bash: completions/basho.bash
+      zsh: completions/basho.zsh
+      fish: completions/basho.fish
+    commit_msg_template: "cask: basho {{ .Tag }}"
+    # Unsigned (D25): drop the quarantine flag so macOS runs it without a
+    # Gatekeeper prompt, as GoReleaser documents for unsigned casks.
+    hooks:
+      post:
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/basho"]
+          end

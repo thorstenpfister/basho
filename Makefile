@@ -83,6 +83,7 @@ check: fmt-check lint vuln test-race test-leaks ## All checks; run before commit
 tools: ## Check that external tools are installed
 	@command -v golangci-lint >/dev/null || { echo "missing golangci-lint: brew install golangci-lint"; exit 1; }
 	@command -v goreleaser >/dev/null || { echo "missing goreleaser: brew install goreleaser"; exit 1; }
+	@command -v gh >/dev/null || { echo "missing gh (for make release): brew install gh"; exit 1; }
 	@echo "tools ok"
 
 ## Data (network targets will ask before fetching unless YES=1)
@@ -118,6 +119,11 @@ vhs: build ## Render the README GIF from docs/demo.tape (needs VHS: brew install
 
 release-snapshot: ## Local GoReleaser test build into dist/ (archives, completions, man page, checksums)
 	goreleaser release --snapshot --clean
+
+release: ## Publish the tag at HEAD: GitHub release and Homebrew cask (SPEC §14.3, docs/releasing.md)
+	@tag=$$(git describe --tags --exact-match HEAD 2>/dev/null || echo "?"); printf 'Publishing %s to GitHub and committing Casks/basho.rb to main. ' "$$tag"
+	$(call confirm,)
+	./scripts/release.sh
 
 portraits: build ## Fetch and build the pixel portraits, ARGS passed on (SPEC §8.9; CONTACT=you@example.org for the User-Agent)
 	$(BIN)/basho-data portraits update --dry-run $(ARGS)
