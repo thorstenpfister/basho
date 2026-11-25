@@ -45,6 +45,10 @@ type SnapshotConfig struct {
 	Interval  time.Duration // time between requests, for the dry-run estimate
 	DryRun    bool
 
+	// Playoffs adds the playoff bouts sumo-api lacks, from osada, to a
+	// tournament osada still serves; nil leaves them out.
+	Playoffs PlayoffSource
+
 	// For the fixture snapshot built from recorded responses (SPEC §13):
 	Only    []domain.BashoID // just these tournaments instead of From–To
 	Partial bool             // skip banzuke and bout lists that are not recorded
@@ -83,6 +87,9 @@ func PlanSnapshot(m snapshot.Manifest, cfg SnapshotConfig) Plan {
 	p.Requests = len(p.Tournaments) * requestsPerTournament
 	if len(p.Tournaments) > 0 {
 		p.Requests += indexRequests
+		if cfg.Playoffs != nil {
+			p.Requests += playoffRequests
+		}
 	}
 	return p
 }
@@ -120,6 +127,9 @@ func UpdateSnapshot(ctx context.Context, src SnapshotSource, cfg SnapshotConfig,
 			continue
 		case err != nil:
 			return plan, fmt.Errorf("%s: %w", id, err)
+		}
+		if cfg.Playoffs != nil {
+			logPlayoffs(ctx, cfg.Playoffs, &t, i == len(plan.Tournaments)-1, log)
 		}
 		// Oddities in the source are logged, not fatal: verify decides,
 		// with known-issues.txt for the accepted ones.

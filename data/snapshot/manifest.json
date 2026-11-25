@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "generator": "7aa3566",
-  "generatedAt": "2026-11-25T06:34:47Z",
+  "generator": "v1.1.0-2-gf0b42c8",
+  "generatedAt": "2026-11-25T07:47:50Z",
   "source": "sumo-api.com",
   "basho": [
     "196001",
@@ -806,7 +806,7 @@
     "basho/202605.json.zst": "221015ac9bbcec6cc1d87b93deecc62941edffa07f7832efb0ef8a10fc3f6a7d",
     "basho/202607.json.zst": "c80a00d70f85c905c830906c63463f64ee155ae6d724a4f732151b685ff32f16",
     "basho/202609.json.zst": "a156f71c14af38438a00e39d3f728b033d7e4ea09c83aa56d6c290ae07a846f7",
-    "basho/202611.json.zst": "7903f84e1973e38bae1d92b9db5fa397d1ecb699f6b3dafb266e28d8cb289436",
+    "basho/202611.json.zst": "9751195d7d194b8aca6c583083256b76902eb3aabd990f54041cf153c9b2a5f1",
     "rikishi.json.zst": "9e7942d4b2f3e6f32e6fe550ef5ec71c45a579c2f29463f8f72070acae22372f"
   }
 }

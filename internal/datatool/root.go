@@ -136,12 +136,15 @@ func newAnalyzeCmd() *cobra.Command {
 func newSnapshotCmd(info buildinfo.Info) *cobra.Command {
 	cfg := SnapshotConfig{Generator: info.Version}
 	var from, to, workCache string
+	var noPlayoffs bool
 	update := &cobra.Command{
 		Use:   "update",
 		Short: "Add finished tournaments missing from the snapshot (about 33 requests each)",
 		Long: "update fetches every finished tournament between --from and --to that the manifest\n" +
 			"does not list yet, then rewrites the wrestler index. Responses go through a work\n" +
-			"cache, so an interrupted run resumes without fetching anything twice (SPEC §4.3).",
+			"cache, so an interrupted run resumes without fetching anything twice (SPEC §4.3).\n" +
+			"sumo-api has no playoff bouts; they come from osada.us (two requests) for a\n" +
+			"tournament it still serves, which it does until the next banzuke is out.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var err error
@@ -159,7 +162,11 @@ func newSnapshotCmd(info buildinfo.Info) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			g := &cache.Getter{Cache: c, Next: newClient(info, cfg.Interval, false), Policy: sumoapi.Freshness{}.Policy}
+			client := newClient(info, cfg.Interval, true)
+			g := &cache.Getter{Cache: c, Next: client, Policy: sumoapi.Freshness{}.Policy}
+			if !noPlayoffs {
+				cfg.Playoffs = &OnceCurrent{Next: osada.New(client, osada.DefaultBaseURL)}
+			}
 			_, err = UpdateSnapshot(cmd.Context(), sumoapi.New(g, sumoapi.DefaultBaseURL), cfg, cmd.ErrOrStderr())
 			return err
 		},
@@ -171,6 +178,7 @@ func newSnapshotCmd(info buildinfo.Info) *cobra.Command {
 	f.StringVar(&to, "to", "", "last tournament (YYYYMM, default the newest finished)")
 	f.DurationVar(&cfg.Interval, "interval", time.Second, "time between requests; at least 1s")
 	f.BoolVar(&cfg.DryRun, "dry-run", false, "print the plan and an estimated duration without fetching")
+	f.BoolVar(&noPlayoffs, "no-playoffs", false, "don't ask osada.us for playoff bouts")
 	var dir string
 	verify := &cobra.Command{
 		Use:   "verify",
@@ -199,11 +207,27 @@ func newSnapshotCmd(info buildinfo.Info) *cobra.Command {
 			return SnapshotStats(os.DirFS(dir), cmd.OutOrStdout())
 		},
 	}
-	for _, c := range []*cobra.Command{verify, stats} {
+	playoffs := &cobra.Command{
+		Use:   "playoffs YYYYMM",
+		Short: "Add osada's playoff bouts to a tournament already in the snapshot (2 requests)",
+		Long: "playoffs asks osada.us for the tournament it serves and, if it is YYYYMM, writes\n" +
+			"its decided playoff bouts into the snapshot (SPEC §4.3). For a tournament added\n" +
+			"while osada was unreachable; osada serves it until the next banzuke is out.",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, err := domain.ParseBashoID(args[0])
+			if err != nil {
+				return err
+			}
+			src := osada.New(newClient(info, time.Second, true), osada.DefaultBaseURL)
+			return RefreshPlayoffs(cmd.Context(), src, dir, id, info.Version, cmd.ErrOrStderr())
+		},
+	}
+	for _, c := range []*cobra.Command{verify, stats, playoffs} {
 		c.Flags().StringVar(&dir, "dir", "data/snapshot", "snapshot directory")
 	}
 	snap := &cobra.Command{Use: "snapshot", Short: "The embedded snapshot of finished tournaments"}
-	snap.AddCommand(update, verify, stats)
+	snap.AddCommand(update, verify, stats, playoffs)
 	return snap
 }
 

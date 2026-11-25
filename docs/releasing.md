@@ -23,6 +23,16 @@ yusho winner (§7.2). Before that, `make snapshot` skips it.
    `verify` must end without problems. A new oddity in the source data goes
    in `data/snapshot/known-issues.txt` with a `#` reason (§4.3).
 
+   Playoff bouts come from osada.us, which sumo-api lacks; the log says
+   "202701: 1 playoff bout from osada" when there was one. If it says "no
+   playoff bouts from osada: …" for a tournament that had a playoff (osada
+   was down, say), add them while osada still serves that tournament (until
+   the next banzuke, about two weeks):
+
+   ```sh
+   bin/basho-data snapshot playoffs 202701
+   ```
+
 2. **Portraits** (optional, for wrestlers new to the top divisions). Keep
    `.cache/basho-data` between runs, so only new photos are fetched:
 

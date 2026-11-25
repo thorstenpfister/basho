@@ -98,7 +98,7 @@ record: build ## Live recorder for tournament days, ARGS passed on (SPEC Appendi
 
 snapshot: build ## Update and verify the embedded snapshot, ARGS passed on (SPEC §4.3)
 	$(BIN)/basho-data snapshot update --dry-run $(ARGS)
-	$(call confirm,basho-data snapshot update fetches the tournaments above from sumo-api.com at 1 request per second.)
+	$(call confirm,basho-data snapshot update fetches the tournaments above from sumo-api.com at 1 request per second and asks osada.us for playoffs.)
 	$(BIN)/basho-data snapshot update $(ARGS)
 	$(BIN)/basho-data snapshot verify
 

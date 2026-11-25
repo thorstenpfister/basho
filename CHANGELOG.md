@@ -3,6 +3,13 @@
 All notable changes to basho. Versions follow [semantic
 versioning](https://semver.org): a patch release ships new data only.
 
+## v1.1.1 (2026-11-25)
+
+- Kyushu 2026's playoff is back (Onosato beat Wakamotoharu, watashikomi):
+  it went missing when the tournament moved into the bundled data, whose
+  source lists no playoffs. Playoffs now come from osada.us when a
+  tournament is added.
+
 ## v1.1.0 (2026-11-25)
 
 - Install with Homebrew: `brew tap thorstenpfister/basho
