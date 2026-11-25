@@ -3,7 +3,7 @@
 All notable changes to basho. Versions follow [semantic
 versioning](https://semver.org): a patch release ships new data only.
 
-## v1.1.1 (2026-11-25)
+## v1.2.0 (2026-11-25)
 
 - Kyushu 2026's playoff is back (Onosato beat Wakamotoharu, watashikomi):
   it went missing when the tournament moved into the bundled data, whose
