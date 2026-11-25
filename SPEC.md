@@ -1,6 +1,6 @@
 # basho — Specification
 
-> Status: **v0.20** (2026-10-15). Implemented: Phases 0–15 (Phase 10 finished with the Kyushu 2026 recordings: live mode takes sumo-api first; Phase 12's QA pass moved to Phase 16; Phase 13's rating divisor was dropped as not needed). The full snapshot (196001–202609), the calibrated rating and 353 wrestler portraits are committed. The non-interactive CLI works offline, `basho wrestler` included. The TUI has the picker, the day view with its recap, the VS screen with portraits, the standings, the wrestler screen and a paged help overlay, and offers `ui.names` and plain modes. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Next: the QA pass (16), then the v1.0 release (17).
+> Status: **v1.0** (2026-11-25), the spec of basho v1.0.0. Implemented: Phases 0–17 (Phase 10 finished with the Kyushu 2026 recordings: live mode takes sumo-api first; Phase 12's QA pass moved to Phase 16, done with two runs; Phase 13's rating divisor was dropped as not needed). The snapshot (196001–202611), the calibrated rating and 353 wrestler portraits are committed. The non-interactive CLI works offline, `basho wrestler` included. The TUI has the picker, the day view with its recap, the VS screen with portraits, the standings, the wrestler screen and a paged help overlay, and offers `ui.names` and plain modes. The current tournament comes from osada.us and sumo-api through the resolver, live mode polls it, and spoiler-free mode and `basho watch` work. Next: Phase 18 (public repository and Homebrew tap), once the owner decides to go public.
 > Repository: `github.com/thorstenpfister/basho` · Module: `github.com/thorstenpfister/basho` · Binary: `basho`
 
 ---
@@ -193,7 +193,7 @@ Finished tournaments never change. Instead of every user fetching them, a separa
   - Every file carries the schema version (`"v"`), and encoding is deterministic (bouts sorted by day, division, playoff, match number), so a rebuild leaves git unchanged.
   - sumo-api writes a placeholder opponent (7402) on absent days; the adapter maps it to none.
   - **Gaps in the source.** In a tournament that is final, an empty bout list is a gap, not a day still to come: the builder logs it and writes the tournament without that day, whose records stay pending (196503 day 7, 196505 day 6 and 197811 day 5, both divisions). A record day that is pending while that day's bout is decided, against the same opponent, takes the bout's result, and the builder logs it (202507 Juryo day 15, Nishikigi and Fujiseiun). Pending otherwise means no bout that day.
-- **Size:** measured on the first full build (V8): 399 tournaments, 195,099 bouts, 2.50 MB for the tournament files plus 37 KB for the 997-wrestler index. Embedding stays well under the 15 MB limit, above which it would ship as a separate release asset.
+- **Size:** measured on the first full build (V8): 399 tournaments, 195,099 bouts, 2.50 MB for the tournament files plus 37 KB for the 997-wrestler index. With Kyushu 2026 (2026-11-25): 400 tournaments, 195,613 bouts, 2.51 MB, and a 1,000-wrestler index of 30 KB. Embedding stays well under the 15 MB limit, above which it would ship as a separate release asset.
 - **Building it:**
   - **First full build:** about 400 tournaments × about 34 requests (1 basho, 2 banzuke, 30 torikumi) ≈ 13,200 requests at 1 request per second; it took about 3.5 hours on 2026-10-13. This runs once, not on a tournament day (D24).
   - **Updates:** the tool reads the manifest and only fetches tournaments that are finished (rule in §7.2) and not yet included. That is about 34 requests per new tournament, plus the wrestler index, which is rewritten whenever a tournament is added, including one older than the newest.
@@ -1095,7 +1095,7 @@ Output rules:
 
 - **When the output is a terminal (TTY):** Lip Gloss tables in the same style as the TUI.
 - **When piped:** no colour, same layout. `--no-color` forces this in a terminal.
-- Every data command ends with a dim provenance line (`source: snapshot (2026-10-14)`, `· stale` when an expired cache entry stood in).
+- Every data command ends with a dim provenance line (`source: snapshot (2026-11-25)`, `· stale` when an expired cache entry stood in).
 - `--ascii` (or `ui.ascii`) swaps the symbols: ○ ● □ ■ – · ★ ▲ ▼ │ 結び 休 become o x O X - . * + - | musubi kyujo.
 - `basho bout` prints the tale of the tape as mirrored columns, the last meetings, the result, then both technique profiles and the matchup line (§6.7). `basho standings` prints every row grouped by band (the TUI collapses the rest).
 - **`--json`:** a stable envelope:
@@ -1871,7 +1871,11 @@ AC status: met with two runs instead of four (owner's call); no finding open. Li
    - **README:** an Install section with `make install` and the zsh completion.
 5. Tag `v1.0.0`.
 
+   Prepared 2026-11-25: the tag ships the Kyushu 2026 data rather than leaving it for a v1.0.1 (owner's plan). The snapshot runs through 202611 (2bdc08d); three tests that took Kyushu 2026 as "after the snapshot" now take the snapshot's newest tournament + 1 from `service.Bundled`, so a data release no longer breaks them. Spec marked v1.0, CHANGELOG dated. Tagging and pushing are the owner's.
+
 **AC:** `make install` produces a `basho` whose `basho version` shows the tag and the snapshot date; zsh completions work; a snapshot-only patch release takes under 15 minutes of manual work.
+
+AC status: the data line reads "2026-11-25 (196001–202611)"; zsh loads the completion (step 3). The first data release (Kyushu 2026) ran as `docs/releasing.md` describes: `make snapshot` and `make portraits` without trouble (no new portraits), then the one-off test fix above. The tag line is checked with `basho version` after tagging.
 
 ---
 
@@ -1888,7 +1892,7 @@ AC status: met with two runs instead of four (owner's call); no finding open. Li
 
 ---
 
-*Next step: mark this spec v1.0 after the final read.*
+*Spec v1.0 after the final read before tagging (2026-11-25). Next: Phase 18, when the owner decides to go public.*
 
 ---
 

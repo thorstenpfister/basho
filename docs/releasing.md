@@ -37,27 +37,31 @@ yusho winner (§7.2). Before that, `make snapshot` skips it.
    ```sh
    make check
    git add data
-   git commit -m "data: snapshot through 202611"
+   git commit -m "data: snapshot through 202701"
    ```
+
+   A test that fails only with the new data has taken some tournament as
+   "after the snapshot"; take the snapshot's newest + 1 from
+   `service.Bundled()` instead of naming one.
 
    The rating needs no new calibration: it is evaluated up to the
    tournament named in `data/rating/params.json`, so new data leaves its
    test alone. Recalibrate (`make calibrate`) only to change the model.
 
-4. **CHANGELOG:** add the version with one line, "Data through Kyushu 2026",
+4. **CHANGELOG:** add the version with one line, "Data through Hatsu 2027",
    and commit it.
 
 5. **Tag, push, install:**
 
    ```sh
-   git tag -a v1.0.1 -m "v1.0.1: data through Kyushu 2026"
+   git tag -a v1.0.1 -m "v1.0.1: data through Hatsu 2027"
    git push origin main v1.0.1
    make install
    basho version
    ```
 
    `basho version` must show the tag (not a commit ID) and the new data
-   line, e.g. `data 2026-11-26 (196001–202611)`. A commit ID means the tag
+   line, e.g. `data 2027-01-27 (196001–202701)`. A commit ID means the tag
    is not on the commit you built.
 
 ## Code release
