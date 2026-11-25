@@ -32,6 +32,9 @@ archives:
       - src: README.md
         info:
           mtime: "{{ .CommitDate }}"
+      - src: LICENSE
+        info:
+          mtime: "{{ .CommitDate }}"
       - src: completions/*
         info:
           mtime: "{{ .CommitDate }}"

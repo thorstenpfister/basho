@@ -1875,7 +1875,7 @@ AC status: met with two runs instead of four (owner's call); no finding open. Li
 
 **AC:** `make install` produces a `basho` whose `basho version` shows the tag and the snapshot date; zsh completions work; a snapshot-only patch release takes under 15 minutes of manual work.
 
-AC status: the data line reads "2026-11-25 (196001–202611)"; zsh loads the completion (step 3). The first data release (Kyushu 2026) ran as `docs/releasing.md` describes: `make snapshot` and `make portraits` without trouble (no new portraits), then the one-off test fix above. The tag line is checked with `basho version` after tagging.
+AC status: the data line reads "2026-11-25 (196001–202611)"; zsh loads the completion (step 3). The first data release (Kyushu 2026) ran as `docs/releasing.md` describes: `make snapshot` and `make portraits` without trouble (no new portraits), then the one-off test fix above. Tagged by the owner on 2026-11-25; after `make install`, `basho version` reads `basho v1.0.0` with that data line. **Met.**
 
 ---
 
@@ -1884,6 +1884,12 @@ AC status: the data line reads "2026-11-25 (196001–202611)"; zsh loads the com
 ### Phase 18: Public repository and Homebrew tap
 
 1. Decide to go public (D9). Review the history, README, LICENSE for the code and the data credits beforehand.
+
+   Reviewed 2026-11-25 (144 commits, 6 MB packed):
+   - **History:** no secrets, tokens or keys; no host or account names (the runbook and launchd plist use placeholders); the largest blob is the README GIF (1.5 MB). Commits carry the owner's own email, kept by the owner's choice.
+   - **LICENSE:** MIT for the code, also in the release archives. The README's Licence section names what it doesn't cover: the portraits (each under its photo's licence, `CREDITS.md`), the snapshot data from sumo-api.com, and `testdata/`. `CREDITS.md` pointed to a LICENSE file for the photo licences; it now points to its Licence column.
+   - **`testdata/`:** the raw osada.us and sumo-api responses stay, owner's choice; `testdata/README.md` names the sources, dates and osada's policy (no AI training, cite the source).
+   - **Going public** (`gh repo edit --visibility public`) is the owner's step, with steps 2–3.
 2. Add `homebrew_casks` to `.goreleaser.yaml` (§14.3) with the quarantine `postflight` hook; release locally with `goreleaser release` (§14.3).
 3. Release, then check `brew tap … && brew install --cask thorstenpfister/basho/basho` on a clean user account.
 4. Add the tap and cask to the Brewfile in `macos-setup`.

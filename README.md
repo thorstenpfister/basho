@@ -51,3 +51,13 @@ basho relies on; v2 differs a lot from v1.
   and `basho credits --portraits` credit every photo.
 
 Usage policies and how basho stays polite: SPEC.md §4 and §7.
+
+## Licence
+
+The code is under the [MIT licence](LICENSE). It does not cover:
+
+- the portraits in `data/portraits/`: each keeps its photo's licence,
+  listed in [`CREDITS.md`](data/portraits/CREDITS.md);
+- the tournament data in `data/snapshot/`, built from sumo-api.com;
+- the recorded responses in `testdata/`, which belong to sumo-api.com and
+  osada.us ([`testdata/README.md`](testdata/README.md)).
